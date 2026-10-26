@@ -1,7 +1,8 @@
 # FitRocket – Roadmap
 
-- **0.7.0:** Eigene Ernährungs- und Bewegungspunkte, persönliches Profil, manuelle Schritte, Wochenkonto und Backups.
-- **0.8.0:** Android 14+ Health Connect für Schritte und Trainingssessions, optionaler Sync beim Öffnen, lokale Deduplizierung und getrennte Datenquellen.
-- **0.9.0:** Optionaler Android 13-Support über Jetpack Health Connect, Zeitintervall-genaue Schritt-Abgrenzung, gemessene Trainingsenergie, Aktivitätsdetailseiten und Verlaufsgrafiken.
-- **1.0.0:** Stabilisierung, Instrumentierungstests auf realen Geräten, Barrierefreiheit, Signierung und Datenmigration.
-- Später: zusätzliche Smartwatch-Daten nach gezielter Freigabe, optionale Trainingspläne und Rezepteditor.
+- **0.7.0:** Ernährungspunkte, Bewegungsrechnung, persönliches Profil, Schritte und Wochenkonto.
+- **0.8.0:** Health Connect (Android 14+) mit Schritt- und Trainingseinlesung.
+- **0.8.1:** 28 Wochenpunkte und täglich maximal 4 ungenutzte Punkte Übertrag.
+- **0.9.0:** Neu gegliederte Tagesübersicht, Barcode-Scanner, Open-Food-Facts-Produktabfrage, offline Rezeptvorschläge, bildliches Wasserprotokoll und Gewichtskurve.
+- **1.0.0:** Stabilitätstests auf mehreren Geräten, kleinere Bildschirme und Barrierefreiheit; Berechtigungskontrollen, Release-Signierung und verlässliche Datenmigration.
+- **Später:** Optionaler Speiseplan und Einkaufszettel, Scanprodukt-Bearbeitung, Android-13-Health-Connect-Unterstützung, präzisere Trainings-Deduplizierung, Erinnerungseinstellungen und lokale Rezeptbearbeitung.

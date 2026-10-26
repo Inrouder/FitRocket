@@ -1,67 +1,74 @@
 # FitRocket 🚀
 
-**Dein persönliches Ernährungstagebuch mit Bewegungspunkten.** FitRocket arbeitet lokal auf Android, nutzt einen eigenen Nährwertscore und bietet eine gemütliche Oberfläche mit Tagesbilanz, Lebensmittelsuche und Wochenpuffer.
+FitRocket ist ein eigenständiges Android-Ernährungs- und Bewegungstagebuch mit einem eigenen FitRocket-Punktesystem. Die Daten bleiben auf deinem Gerät. Die App bietet warme Pastellfarben, übersichtliche Tageskarten und ein flexibel nutzbares Wochenkonto.
 
-## APK installieren
-1. [GitHub Actions – Android APK](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml) öffnen.
-2. Den neuesten **erfolgreichen** Build auswählen.
-3. Unter *Artifacts* das Paket `FitRocket-v0.8.1-debug-apk` herunterladen.
+## FitRocket v0.9.0 herunterladen
+
+1. Den [Android-APK-Workflow](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml) aufrufen.
+2. Den aktuellsten erfolgreichen GitHub-Actions-Lauf auswählen.
+3. Unter **Artifacts** das Paket `FitRocket-v0.9.0-debug-apk` herunterladen.
 4. ZIP entpacken und `app-debug.apk` installieren.
 
-Eine Debug-APK ist zum privaten Testen gedacht. Deine bereits lokal gespeicherten Mahlzeiten bleiben bei regulärem Update mit derselben App-ID erhalten; vor größeren Änderungen empfiehlt sich **Mehr → Backup exportieren**.
+Bei regulären Updates derselben Debug-Signatur bleiben gespeicherte Daten erhalten. Vor Neuinstallation oder Telefonwechsel immer **Mehr → Backup exportieren** verwenden. Eine Deinstallation ohne Backup löscht die lokalen FitRocket-Daten.
 
-## Neu in Version 0.8.1 – Wochenkonto
+## Neue Funktionen – Version 0.9.0
 
-- **28 Punkte Wochenstartguthaben**, jede Woche ab Montag automatisch neu verfügbar.
-- **Bis zu 4 ungenutzte Tagespunkte** gehen nach Ende des jeweiligen Tages automatisch ins laufende Wochenkonto.
-- Nicht genutzte Tagespunkte des aktuellen Tages werden **noch nicht** gutgeschrieben.
-- Auch Tage ohne Tagebucheintrag gelten als ungenutzt (Tagesverbrauch = 0). So funktioniert der Übertrag ohne manuelles Bestätigen.
-- Tagesüberschreitungen werden automatisch aus dem Wochenkonto ausgeglichen; du kannst Wochenpunkte also frei für zusätzliche Lebensmittel verwenden.
-- Bewegungspunkte gemäß deiner gewählten Freigabe (0/50/100 %) werden weiterhin zusätzlich gutgeschrieben.
-- Tagesüberträge, Sportgutschriften, Wochenstart und Verbrauch erscheinen separat im Wochenkonto.
-- Die Berechnung berücksichtigt nur die aktuelle Kalenderwoche: alte Guthaben werden nicht in die nächste Woche mitgenommen.
-- Einmalige Umstellung bestehender Installationen auf 28 Wochenstartpunkte; bisheriges Tagebuch und die 280 Basislebensmittel bleiben erhalten.
-- Unter **Mehr → Tagesbudget & Wochenpunkte** kannst du die Startpunktzahl bei Bedarf weiterhin anpassen.
+### Tagesübersicht und Mahlzeiten
+- Übersichtlichere **Heute**-Ansicht mit Punktekreis, Schnellaktionen, Wochenkonto, Wasser und Gewicht.
+- Mahlzeiten nach **Frühstück, Mittagessen, Abendessen, Snacks und Getränken** getrennt.
+- Einträge und Punktesumme pro Mahlzeitengruppe; Button `+` öffnet die Lebensmittelsuche mit vorausgewählter Mahlzeit.
+- **Tagebuch** mit Kalender, Pfeilnavigation und gruppierten Einträgen.
+- Vorhandene ungruppierte ältere Mahlzeiten werden unter Snacks aufgeführt.
 
-## Funktionen aus Version 0.8.0
-- **Smartwatch & Health Connect (Android 14+):** Einmalige Freigabe, Schritte und Trainingseinheiten der aktuellen Woche einlesen.
-- Importierte Trainings werden mit eindeutiger Datenquellen-Kennung aktualisiert, statt beim nächsten Abgleich nochmals verbucht.
-- Schrittzahlen werden über Health Connect aggregiert; im Tagebuch können Uhr und manuelle Eingaben als bevorzugte Quelle gewählt werden.
-- Optional automatische Synchronisation beim Öffnen (höchstens alle 20 Minuten), zusätzlich jederzeit manuell.
-- Nur Lesezugriff auf Schritte und Trainingsdaten; Daten bleiben lokal, Verbindung und importierte Daten können entfernt werden.
-- Workout-Überschneidungen werden mit Zeit und Dauer abgeglichen; Workout-Schritte werden bei den übrigen Tages-Schritten berücksichtigt.
-- Neue Backups speichern importierte Uhr-Schritte und Eintragssperren, stellen Zugriffsrechte jedoch nicht automatisch wieder her.
+### Barcode und Artikel
+- **Barcode scannen** über Google Code Scanner (`play-services-code-scanner:16.1.0`).
+- Alternative **Barcode manuell eingeben**, falls Google Play-Dienste nicht verfügbar sind.
+- Produktnamen und Nährwertdaten über **Open Food Facts API v3**, bei Internetverbindung.
+- FitRocket berechnet die Punkte nach dem eigenen Nahrungsscore aus kcal, gesättigtem Fett, Zucker und Protein.
+- Fehlende Nährwerte werden **nicht** als 0 interpretiert: Fehlende Werte können vom Nährwertetikett ergänzt werden.
+- Gespeicherte Scanprodukte erscheinen offline in der normalen Lebensmittelsuche.
+- Bei Daten von Open Food Facts die Herstellerangaben prüfen: Nutzerbeiträge können Fehler enthalten.
 
-## Bewegungsgrundlagen aus Version 0.7.0
-- Eigenständige FitRocket-Rechenregeln statt externer Programme.
-- Bewegungsprofil mit **Alter, Körpergröße, Gewicht und wählbarem Stoffwechsel-Referenzprofil**.
-- Persönlicher Ruheenergiebedarf als Ausgangspunkt der Aktivitätsabschätzung.
-- **9 Sportarten × 3 Intensitäten**, Trainingsdauer und geschätzte *aktive* Kilokalorien.
-- **Schritttagebuch**, individuell einstellbare Grundschritte (Standard 3.000), Tempo (80/100/120 Schritte/Minute).
-- Schutz vor Doppelzählung: geschätzte oder eingegebene Schritte aus Gehen/Laufen werden bei der Tages-Schrittgutschrift abgezogen.
-- Gutschrift von Bewegungspunkten zu **0 %, 50 % oder 100 %** ins Wochenbudget.
-- Tägliches Budget unverändert. Wochenpuffer berücksichtigt durch Essen überzogene Tagesbudgets.
-- Einstellbarer Faktor **30–150 aktive kcal je Bewegungspunkt** (Standard 65).
-- Vollständige JSON-Datensicherung inklusive Profil, Aktivität, Schritte und Punkte-Einstellungen. Importiert auch Backups älterer Versionen.
-- 358 lokale Lebensmittel: 280 Basislebensmittel, 23 Portionsvorschläge, 45 Nährwertprofile und 10 manuell bewertbare Lebensmittel.
-- GitHub Actions führt sowohl **Unit-Tests** der Formeln als auch die APK-Kompilierung aus.
+### Rezeptideen
+- **13 offline gespeicherte Rezeptvorschläge**, nach Mahlzeit filterbar.
+- Genaue Zutatenmengen aus dem vorhandenen Lebensmitteldatenbestand, Zubereitungsanleitung und geschätzte Punkte je Portion.
+- Rezept kann mit wählbarer Portionsanzahl ins Tagebuch übernommen werden.
+- Zusätzliche Soßen, Öl und Varianten ggf. separat erfassen.
 
-## App-Bereiche
-- **Heute:** Tagespunkte, verfügbare Punkte, Wochenpuffer und Bewegung.
-- **Suche:** Lebensmittel auswählen, Portionsmenge ändern und eintragen.
-- **Tagebuch:** Einträge ansehen, korrigieren und löschen.
-- **Mehr:** Aktivitätskonto, Wochen-/Monatsstatistik, Gewicht, Punktebudget und Backup.
+### Wasser
+- **Bildliche 250-ml-Gläser** zum Antippen und Befüllen, Plus-/Minus-Tasten.
+- Wasserbilanz pro Datum, auch im Tagebuch.
+- Einstellbares Tagesziel (250–6000 ml in 250-ml-Schritten), Standard 1500 ml.
 
-## Transparente Regeln
-Die App nutzt ein selbst definiertes Punktesystem. Die Werte der Basislebensmittel und vorhandenen Vorschlagsportionen sind die FitRocket-Startdaten, nicht Produktmessungen. Marken- und Rezeptangaben können abweichen. Details findest du in [docs/FORMULAS.md](docs/FORMULAS.md).
+### Gewicht
+- **Gewichtsskala** als Schieberegler plus genaue Eingabe in kg.
+- Individuelles Zielgewicht, Start- und aktuelles Gewicht.
+- Grafischer Gewichtsverlauf mit Messpunkten und Ziel-Linie.
+- Bei vorhandenem Aktivitätsprofil werden neue Gewichtswerte für künftige Bewegungsberechnungen übernommen.
 
-**Bewegungsdaten sind derzeit manuell:** Es gibt noch keine automatische direkte Wear-OS-Uhr-App, keine automatische Schrittzählung ohne kompatible Datenquelle und keine Online-KI. Das System funktioniert offline; es fordert keinen Account und benötigt keinen Zugang zu privaten Fitnessdiensten.
+### Bestehende Funktionen
+- **280 Basislebensmittel mit 0 FitRocket-Punkten**, insgesamt 358 vorinstallierte Lebensmittel.
+- **28 Wochenstartpunkte** jeden Montag, dazu bis zu vier ungenutzte Tagespunkte vom abgeschlossenen Tag.
+- Persönliche Bewegungsberechnung, Training, Schritte und optionale Synchronisation mit Health Connect (Android 14+).
+- Wahlweise 0 %, 50 % oder 100 % der Bewegungspunkte zum Wochenbudget hinzufügen.
+- JSON-Backup: ab Version 0.9.0 auch Wassereinträge, Trinkziel, Wunschgewicht und gescannte Produkte. Ältere Backups werden weiterhin angenommen.
+
+## Berechnungen
+Die [FitRocket-Formeln](docs/FORMULAS.md) beschreiben die eigenen Ernährungs- und Bewegungs-Punkteregeln. ZeroPoint-Basislebensmittel bleiben bei 0, Zutaten und Zusätze werden separat behandelt.
+
+## Datenschutz und Datenquellen
+- Bei Nutzung der **Barcode-Produktsuche** wird die Barcode-Ziffernfolge an Open Food Facts übertragen; weder dein Tagebuch noch Profil- oder Gewichtsdaten werden dabei versendet.
+- Open Food Facts ist eine offene, von Nutzenden gepflegte Lebensmitteldatenbank: https://openfoodfacts.org/ – Datenlizenz: https://opendatacommons.org/licenses/odbl/
+- Google Code Scanner nutzt die Google Play-Dienste und benötigt keine von FitRocket selbst angeforderte Kameraberechtigung. Siehe: https://developers.google.com/ml-kit/vision/barcode-scanning/code-scanner
+- Health Connect benötigt separate Android-Freigaben; Details: [Health Connect](docs/HEALTH_CONNECT.md).
+- Die App lädt keine Lebensmittelbilder von externen Diensten herunter und lädt keine privaten Gesundheitsdaten in eine Cloud hoch.
+- Die automatische Android-System-Sicherung ist deaktiviert. Eigenständiger Datenexport ist möglich.
 
 ## Entwicklung
-- JDK 17
-- Android SDK 35
-- Gradle 8.11.1
-- Testlauf: `gradle :app:testDebugUnitTest :app:assembleDebug`
-- Package-ID: `de.inrouder.fitrocket`
+- Android Java 17, SDK 35, minSdk 26, targetSdk 35
+- Debug-Build via Gradle 8.11.1
+- Test- und Build-Befehl: `gradle :app:testDebugUnitTest :app:assembleDebug`
+- Katalog-Prüfung: `python3 scripts/validate_catalog.py`
+- Package-ID `de.inrouder.fitrocket`
 
-FitRocket ist ein eigenständiges Open-Source-Projekt mit lokalen Nutzerdaten.
+Entwickelt in diesem [GitHub-Repository](https://github.com/Inrouder/FitRocket).

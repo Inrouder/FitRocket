@@ -69,3 +69,15 @@ Bei der einmaligen Migration vorhandener v0.8.0-Installationen wird das Wochenst
 - Profiländerungen beeinflussen zukünftige Workouts und Schrittberechnungen; bereits dokumentierte Trainingseinheiten behalten ihre Energieaufnahme.
 - Backup-Schema 3 (mit Aktivitäts- und Uhr-Schrittdaten): Mahlzeiten, Gewichte, Training, Schritte, Benutzerprofil und Punkteinstellungen. Import von Schema 1 ist möglich.
 - Health-Connect-Daten werden bei freigegebenem Zugriff eingelesen; ein automatischer Abruf wird nur bei bestehender Verbindung ausgeführt.
+
+## 7. Barcode-Produkte und Rezeptpunkte (v0.9.0)
+Die Barcodeerfassung fragt bei Open Food Facts nur den öffentlichen Produktdatensatz ab. Für eine automatische FitRocket-Bewertung müssen **kcal, gesättigte Fettsäuren, Zucker und Protein je 100 g bzw. 100 ml** vorhanden sein. Fehlende Zahlen werden nicht als null interpretiert.
+
+Alle vollständigen Nährwerte werden mit der unter Abschnitt 1 erläuterten eigenständigen FitRocket-Formel auf die tatsächliche Portionsmenge skaliert. Nach manueller Ergänzung fehlender Werte oder Prüfung der Herstellerangaben wird der Scanartikel im lokalen Katalog gespeichert.
+
+Rezeptvorschläge bestehen aus Rezeptzutaten, die mit einer konkreten Produkt-ID und einer Menge in Gramm verknüpft sind. Basislebensmittel der Klasse `basic` zählen **0 Punkte**, `nutrition`-Produkte werden auf die Mengen einer Portion umgerechnet. Die Punkte der Zutaten werden summiert und im Rezept angezeigt. Wer Portionen verändert, multipliziert die Punkte pro Portion.
+
+## 8. Wasser und Gewicht
+Wasser wird in **250-ml-Schritten** je Kalendertag gespeichert; das Tagesziel ist individuell einstellbar. Wasser wird nicht als Essens-Punktwert verrechnet.
+
+Gewichtsaufzeichnungen werden je Tag mit Datum und Kilogramm geführt. Die Verlaufsgrafik verbindet die gespeicherten Werte und zeigt optional eine Ziel-Linie. Sie dient der Darstellung, nicht der Prognose.

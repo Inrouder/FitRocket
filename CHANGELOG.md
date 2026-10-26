@@ -1,5 +1,19 @@
 # FitRocket – Versionshinweise
 
+## 0.9.0 – Übersicht, Barcode, Wasser, Rezepte & Gewicht
+- Heute-Ansicht neu gegliedert und Schnellaktionen ergänzt.
+- Frühstück, Mittagessen, Abendessen, Snacks und Getränke als eigene Tagebuch-Bereiche.
+- Tagebuch nach Datum navigierbar; ältere Mahlzeiten ohne Gruppenzuordnung bleiben sichtbar.
+- Google-Code-Scanner und manuelle Barcode-Eingabe.
+- Open-Food-Facts-v3-Produktabfrage mit Pflichtprüfung aller vier Nährwerte und Korrektureingabe.
+- Gefundene Scanprodukte werden lokal gespeichert und in die Lebensmittelsuche integriert.
+- 13 offline verfügbare Rezeptvorschläge mit konkreten Katalog-Zutaten und berechneten Punkten.
+- Trinktagebuch mit bildlichen 250-ml-Gläsern, Plus/Minus und einstellbarem Ziel.
+- Gewichtseintrag über Skala, grafische Zeitreihe und Zielgewicht.
+- JSON-Backup auf Schema 4 erweitert: Wasser, Gewichtsziel, eigene gescannte Lebensmittel.
+- Automatische Katalog- und Rezeptprüfung im GitHub-Workflow.
+- Vorhandenes Wochenkonto mit 28 Startpunkten und bestehende Health-Connect-Funktionen bleiben erhalten.
+
 ## 0.8.1 – 28 Wochenpunkte und Tagesübertrag
 - 28 Punkte stehen jeden Montag als neues Wochenstartguthaben bereit.
 - Unverbrauchte Tagespunkte bis maximal 4 werden nach Abschluss des Tages dem aktuellen Wochenkonto gutgeschrieben.
