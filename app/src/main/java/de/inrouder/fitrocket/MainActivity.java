@@ -468,14 +468,19 @@ public class MainActivity extends Activity {
     });
   }
   private boolean nearDuplicate(JSONObject saved,String date,int type,long startMs,int minutes){
-    if(!date.equals(saved.optString("date")))return false;
-    if(saved.has("startEpochMs")){
-      long old=saved.optLong("startEpochMs",0);
-      if(old>0 && Math.abs(old-startMs)<12*60*1000L
-         && Math.abs(saved.optInt("minutes")-minutes)<12)return true;
+    int oldType=saved.optInt("typeIndex",-1);
+    if(oldType<0){
+      String title=saved.optString("name");
+      if("Gehen".equals(title))oldType=0;
+      else if("Radfahren".equals(title))oldType=1;
+      else if("Schwimmen".equals(title))oldType=2;
+      else if("Laufen".equals(title))oldType=3;
+      else if("Krafttraining".equals(title))oldType=4;
+      else if("Yoga".equals(title))oldType=5;
+      else if("Tanzen".equals(title))oldType=6;
     }
-    return !saved.has("startEpochMs") && saved.optInt("typeIndex",-1)==type
-          && Math.abs(saved.optInt("minutes")-minutes)<=5;
+    return FitRocketSyncRules.isDuplicate(saved.optString("date"),date,oldType,type,
+        saved.optInt("minutes"),minutes,saved.optLong("startEpochMs"),startMs);
   }
   private int applyHealthResult(HealthSync.Result result) throws JSONException {
     final String start=weekStart().toString(),end=weekStart().plusDays(7).toString();
