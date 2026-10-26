@@ -126,7 +126,46 @@ public class MainActivity extends Activity {
     search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int b,int c){}public void onTextChanged(CharSequence s,int a,int b,int c){filter.run();}public void afterTextChanged(Editable s){}});
     filter.run();
   }
-  private void foodDialog(JSONObject f){LinearLayout content=new LinearLayout(this);content.setPadding(22,8,22,8);content.setOrientation(1);content.addView(label(f.optString("category")+"\n"+kind(f)+"\nPortion: "+f.optString("portion")+"\n"+f.optString("notes"),14));EditText mult=edit("Portionsfaktor","1",8194),points=edit("Punkte pro Portion",f.isNull("points")?"":String.valueOf(f.optInt("points")),2);content.addView(label("Portionsfaktor: bei 150 g Referenzportion z. B. 0,5 für 75 g",13));content.addView(mult);content.addView(points);Spinner group=groupSpinner();content.addView(group);AlertDialog d=new AlertDialog.Builder(this).setTitle(f.optString("name")).setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Buchen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{double factor=Double.parseDouble(mult.getText().toString().replace(',','.'));int pointsPer=Integer.parseInt(points.getText().toString());if(!Double.isFinite(factor)||factor<=0||factor>100||pointsPer<0||pointsPer>2000)throw new Exception();int total=(int)Math.round(pointsPer*factor);if(total>2000)throw new Exception();addMeal(f.optString("name")+" × "+factor,total,f.optString("id"),kind(f),group.getSelectedItem().toString());d.dismiss();home();}catch(Exception ex){msg("Bitte gültige Portion und Punkte eingeben.");}}));d.show();}
+  private double num(String s) { return Double.parseDouble(s.trim().replace(',','.')); }
+  // Publicly reconstructed approximation; not the proprietary historic WW formula.
+  private int estimatedSmartPoints(double kcal,double saturated,double sugar,double protein) {
+    if(!Double.isFinite(kcal)||!Double.isFinite(saturated)||!Double.isFinite(sugar)||!Double.isFinite(protein)||
+      kcal<0||saturated<0||sugar<0||protein<0) throw new IllegalArgumentException();
+    return Math.max(0,(int)Math.round(kcal*0.0305+saturated*0.275+sugar*0.12-protein*0.098));
+  }
+  private int calcForGrams(JSONObject f,double grams){
+    JSONObject n=f.optJSONObject("nutrition");
+    if(n==null||grams<=0||grams>10000)throw new IllegalArgumentException();
+    double factor=grams/100.0;
+    return estimatedSmartPoints(n.optDouble("kcal")*factor,n.optDouble("saturatedFat_g")*factor,n.optDouble("sugar_g")*factor,n.optDouble("protein_g")*factor);
+  }
+  private void nutritionDialog(JSONObject f) {
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(8),dp(20),dp(8));
+    content.addView(label(f.optString("name")+" · ca. Punkte nach Nährwerten",16));
+    content.addView(label("Menge in Gramm bzw. Milliliter",13));
+    EditText amount=edit("Menge","100",8194);content.addView(amount);
+    JSONObject n=f.optJSONObject("nutrition");if(n==null)return;
+    content.addView(label("Werte je 100 g/ml: "+n.optDouble("kcal")+" kcal · "+n.optDouble("sugar_g")+" g Zucker · "+n.optDouble("saturatedFat_g")+" g gesättigte Fette · "+n.optDouble("protein_g")+" g Protein",13));
+    TextView estimate=label("ca. "+calcForGrams(f,100)+" Punkte",17);content.addView(estimate);
+    amount.addTextChangedListener(new TextWatcher(){
+      public void beforeTextChanged(CharSequence s,int a,int b,int c){}
+      public void onTextChanged(CharSequence s,int a,int b,int c){
+        try {estimate.setText("ca. "+calcForGrams(f,num(s.toString()))+" Punkte");}
+        catch(Exception ex){estimate.setText("Menge eingeben");}
+      }
+      public void afterTextChanged(Editable e){}
+    });
+    Spinner group=groupSpinner();content.addView(group);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Portion berechnen").setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();
+    dialog.setOnShowListener(x->dialog.getButton(-1).setOnClickListener(v->{
+      try{double grams=num(amount.getText().toString());int pts=calcForGrams(f,grams);
+        addMeal(f.optString("name")+" ("+grams+" g/ml)",pts,f.optString("id"),"Nährwertschätzung",group.getSelectedItem().toString());
+        dialog.dismiss();home();
+      }catch(Exception ex){msg("Bitte eine gültige Menge angeben.");}
+    }));
+    dialog.show();
+  }
+  private void foodDialog(JSONObject f){if("calculated_estimate".equals(f.optString("status"))){nutritionDialog(f);return;}LinearLayout content=new LinearLayout(this);content.setPadding(22,8,22,8);content.setOrientation(1);content.addView(label(f.optString("category")+"\n"+kind(f)+"\nPortion: "+f.optString("portion")+"\n"+f.optString("notes"),14));EditText mult=edit("Portionsfaktor","1",8194),points=edit("Punkte pro Portion",f.isNull("points")?"":String.valueOf(f.optInt("points")),2);content.addView(label("Portionsfaktor: bei 150 g Referenzportion z. B. 0,5 für 75 g",13));content.addView(mult);content.addView(points);Spinner group=groupSpinner();content.addView(group);AlertDialog d=new AlertDialog.Builder(this).setTitle(f.optString("name")).setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Buchen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{double factor=Double.parseDouble(mult.getText().toString().replace(',','.'));int pointsPer=Integer.parseInt(points.getText().toString());if(!Double.isFinite(factor)||factor<=0||factor>100||pointsPer<0||pointsPer>2000)throw new Exception();int total=(int)Math.round(pointsPer*factor);if(total>2000)throw new Exception();addMeal(f.optString("name")+" × "+factor,total,f.optString("id"),kind(f),group.getSelectedItem().toString());d.dismiss();home();}catch(Exception ex){msg("Bitte gültige Portion und Punkte eingeben.");}}));d.show();}
   private Spinner groupSpinner(){Spinner s=new Spinner(this);String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,groups);s.setAdapter(a);return s;}
   private void addMeal(String name,int points,String foodId,String quality,String group){try{JSONObject x=new JSONObject();x.put("name",name);x.put("points",points);x.put("foodId",foodId);x.put("quality",quality);x.put("group",group);x.put("date",today());meals.add(x);persist("meals",meals);}catch(Exception e){msg("Speichern fehlgeschlagen.");}}
   private void manual(){LinearLayout l=new LinearLayout(this);l.setPadding(22,4,22,4);l.setOrientation(1);EditText name=edit("Lebensmittel / Gericht","",1),points=edit("Punkte (manuell)",null,2);l.addView(name);l.addView(points);Spinner g=groupSpinner();l.addView(g);AlertDialog d=new AlertDialog.Builder(this).setTitle("Manuell erfassen").setView(l).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{String n=name.getText().toString().trim();int p=Integer.parseInt(points.getText().toString());if(n.length()<2||p<0||p>2000)throw new Exception();addMeal(n,p,"","Manuell",g.getSelectedItem().toString());d.dismiss();home();}catch(Exception ex){msg("Bitte Name und gültige Punkte angeben.");}}));d.show();}
