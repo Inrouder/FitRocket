@@ -1,16 +1,19 @@
-# Versionshinweise
+# FitRocket Versionshinweise
+
+## 0.3.0 – 26.10.2026
+- Neue Navigation: Heute, Suchen, Verlauf, Mehr
+- 283 Lebensmittel, davon 14 ergänzte historische US-Fruchteinträge mit eigener Prüfkennzeichnung
+- Suchfunktion über Bezeichnungen und Kategorien
+- Portionsfaktor und manuelle Punkteprüfung; Eingabefehler werden abgefangen
+- Mahlzeitenkategorien und vollständige Bearbeiten-/Löschen-Funktion
+- Wochen- und Monatsstatistik, Dokumentation von Gewichtsständen
+- JSON-Export/-Import über Android-Systemdateiauswahl mit Warnung vor Datenüberschreibung
+- Textassistent als gekennzeichneter regelbasierter Offline-Prototyp
+- Kein Google-Login, keine Cloud-KI, keine Smartwatchintegration im aktuellen Stand
 
 ## 0.2.0 – 26.10.2026
-- Import der vollständigen korrigierten Lebensmitteldatenbank (269 Einträge)
-- Volltextsuche über Namen und alternative Schreibweisen
-- Kennzeichnung bestätigter ZeroPoint-Lebensmittel, ungeprüfter Punktbeispiele und Prüffälle
-- Eingabe des Portionsfaktors und manuell korrigierbarer Punktewert
-- Validierung vor dem Speichern und Beibehaltung lokaler Tagebucheinträge
-- VersionCode 2, versionName 0.2.0
+- Vollständige korrigierte Lebensmitteldatenbank mit 269 Einträgen
+- Suche und Portionsfaktor
 
 ## 0.1.0 – 26.10.2026
-- Erstes Android-MVP mit Punkteglas, Tagesbudget, lokaler Speicherung, Wochenübersicht
-- GitHub Actions zur Erstellung einer Debug-APK
-
-### Noch offen
-Vollständige automatische Punkteformel, KI, Google-Anmeldung, Fitnessintegration, Troll-Animation, Monatsstatistik, Push und release-signierte APK.
+- Lokales Tagesbudget, Tagebuch, Punkteglas und erste GitHub-Actions-APK

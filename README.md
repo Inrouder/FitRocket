@@ -1,22 +1,30 @@
 # FitRocket 🚀
 
-Eine unabhängige Android-App für ein spielerisches Ernährungstagebuch mit Tagesbudget und historischem Blauen-Plan-Datenbestand. Kein offizielles WeightWatchers-Produkt.
+Unabhängige Android-App mit spielerischem Punkteglas, Ernährungstagebuch und historischer ZeroPoint-Datenbasis. **Nicht offiziell mit WeightWatchers verbunden.**
 
-## APK
-[Actions → Android APK](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml) → erfolgreichen Lauf öffnen → unter **Artifacts** die Debug-APK als ZIP herunterladen, entpacken und `app-debug.apk` installieren.
+## APK installieren
+[Android APK – GitHub Actions](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml) → erfolgreichen Workflow-Lauf öffnen → **Artifacts** → `FitRocket-v0.3.0-debug-apk` → ZIP entpacken → `app-debug.apk` installieren. Es ist eine **Debug-APK**, keine release-signierte Store-Version.
 
-## Version 0.2.0
-- **269 Datensätze**: 236 historisch bestätigte ZeroPoint-Einträge, 10 Prüffälle, 23 ungeprüfte Punktebeispiele
-- Durchsuchbare Lebensmittelauswahl mit mindestens 2 Zeichen
-- Portionen und Punkte vor dem Buchen prüfen/anpassen
-- Tagebuch und Budgets bleiben auf dem Gerät gespeichert
-- Glasfüllstand und Überlauf-Anzeige
-- Wochenübersicht
+## Version 0.3.0
+- 283 Lebensmittel; ursprüngliche 269 Datensätze unverändert weitergeführt
+- 14 neue Obst-/Fruchteinträge auf Grundlage historischer US-ZeroPoint-Listen; **separat als US-Historie** gekennzeichnet, nicht als verifizierte deutsche Einträge
+- Durchsuchbare Lebensmitteldatenbank (Name, alternative Bezeichnung, Kategorie)
+- Portionsfaktor, individuelle Punktkorrektur, Frühstück/Mittag/Abend/Snack/Getränke
+- Lokales Tagesjournal, Verlauf, Einträge bearbeiten/löschen
+- Tagesbudget und frei konfigurierbares Wochen-Extra
+- Wochen- und Monatsübersicht (fehlende Tage werden nicht als 0-Punkte-Tage gewertet)
+- Gewichtseinträge, JSON-Backup und bestätigungspflichtiger JSON-Import
+- Punk­teglas mit vereinfachtem Überlaufeffekt
+- Experimentelle Offline-Texterkennung: **regelbasiert, kein KI-Modell**
 
-**Wichtig:** Bei Beispielen sind die Punktwerte nicht offiziell verifiziert. ZeroPoint gilt nur für die exakt passende Zubereitung, und Zusätze müssen separat erfasst werden. Prüffälle erfordern manuelle Punkteangaben. Die genaue historische SmartPoints-Rechenformel ist nicht enthalten.
+### Noch nicht implementiert
+Echte animierte Troll-Figur, Google-Anmeldung, LLM-KI, Smartwatch/Health Connect, Push-Hinweise, automatische historische WW-Punkteformel, App-Release-Signierung.
 
-## Entwicklungsstatus
-Version 0.2.0 ist eine **Debug-/MVP-Version**. KI, Google Login, Bluetooth/Wearables, Health Connect, echte Troll-Animation, Push, Monatsstatistiken und Produktionssignierung fehlen noch.
+## Datenqualität
+236 Einträge aus der deutschen historischen Liste, 23 ungeprüfte Beispiele und 10 Prüffälle; Erweiterungen tragen den Kennzeichner `historical_us`. Ungeprüfte Werte sind keine bestätigten historischen WW-Punkte. ZeroPoint gilt nicht für Säfte, Smoothies, Trockenobst oder Zusätze. Mengen und Zubereitungen müssen vom Nutzer geprüft werden.
 
 ## Build
-JDK 17; Android SDK 35; Gradle 8.11.1; `gradle :app:assembleDebug`.
+JDK 17; Android SDK 35; Gradle 8.11.1. `gradle :app:assembleDebug`.
+
+## Datenschutz
+Mahlzeiten, Budgets und Gewicht werden lokal gespeichert. Die Version hat keinen Netzwerkzugriff und sendet keine Ernährungsdaten an Dritte.
