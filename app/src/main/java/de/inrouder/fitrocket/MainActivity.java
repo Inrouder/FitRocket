@@ -440,6 +440,7 @@ public class MainActivity extends Activity {
     prefs.edit().putLong("healthLastAttempt",System.currentTimeMillis()).apply();
     HealthSync.readWeek(this,weekStart(),new HealthSync.Callback(){
       @Override public void onSuccess(HealthSync.Result result){
+        if(!prefs.getBoolean("healthUse",false)){healthBusy=false;return;}
         try{
           int updated=applyHealthResult(result);
           prefs.edit().putLong("healthLastSuccess",System.currentTimeMillis()).apply();
@@ -591,11 +592,13 @@ public class MainActivity extends Activity {
     if(request==EXPORT_REQUEST){
       try(OutputStream os=getContentResolver().openOutputStream(uri)){
         JSONObject payload=new JSONObject();
-        payload.put("schemaVersion",2);payload.put("budget",budget);payload.put("weekly",weekly);
+        payload.put("schemaVersion",3);payload.put("budget",budget);payload.put("weekly",weekly);
         payload.put("meals",new JSONArray(prefs.getString("meals","[]")));
         payload.put("weights",new JSONArray(prefs.getString("weights","[]")));
         payload.put("activities",new JSONArray(prefs.getString("activities","[]")));
         payload.put("steps",stepMap());
+        payload.put("healthSteps",healthStepMap());
+        payload.put("healthIgnored",new JSONArray(prefs.getString("healthIgnored","[]")));
         payload.put("activityShare",prefs.getInt("activityShare",0));
         payload.put("stepBaseline",prefs.getInt("stepBaseline",3000));
         payload.put("kcalPerPoint",prefs.getInt("kcalPerPoint",65));
@@ -613,7 +616,7 @@ public class MainActivity extends Activity {
         while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>5000000)throw new IOException("Backup zu groß");}
         JSONObject payload=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8));
         int schema=payload.optInt("schemaVersion",0);
-        if((schema!=1&&schema!=2)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
+        if((schema!=1&&schema!=2&&schema!=3)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
         JSONArray ma=payload.getJSONArray("meals"),we=payload.getJSONArray("weights");
         JSONArray ac=payload.optJSONArray("activities");if(ac==null)ac=new JSONArray();
         final JSONArray importedActivities=ac;
@@ -625,6 +628,14 @@ public class MainActivity extends Activity {
         JSONObject steps=payload.optJSONObject("steps");if(steps==null)steps=new JSONObject();
         if(steps.length()>2000)throw new IllegalArgumentException();
         final JSONObject importedSteps=steps;
+        JSONObject importedHealthSteps=payload.optJSONObject("healthSteps");
+        if(importedHealthSteps==null)importedHealthSteps=new JSONObject();
+        if(importedHealthSteps.length()>2000)throw new IllegalArgumentException();
+        final JSONObject healthSteps=importedHealthSteps;
+        JSONArray importedIgnored=payload.optJSONArray("healthIgnored");
+        if(importedIgnored==null)importedIgnored=new JSONArray();
+        if(importedIgnored.length()>5000)throw new IllegalArgumentException();
+        final JSONArray ignoredHealth=importedIgnored;
         JSONObject profile=payload.optJSONObject("profile");
         if(profile!=null){FitRocketMath.restingCalories(profile.getInt("age"),profile.getDouble("height"),
                 profile.getDouble("weight"),profile.getInt("metabolicProfile"));}
@@ -636,6 +647,9 @@ public class MainActivity extends Activity {
               android.content.SharedPreferences.Editor e=prefs.edit();
               e.putString("meals",ma.toString()).putString("weights",we.toString())
                 .putString("activities",importedActivities.toString()).putString("stepDays",importedSteps.toString())
+                .putString("healthStepDays",healthSteps.toString())
+                .putString("healthIgnored",ignoredHealth.toString())
+                .putBoolean("healthUse",false).remove("healthLastAttempt").remove("healthLastSuccess")
                 .putInt("budget",bb).putInt("weekly",ww).putInt("activityShare",share)
                 .putInt("stepBaseline",baseline).putInt("kcalPerPoint",kpp);
               if(importedProfile!=null){
