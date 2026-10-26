@@ -1,5 +1,17 @@
 # FitRocket – Versionshinweise
 
+## 0.8.0 – Smartwatch-Synchronisation
+- Health Connect direkt über Android 14+ Framework-API lesend integriert.
+- Schritte werden für die aktuelle Kalenderwoche täglich aggregiert.
+- Trainingsaufzeichnungen aus verbundenen Fitness-Apps werden nach Dauer und Aktivitätstyp in FitRocket übernommen.
+- Doppelte Trainingsimporte werden anhand der Quell-ID sowie Uhrzeit/Dauer vermieden.
+- Schrittschätzung berücksichtigt bereits angerechnete Workout-Schritte.
+- Schrittquelle kann zwischen synchronisierten und manuellen Tageswerten umgeschaltet werden.
+- Auf Wunsch beim Öffnen nach mindestens 20 Minuten erneut abgleichen; manueller Sync jederzeit möglich.
+- Health-Connect-Berechtigungen, Datenschutzhinweise und Löschung eingelesener Fitnessdaten.
+- Backupschema 3 mit Schrittcaches, Ausblendeliste und Quellenauswahl; Import älterer Backups bleibt möglich.
+- Automatisierte Unit-Tests der Deduplizierung.
+
 ## 0.7.0 – Persönliche Berechnungen und eigenes Punktemodell
 - Vollständiges Bewegungsprofil: Alter, Größe, Gewicht, Stoffwechsel-Referenzprofil.
 - Ruheenergiebedarf und aktivitätsbezogene Energie pro Einheit.

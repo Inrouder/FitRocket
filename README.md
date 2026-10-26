@@ -5,12 +5,21 @@
 ## APK installieren
 1. [GitHub Actions – Android APK](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml) öffnen.
 2. Den neuesten **erfolgreichen** Build auswählen.
-3. Unter *Artifacts* das Paket `FitRocket-v0.7.0-debug-apk` herunterladen.
+3. Unter *Artifacts* das Paket `FitRocket-v0.8.0-debug-apk` herunterladen.
 4. ZIP entpacken und `app-debug.apk` installieren.
 
 Eine Debug-APK ist zum privaten Testen gedacht. Deine bereits lokal gespeicherten Mahlzeiten bleiben bei regulärem Update mit derselben App-ID erhalten; vor größeren Änderungen empfiehlt sich **Mehr → Backup exportieren**.
 
-## Neue Funktionen in Version 0.7.0
+## Neue Funktionen in Version 0.8.0
+- **Smartwatch & Health Connect (Android 14+):** Einmalige Freigabe, Schritte und Trainingseinheiten der aktuellen Woche einlesen.
+- Importierte Trainings werden mit eindeutiger Datenquellen-Kennung aktualisiert, statt beim nächsten Abgleich nochmals verbucht.
+- Schrittzahlen werden über Health Connect aggregiert; im Tagebuch können Uhr und manuelle Eingaben als bevorzugte Quelle gewählt werden.
+- Optional automatische Synchronisation beim Öffnen (höchstens alle 20 Minuten), zusätzlich jederzeit manuell.
+- Nur Lesezugriff auf Schritte und Trainingsdaten; Daten bleiben lokal, Verbindung und importierte Daten können entfernt werden.
+- Workout-Überschneidungen werden mit Zeit und Dauer abgeglichen; Workout-Schritte werden bei den übrigen Tages-Schritten berücksichtigt.
+- Neue Backups speichern importierte Uhr-Schritte und Eintragssperren, stellen Zugriffsrechte jedoch nicht automatisch wieder her.
+
+## Bewegungsgrundlagen aus Version 0.7.0
 - Eigenständige FitRocket-Rechenregeln statt externer Programme.
 - Bewegungsprofil mit **Alter, Körpergröße, Gewicht und wählbarem Stoffwechsel-Referenzprofil**.
 - Persönlicher Ruheenergiebedarf als Ausgangspunkt der Aktivitätsabschätzung.
@@ -33,7 +42,7 @@ Eine Debug-APK ist zum privaten Testen gedacht. Deine bereits lokal gespeicherte
 ## Transparente Regeln
 Die App nutzt ein selbst definiertes Punktesystem. Die Werte der Basislebensmittel und vorhandenen Vorschlagsportionen sind die FitRocket-Startdaten, nicht Produktmessungen. Marken- und Rezeptangaben können abweichen. Details findest du in [docs/FORMULAS.md](docs/FORMULAS.md).
 
-**Bewegungsdaten sind derzeit manuell:** Es gibt noch keine automatische Smartwatch-Anbindung, keine automatische Schrittzählung und keine Online-KI. Das System funktioniert offline; es fordert keinen Account und benötigt keinen Zugang zu privaten Fitnessdiensten.
+**Bewegungsdaten sind derzeit manuell:** Es gibt noch keine automatische direkte Wear-OS-Uhr-App, keine automatische Schrittzählung ohne kompatible Datenquelle und keine Online-KI. Das System funktioniert offline; es fordert keinen Account und benötigt keinen Zugang zu privaten Fitnessdiensten.
 
 ## Entwicklung
 - JDK 17
