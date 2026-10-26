@@ -188,7 +188,7 @@ public class MainActivity extends Activity {
   private void textHelper(){EditText input=new EditText(this);input.setMinLines(3);input.setHint("Beispiel: Ich hatte eine Banane und einen Apfel");new AlertDialog.Builder(this).setTitle("Offline-Texterfassung (keine KI)").setMessage("Erkennt eindeutige Lebensmittelnamen aus deiner Datenbank. Mengen und Zutaten müssen vor dem Eintragen geprüft werden.").setView(input).setPositiveButton("Analysieren",(d,w)->interpret(input.getText().toString())).setNegativeButton("Abbrechen",null).show();}
   private void interpret(String source){String q=source.toLowerCase(Locale.ROOT);ArrayList<JSONObject> matches=new ArrayList<>();for(JSONObject f:foods){String name=f.optString("name").toLowerCase(Locale.ROOT);if(name.length()>=5&&q.contains(name))matches.add(f);}if(matches.size()!=1){new AlertDialog.Builder(this).setTitle("Bitte Lebensmittel auswählen").setMessage(matches.isEmpty()?"Keine eindeutige Übereinstimmung gefunden. Bitte suche das Lebensmittel manuell.":"Mehrere Lebensmittel erkannt. Bitte erfasse die Zutaten einzeln über die Suche.").setPositiveButton("Zur Suche",(d,w)->searchScreen()).show();return;}foodDialog(matches.get(0));}
   private void history(){shell("Tagebuch");heading("Mein Tagebuch");page.addView(label("Alle Mahlzeiten auf einen Blick",14));for(int i=meals.size()-1;i>=0;i--)mealRow(meals.get(i),page);if(meals.isEmpty())page.addView(label("Noch keine gespeicherten Einträge.",15));}
-  private void more(){shell("Mehr");Button act=button("🚶 Bewegungs- und Punkteübersicht");page.addView(act);act.setOnClickListener(v->activityPage());Button week=button("📈 Wochen- und Monatsauswertung");page.addView(week);week.setOnClickListener(v->statistics());Button weight=button("⚖ Gewicht erfassen und Verlauf ansehen");page.addView(weight);weight.setOnClickListener(v->weightDialog());Button settings=button("⚙ Budget & Wochen-Extra");page.addView(settings);settings.setOnClickListener(v->settingsDialog());Button backup=button("⬆ Backup exportieren (JSON)");page.addView(backup);backup.setOnClickListener(v->startExport());Button restore=button("⬇ Backup importieren");page.addView(restore);restore.setOnClickListener(v->startImport());}
+  private void more(){shell("Mehr");Button act=button("🚶 Bewegungs- und Punkteübersicht");page.addView(act);act.setOnClickListener(v->activityPage());Button week=button("📈 Wochen- und Monatsauswertung");page.addView(week);week.setOnClickListener(v->statistics());Button weight=button("⚖ Gewicht erfassen und Verlauf ansehen");page.addView(weight);weight.setOnClickListener(v->weightDialog());Button settings=button("⚙ Tagesbudget & Wochenpunkte");page.addView(settings);settings.setOnClickListener(v->settingsDialog());Button backup=button("⬆ Backup exportieren (JSON)");page.addView(backup);backup.setOnClickListener(v->startExport());Button restore=button("⬇ Backup importieren");page.addView(restore);restore.setOnClickListener(v->startImport());}
   private void settingsDialog(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(25,5,25,5);EditText b=edit("Tagesbudget",String.valueOf(budget),2),w=edit("Wochenstart-Punkte",String.valueOf(weekly),2);
     l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);
     l.addView(label("Wochenstart-Punkte (Standard 28)",14));l.addView(w);
@@ -337,6 +337,17 @@ public class MainActivity extends Activity {
         +activityCredit()+" Bewegung − "+spentWeek()+" verbraucht = "+availableWeek()+" übrig",14));
     overview.addView(label("Täglich höchstens 4 ungenutzte Punkte, Gutschrift erst am Folgetag. Jeden Montag beginnt das Konto neu.",12));
     overview.addView(label("Tagesbudget bleibt: "+budget+" Punkte",13));page.addView(overview);
+    LinearLayout transfers=card(Color.WHITE);
+    transfers.addView(label("🌟 Tagesüberträge dieser Woche",17));
+    LocalDate startDay=weekStart(),currentDay=LocalDate.now();
+    boolean daysFinished=false;
+    for(LocalDate day=startDay;day.isBefore(currentDay);day=day.plusDays(1)){
+      daysFinished=true;
+      int saved=FitRocketWeeklyWallet.dailyTransfer(budget,used(day.toString()));
+      transfers.addView(label(pretty(day.toString())+" · +"+saved+" / 4 P",14));
+    }
+    if(!daysFinished)transfers.addView(label("Der erste Tagesübertrag wird nach Tagesabschluss gutgeschrieben.",13));
+    page.addView(transfers);
     LinearLayout stepCard=card(MINT);
     int all=stepsFor(today());int w=workoutStepsFor(today());int eligible=FitRocketMath.extraSteps(all,prefs.getInt("stepBaseline",3000),w);
     stepCard.addView(label("👟 Schritte heute: "+all,18));
