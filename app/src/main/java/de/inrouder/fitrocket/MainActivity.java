@@ -28,6 +28,8 @@ public class MainActivity extends Activity {
   private boolean healthBusy=false;
   private String currentScreen="FitRocket";
   private String lastRenderedDate=null;
+  private LocalDate diaryDate=LocalDate.now();
+  private String bookingDate=null,bookingGroup=null,bookingReturn=null;
   private final int NAVY=Color.rgb(37,46,76), BLUE=Color.rgb(112,117,225), LIGHT=Color.rgb(255,247,242), PEACH=Color.rgb(255,220,204), MINT=Color.rgb(212,242,216), LAV=Color.rgb(240,231,255);
   private int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
   private GradientDrawable shape(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
@@ -193,7 +195,7 @@ public class MainActivity extends Activity {
     String[] pages={"⌂ Heute","⌕ Suche","▦ Tagebuch","⋯ Mehr"};
     for(int i=0;i<pages.length;i++){final int index=i;TextView item=label(pages[i],12);item.setGravity(Gravity.CENTER);
       if((heading.equals("FitRocket")&&i==0)||(heading.equals("Lebensmittel")&&i==1)||(heading.equals("Tagebuch")&&i==2)||(heading.equals("Mehr")&&i==3)){item.setBackground(shape(Color.rgb(255,230,224),16));}
-      nav.addView(item,new LinearLayout.LayoutParams(0,dp(46),1));item.setOnClickListener(v->{switch(index){case 0:home();break;case 1:searchScreen();break;case 2:history();break;default:more();}});
+      nav.addView(item,new LinearLayout.LayoutParams(0,dp(46),1));item.setOnClickListener(v->{switch(index){case 0:home();break;case 1:bookingDate=null;bookingGroup=null;bookingReturn=null;searchScreen();break;case 2:history();break;default:more();}});
     }
     nav.setPadding(dp(12),dp(7),dp(12),dp(40));
     frame.addView(nav);
@@ -272,44 +274,124 @@ public class MainActivity extends Activity {
   private void home(){
     shell("FitRocket");
     LinearLayout balance=card(Color.WHITE);
-    TextView subtitle=label("Deine Tagesbalance · "+pretty(today()),18);subtitle.setTypeface(null,1);balance.addView(subtitle);
-    glass=new GlassView();balance.addView(glass,new LinearLayout.LayoutParams(-1,dp(225)));
-    int n=used(today()),remaining=Math.max(0,budget-n);
-    LinearLayout summaries=new LinearLayout(this);summaries.setOrientation(LinearLayout.HORIZONTAL);
-    TextView usedChip=chip("🍴 "+n+" P\ngenutzt",Color.rgb(255,241,229));
-    TextView freeChip=chip("🌿 "+remaining+" P\nfrei",MINT);
-    TextView extraChip=chip("★ "+availableWeek()+" P\nWochenpuffer",LAV);
-    for(TextView x:new TextView[]{usedChip,freeChip,extraChip}){x.setGravity(Gravity.CENTER);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(dp(2),0,dp(2),0);summaries.addView(x,lp);}balance.addView(summaries);page.addView(balance);
+    TextView subtitle=label("Heute · "+pretty(today()),18);subtitle.setTypeface(null,1);
+    balance.addView(subtitle);
+    glass=new GlassView();balance.addView(glass,new LinearLayout.LayoutParams(-1,dp(190)));
+    int usedToday=used(today()),remaining=Math.max(0,budget-usedToday);
+    LinearLayout chips=new LinearLayout(this);chips.setOrientation(0);
+    for(TextView item:new TextView[]{
+      chip("🍽 "+usedToday+" P\\ngenutzt",Color.rgb(255,241,229)),
+      chip("🌿 "+remaining+" P\\nübrig",MINT),
+      chip("★ "+availableWeek()+" P\\nWoche",LAV)}){
+      item.setGravity(Gravity.CENTER);
+      LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(dp(2),0,dp(2),0);
+      chips.addView(item,p);
+    }
+    balance.addView(chips);page.addView(balance);
+
+    LinearLayout actions=card(Color.rgb(255,249,245));
+    TextView quick=label("Schnell hinzufügen",17);quick.setTypeface(null,1);actions.addView(quick);
+    LinearLayout row1=new LinearLayout(this);row1.setOrientation(0);
+    Button scanner=button("▥ Barcode"),recipes=button("🍲 Rezepte");
+    row1.addView(scanner,new LinearLayout.LayoutParams(0,dp(49),1));
+    row1.addView(recipes,new LinearLayout.LayoutParams(0,dp(49),1));
+    scanner.setOnClickListener(v->scanBarcode());recipes.setOnClickListener(v->recipeScreen());
+    actions.addView(row1);
+    LinearLayout row2=new LinearLayout(this);row2.setOrientation(0);
+    Button find=button("⌕ Lebensmittel"),manual=button("＋ Manuell");
+    row2.addView(find,new LinearLayout.LayoutParams(0,dp(49),1));
+    row2.addView(manual,new LinearLayout.LayoutParams(0,dp(49),1));
+    find.setOnClickListener(v->searchScreen());manual.setOnClickListener(v->manual());
+    actions.addView(row2);page.addView(actions);
+
+    heading("Deine Mahlzeiten");
+    dayMealGroups(page,today());
+
+    page.addView(waterCard(today()));
+
+    LinearLayout weightCard=card(Color.WHITE);
+    TextView title=label("⚖ Gewicht & Verlauf",18);title.setTypeface(null,1);weightCard.addView(title);
+    double last=latestWeight(),goal=goalWeight();
+    weightCard.addView(label(last>0?String.format(Locale.GERMAN,"Aktuelles Gewicht: %.1f kg",last):
+       "Erfasse dein Gewicht und verfolge deinen Verlauf.",15));
+    if(goal>0)weightCard.addView(label(String.format(Locale.GERMAN,"Dein Ziel: %.1f kg",goal),13));
+    if(!weights.isEmpty())weightCard.addView(new FitRocketWeightChart(this,weights,goal>0?goal:null),
+       new LinearLayout.LayoutParams(-1,dp(150)));
+    action(weightCard,"Gewicht eintragen / Verlauf öffnen ›",()->weightScreen());
+    page.addView(weightCard);
+
     LinearLayout weekCard=card(LAV);
-    weekCard.addView(label("⭐ Deine Wochenpunkte: "+availableWeek()+" P übrig",18));
-    weekCard.addView(label(weekly+" P Wochenstart  +  "+rolloversWeek()+" P Tagesübertrag  +  "
-       +activityCredit()+" P Bewegung  −  "+spentWeek()+" P verwendet",14));
-    weekCard.addView(label("Jeden Montag neu · bis zu 4 ungenutzte Tagespunkte nach Tagesabschluss",12));
+    weekCard.addView(label("⭐ Wochenpunkte: "+availableWeek()+" P übrig",18));
+    weekCard.addView(label(weekly+" P Wochenstart · +"+rolloversWeek()+" Tagesübertrag · +"+
+       activityCredit()+" Bewegung · −"+spentWeek()+" verwendet",13));
     page.addView(weekCard);
-    LinearLayout activityCard=card(MINT);activityCard.addView(label("🚶 Bewegung · "+earnedWeek()+" Aktivpunkte diese Woche",16));action(activityCard,"Aktivität erfassen ›",()->activityPage());page.addView(activityCard);
-    LinearLayout main=card(Color.rgb(255,248,242));
-    action(main,"⌕  Lebensmittel suchen    ›",()->searchScreen());
-    LinearLayout actions=new LinearLayout(this);actions.setOrientation(LinearLayout.HORIZONTAL);
-    Button manual=button("＋ Schnell manuell"),assistant=button("☰ Textassistent");
-    actions.addView(manual,new LinearLayout.LayoutParams(0,dp(52),1));
-    actions.addView(assistant,new LinearLayout.LayoutParams(0,dp(52),1));
-    manual.setOnClickListener(v->manual());assistant.setOnClickListener(v->textHelper());main.addView(actions);page.addView(main);
-    heading("Heute");
-    entries=new LinearLayout(this);entries.setOrientation(1);page.addView(entries);
-    int found=0;for(int i=meals.size()-1;i>=0;i--){JSONObject m=meals.get(i);if(today().equals(m.optString("date"))){mealRow(m,entries);found++;}}
-    if(found==0){LinearLayout empty=card(Color.WHITE);empty.addView(label("🌷 Noch keine Mahlzeit eingetragen",16));empty.addView(label("Dein Tag beginnt hier – wähle dein erstes Lebensmittel.",13));entries.addView(empty);}
+
+    LinearLayout movement=card(MINT);movement.addView(label("🚶 Bewegung · "+earnedWeek()+" P diese Woche",16));
+    action(movement,"Aktivitäten & Smartwatch ›",()->activityPage());page.addView(movement);
+  }
+  private void beginGroupBooking(String group,String date){
+    bookingDate=date;bookingGroup=group;
+    bookingReturn="Tagebuch".equals(currentScreen)?"Tagebuch":"FitRocket";
+    searchScreen();
+  }
+  private void afterMealAdded(){
+    String returnTo=bookingReturn;
+    bookingDate=null;bookingGroup=null;bookingReturn=null;
+    if("Tagebuch".equals(returnTo))history();
+    else home();
+  }
+  private void refreshMealContext(){
+    if("Tagebuch".equals(currentScreen))history();else home();
+  }
+  private void dayMealGroups(LinearLayout target,String date){
+    final String[] names={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
+    final String[] icons={"☀️","🥗","🌙","🍓","🥤"};
+    for(int i=0;i<names.length;i++){
+      final String group=names[i];
+      LinearLayout section=card(Color.WHITE);
+      LinearLayout header=new LinearLayout(this);header.setOrientation(0);header.setGravity(Gravity.CENTER_VERTICAL);
+      int count=0,points=0;
+      for(JSONObject m:meals){
+        if(date.equals(m.optString("date"))&&group.equals(m.optString("group"))){
+          count++;points+=m.optInt("points");
+        }
+      }
+      TextView name=label(icons[i]+" "+group,17);name.setTypeface(null,1);
+      header.addView(name,new LinearLayout.LayoutParams(0,-2,1));
+      header.addView(chip(points+" P",count==0?Color.rgb(244,245,250):MINT));
+      TextView plus=chip("＋",Color.rgb(255,232,217));plus.setTextSize(18);
+      LinearLayout.LayoutParams addP=new LinearLayout.LayoutParams(-2,-2);addP.setMargins(dp(10),0,0,0);
+      header.addView(plus,addP);
+      plus.setOnClickListener(v->beginGroupBooking(group,date));
+      section.addView(header);
+      if(count==0)section.addView(label("Noch nichts eingetragen · Tippe auf ＋",13));
+      else{
+        for(JSONObject m:meals){
+          if(date.equals(m.optString("date"))&&group.equals(m.optString("group")))
+            mealRow(m,section);
+        }
+      }
+      target.addView(section);
+    }
   }
   private void mealRow(JSONObject m,LinearLayout target){
-    LinearLayout c=card(Color.WHITE);LinearLayout upper=new LinearLayout(this);upper.setOrientation(LinearLayout.HORIZONTAL);upper.setGravity(Gravity.CENTER_VERTICAL);
-    TextView name=label("🍽  "+m.optString("name"),16);name.setTypeface(null,1);
-    upper.addView(name,new LinearLayout.LayoutParams(0,-2,1));
-    upper.addView(chip(m.optInt("points")+" P",m.optInt("points")==0?MINT:Color.rgb(255,227,208)));
-    c.addView(upper);
-    c.addView(label(m.optString("group","Mahlzeit")+" · "+pretty(m.optString("date")),12));
-    target.addView(c);
-    c.setOnClickListener(v->new AlertDialog.Builder(this).setTitle(m.optString("name")).setItems(new String[]{"Punkte ändern","Eintrag löschen"},(d,which)->{if(which==0)editMeal(m);else new AlertDialog.Builder(this).setMessage("Eintrag löschen?").setPositiveButton("Löschen",(dd,w)->{meals.remove(m);persist("meals",meals);home();}).setNegativeButton("Abbrechen",null).show();}).show());
+    LinearLayout item=new LinearLayout(this);item.setOrientation(0);item.setGravity(Gravity.CENTER_VERTICAL);
+    item.setPadding(dp(9),dp(8),dp(5),dp(8));item.setBackground(shape(Color.rgb(250,250,254),13));
+    LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(-1,-2);ip.setMargins(0,dp(5),0,0);
+    TextView name=label(m.optString("name"),14);name.setMaxLines(2);name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    item.addView(name,new LinearLayout.LayoutParams(0,-2,1));
+    item.addView(chip(m.optInt("points")+" P",m.optInt("points")==0?MINT:Color.rgb(255,232,219)));
+    target.addView(item,ip);
+    item.setOnClickListener(v->new AlertDialog.Builder(this).setTitle(m.optString("name"))
+      .setItems(new String[]{"Punkte ändern","Eintrag löschen"},(d,which)->{
+        if(which==0)editMeal(m);
+        else new AlertDialog.Builder(this).setMessage("Eintrag wirklich löschen?")
+          .setPositiveButton("Löschen",(dd,w)->{
+            meals.remove(m);persist("meals",meals);refreshMealContext();
+          }).setNegativeButton("Abbrechen",null).show();
+      }).show());
   }
-  private void editMeal(JSONObject m){EditText e=edit("Punkte",String.valueOf(m.optInt("points")),2);new AlertDialog.Builder(this).setTitle("Punkte anpassen").setView(e).setPositiveButton("Speichern",(d,w)->{try{int n=Integer.parseInt(e.getText().toString());if(n<0||n>2000)throw new Exception();m.put("points",n);m.put("quality","Manuell korrigiert");persist("meals",meals);home();}catch(Exception ignored){msg("Ungültige Punkte.");}}).setNegativeButton("Abbrechen",null).show();}
+  private void editMeal(JSONObject m){EditText e=edit("Punkte",String.valueOf(m.optInt("points")),2);new AlertDialog.Builder(this).setTitle("Punkte anpassen").setView(e).setPositiveButton("Speichern",(d,w)->{try{int n=Integer.parseInt(e.getText().toString());if(n<0||n>2000)throw new Exception();m.put("points",n);m.put("quality","Manuell korrigiert");persist("meals",meals);refreshMealContext();}catch(Exception ignored){msg("Ungültige Punkte.");}}).setNegativeButton("Abbrechen",null).show();}
   private void searchScreen(){
     shell("Lebensmittel");LinearLayout searchCard=card(Color.WHITE);
     TextView title=label("⌕ Lebensmittel suchen",18);title.setTypeface(null,1);searchCard.addView(title);
@@ -373,18 +455,54 @@ public class MainActivity extends Activity {
     dialog.setOnShowListener(x->dialog.getButton(-1).setOnClickListener(v->{
       try{double grams=num(amount.getText().toString());int pts=calcForGrams(f,grams);
         addMeal(f.optString("name")+" ("+grams+" g/ml)",pts,f.optString("id"),"Nährwertschätzung",group.getSelectedItem().toString());
-        dialog.dismiss();home();
+        dialog.dismiss();afterMealAdded();
       }catch(Exception ex){msg("Bitte eine gültige Menge angeben.");}
     }));
     dialog.show();
   }
-  private void foodDialog(JSONObject f){if("nutrition".equals(f.optString("status"))){nutritionDialog(f);return;}LinearLayout content=new LinearLayout(this);content.setPadding(22,8,22,8);content.setOrientation(1);content.addView(label(f.optString("category")+"\n"+kind(f)+"\nPortion: "+f.optString("portion")+"\n"+f.optString("notes"),14));EditText mult=edit("Portionsfaktor","1",8194),points=edit("Punkte pro Portion",f.isNull("points")?"":String.valueOf(f.optInt("points")),2);content.addView(label("Portionsfaktor: bei 150 g Referenzportion z. B. 0,5 für 75 g",13));content.addView(mult);content.addView(points);Spinner group=groupSpinner();content.addView(group);AlertDialog d=new AlertDialog.Builder(this).setTitle(f.optString("name")).setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Buchen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{double factor=Double.parseDouble(mult.getText().toString().replace(',','.'));int pointsPer=Integer.parseInt(points.getText().toString());if(!Double.isFinite(factor)||factor<=0||factor>100||pointsPer<0||pointsPer>2000)throw new Exception();int total=(int)Math.round(pointsPer*factor);if(total>2000)throw new Exception();addMeal(f.optString("name")+" × "+factor,total,f.optString("id"),kind(f),group.getSelectedItem().toString());d.dismiss();home();}catch(Exception ex){msg("Bitte gültige Portion und Punkte eingeben.");}}));d.show();}
-  private Spinner groupSpinner(){Spinner s=new Spinner(this);String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,groups);s.setAdapter(a);return s;}
-  private void addMeal(String name,int points,String foodId,String quality,String group){try{JSONObject x=new JSONObject();x.put("name",name);x.put("points",points);x.put("foodId",foodId);x.put("quality",quality);x.put("group",group);x.put("date",today());meals.add(x);persist("meals",meals);}catch(Exception e){msg("Speichern fehlgeschlagen.");}}
+  private void foodDialog(JSONObject f){if("nutrition".equals(f.optString("status"))){nutritionDialog(f);return;}LinearLayout content=new LinearLayout(this);content.setPadding(22,8,22,8);content.setOrientation(1);content.addView(label(f.optString("category")+"\n"+kind(f)+"\nPortion: "+f.optString("portion")+"\n"+f.optString("notes"),14));EditText mult=edit("Portionsfaktor","1",8194),points=edit("Punkte pro Portion",f.isNull("points")?"":String.valueOf(f.optInt("points")),2);content.addView(label("Portionsfaktor: bei 150 g Referenzportion z. B. 0,5 für 75 g",13));content.addView(mult);content.addView(points);Spinner group=groupSpinner();content.addView(group);AlertDialog d=new AlertDialog.Builder(this).setTitle(f.optString("name")).setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Buchen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{double factor=Double.parseDouble(mult.getText().toString().replace(',','.'));int pointsPer=Integer.parseInt(points.getText().toString());if(!Double.isFinite(factor)||factor<=0||factor>100||pointsPer<0||pointsPer>2000)throw new Exception();int total=(int)Math.round(pointsPer*factor);if(total>2000)throw new Exception();addMeal(f.optString("name")+" × "+factor,total,f.optString("id"),kind(f),group.getSelectedItem().toString());d.dismiss();afterMealAdded();}catch(Exception ex){msg("Bitte gültige Portion und Punkte eingeben.");}}));d.show();}
+  private Spinner groupSpinner(){
+    Spinner s=new Spinner(this);
+    String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
+    ArrayAdapter<String> a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,groups);
+    s.setAdapter(a);
+    if(bookingGroup!=null){
+      for(int i=0;i<groups.length;i++)if(groups[i].equals(bookingGroup))s.setSelection(i);
+    }
+    return s;
+  }
+  private void addMeal(String name,int points,String foodId,String quality,String group){try{JSONObject x=new JSONObject();x.put("name",name);x.put("points",points);x.put("foodId",foodId);x.put("quality",quality);x.put("group",group);x.put("date",bookingDate==null?today():bookingDate);meals.add(x);persist("meals",meals);}catch(Exception e){msg("Speichern fehlgeschlagen.");}}
   private void manual(){LinearLayout l=new LinearLayout(this);l.setPadding(22,4,22,4);l.setOrientation(1);EditText name=edit("Lebensmittel / Gericht","",1),points=edit("Punkte (manuell)",null,2);l.addView(name);l.addView(points);Spinner g=groupSpinner();l.addView(g);AlertDialog d=new AlertDialog.Builder(this).setTitle("Manuell erfassen").setView(l).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{String n=name.getText().toString().trim();int p=Integer.parseInt(points.getText().toString());if(n.length()<2||p<0||p>2000)throw new Exception();addMeal(n,p,"","Manuell",g.getSelectedItem().toString());d.dismiss();home();}catch(Exception ex){msg("Bitte Name und gültige Punkte angeben.");}}));d.show();}
   private void textHelper(){EditText input=new EditText(this);input.setMinLines(3);input.setHint("Beispiel: Ich hatte eine Banane und einen Apfel");new AlertDialog.Builder(this).setTitle("Offline-Texterfassung (keine KI)").setMessage("Erkennt eindeutige Lebensmittelnamen aus deiner Datenbank. Mengen und Zutaten müssen vor dem Eintragen geprüft werden.").setView(input).setPositiveButton("Analysieren",(d,w)->interpret(input.getText().toString())).setNegativeButton("Abbrechen",null).show();}
   private void interpret(String source){String q=source.toLowerCase(Locale.ROOT);ArrayList<JSONObject> matches=new ArrayList<>();for(JSONObject f:foods){String name=f.optString("name").toLowerCase(Locale.ROOT);if(name.length()>=5&&q.contains(name))matches.add(f);}if(matches.size()!=1){new AlertDialog.Builder(this).setTitle("Bitte Lebensmittel auswählen").setMessage(matches.isEmpty()?"Keine eindeutige Übereinstimmung gefunden. Bitte suche das Lebensmittel manuell.":"Mehrere Lebensmittel erkannt. Bitte erfasse die Zutaten einzeln über die Suche.").setPositiveButton("Zur Suche",(d,w)->searchScreen()).show();return;}foodDialog(matches.get(0));}
-  private void history(){shell("Tagebuch");heading("Mein Tagebuch");page.addView(label("Alle Mahlzeiten auf einen Blick",14));for(int i=meals.size()-1;i>=0;i--)mealRow(meals.get(i),page);if(meals.isEmpty())page.addView(label("Noch keine gespeicherten Einträge.",15));}
+  private void history(){
+    shell("Tagebuch");
+    heading("Dein Ernährungstagebuch");
+    LinearLayout dateCard=card(Color.WHITE);
+    LinearLayout dayBar=new LinearLayout(this);dayBar.setOrientation(0);dayBar.setGravity(Gravity.CENTER_VERTICAL);
+    Button prev=button("‹"),next=button("›");
+    TextView center=label(pretty(diaryDate.toString()),17);center.setTypeface(null,1);
+    center.setGravity(Gravity.CENTER);
+    dayBar.addView(prev,new LinearLayout.LayoutParams(dp(54),dp(48)));
+    dayBar.addView(center,new LinearLayout.LayoutParams(0,dp(48),1));
+    dayBar.addView(next,new LinearLayout.LayoutParams(dp(54),dp(48)));
+    prev.setOnClickListener(v->{diaryDate=diaryDate.minusDays(1);history();});
+    next.setEnabled(diaryDate.isBefore(LocalDate.now()));
+    next.setOnClickListener(v->{if(diaryDate.isBefore(LocalDate.now())){diaryDate=diaryDate.plusDays(1);history();}});
+    center.setOnClickListener(v->{
+      android.app.DatePickerDialog dp=new android.app.DatePickerDialog(this,(picker,y,m,d)->{
+         diaryDate=LocalDate.of(y,m+1,d);history();
+      },diaryDate.getYear(),diaryDate.getMonthValue()-1,diaryDate.getDayOfMonth());
+      dp.getDatePicker().setMaxDate(System.currentTimeMillis());dp.show();
+    });
+    dateCard.addView(dayBar);
+    int consumed=used(diaryDate.toString());
+    dateCard.addView(label("🍽 "+consumed+" P gegessen  ·  "+Math.max(0,budget-consumed)+" P Tagesrest",16));
+    if(consumed>budget)dateCard.addView(label("Wochenkonto belastet: "+(consumed-budget)+" P",13));
+    page.addView(dateCard);
+    dayMealGroups(page,diaryDate.toString());
+    page.addView(waterCard(diaryDate.toString()));
+  }
   private void more(){shell("Mehr");Button act=button("🚶 Bewegungs- und Punkteübersicht");page.addView(act);act.setOnClickListener(v->activityPage());Button week=button("📈 Wochen- und Monatsauswertung");page.addView(week);week.setOnClickListener(v->statistics());Button weight=button("⚖ Gewicht erfassen und Verlauf ansehen");page.addView(weight);weight.setOnClickListener(v->weightDialog());Button settings=button("⚙ Tagesbudget & Wochenpunkte");page.addView(settings);settings.setOnClickListener(v->settingsDialog());Button backup=button("⬆ Backup exportieren (JSON)");page.addView(backup);backup.setOnClickListener(v->startExport());Button restore=button("⬇ Backup importieren");page.addView(restore);restore.setOnClickListener(v->startImport());}
   private void settingsDialog(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(25,5,25,5);EditText b=edit("Tagesbudget",String.valueOf(budget),2),w=edit("Wochenstart-Punkte",String.valueOf(weekly),2);
     l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);
