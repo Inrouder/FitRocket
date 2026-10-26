@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
   private static final int EXPORT_REQUEST=81,IMPORT_REQUEST=82,HEALTH_PERMISSION_REQUEST=83;
-  private final ArrayList<JSONObject> foods=new ArrayList<>(), meals=new ArrayList<>(), weights=new ArrayList<>(), activities=new ArrayList<>();
+  private final ArrayList<JSONObject> foods=new ArrayList<>(), recipes=new ArrayList<>(), meals=new ArrayList<>(), weights=new ArrayList<>(), activities=new ArrayList<>();
   private android.content.SharedPreferences prefs;
   private LinearLayout page, entries;
   private GlassView glass;
@@ -30,6 +30,7 @@ public class MainActivity extends Activity {
   private String lastRenderedDate=null;
   private LocalDate diaryDate=LocalDate.now();
   private String bookingDate=null,bookingGroup=null,bookingReturn=null;
+  private String recipeFilter="Alle";
   private final int NAVY=Color.rgb(37,46,76), BLUE=Color.rgb(112,117,225), LIGHT=Color.rgb(255,247,242), PEACH=Color.rgb(255,220,204), MINT=Color.rgb(212,242,216), LAV=Color.rgb(240,231,255);
   private int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
   private GradientDrawable shape(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
@@ -53,10 +54,19 @@ public class MainActivity extends Activity {
         .putBoolean("weekly28MigrationDone",true).apply();
     }
     weekly=prefs.getInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS);
-    loadFoods();loadScannedFoods();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);home();}
+    loadFoods();loadScannedFoods();loadRecipes();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);home();}
   private void readArray(String key,ArrayList<JSONObject> into){into.clear();try{JSONArray arr=new JSONArray(prefs.getString(key,"[]"));for(int i=0;i<arr.length();i++)into.add(arr.getJSONObject(i));}catch(Exception ignored){}}
   private void persist(String key,ArrayList<JSONObject> items){JSONArray a=new JSONArray();for(JSONObject x:items)a.put(x);prefs.edit().putString(key,a.toString()).apply();}
   private void loadFoods(){try(InputStream in=getAssets().open("foods.json")){ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);JSONArray a=new JSONArray(new String(o.toByteArray(),StandardCharsets.UTF_8));for(int i=0;i<a.length();i++)foods.add(a.getJSONObject(i));}catch(Exception e){msg("Lebensmitteldatenbank konnte nicht geladen werden.");}}
+  private void loadRecipes(){
+    recipes.clear();
+    try(InputStream in=getAssets().open("recipes.json")){
+      ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buffer=new byte[4096];int count;
+      while((count=in.read(buffer))!=-1){out.write(buffer,0,count);if(out.size()>250000)throw new IOException("Rezeptliste zu groß");}
+      JSONArray list=new JSONArray(new String(out.toByteArray(),StandardCharsets.UTF_8));
+      for(int i=0;i<list.length();i++)recipes.add(list.getJSONObject(i));
+    }catch(Exception e){msg("Rezeptvorschläge konnten nicht geladen werden.");}
+  }
   private void loadScannedFoods(){
     try{
       JSONArray saved=new JSONArray(prefs.getString("scannedProducts","[]"));
@@ -194,7 +204,7 @@ public class MainActivity extends Activity {
     nav.setOrientation(LinearLayout.HORIZONTAL);nav.setBackground(shape(Color.rgb(255,254,253),20));
     String[] pages={"⌂ Heute","⌕ Suche","▦ Tagebuch","⋯ Mehr"};
     for(int i=0;i<pages.length;i++){final int index=i;TextView item=label(pages[i],12);item.setGravity(Gravity.CENTER);
-      if((heading.equals("FitRocket")&&i==0)||(heading.equals("Lebensmittel")&&i==1)||(heading.equals("Tagebuch")&&i==2)||(heading.equals("Mehr")&&i==3)){item.setBackground(shape(Color.rgb(255,230,224),16));}
+      if((heading.equals("FitRocket")&&i==0)||( (heading.equals("Lebensmittel")||heading.equals("Rezepte"))&&i==1)||(heading.equals("Tagebuch")&&i==2)||((heading.equals("Mehr")||heading.equals("Gewicht"))&&i==3)){item.setBackground(shape(Color.rgb(255,230,224),16));}
       nav.addView(item,new LinearLayout.LayoutParams(0,dp(46),1));item.setOnClickListener(v->{switch(index){case 0:home();break;case 1:bookingDate=null;bookingGroup=null;bookingReturn=null;searchScreen();break;case 2:history();break;default:more();}});
     }
     nav.setPadding(dp(12),dp(7),dp(12),dp(40));
@@ -503,7 +513,94 @@ public class MainActivity extends Activity {
     dayMealGroups(page,diaryDate.toString());
     page.addView(waterCard(diaryDate.toString()));
   }
-  private void more(){shell("Mehr");Button act=button("🚶 Bewegungs- und Punkteübersicht");page.addView(act);act.setOnClickListener(v->activityPage());Button week=button("📈 Wochen- und Monatsauswertung");page.addView(week);week.setOnClickListener(v->statistics());Button weight=button("⚖ Gewicht erfassen und Verlauf ansehen");page.addView(weight);weight.setOnClickListener(v->weightDialog());Button settings=button("⚙ Tagesbudget & Wochenpunkte");page.addView(settings);settings.setOnClickListener(v->settingsDialog());Button backup=button("⬆ Backup exportieren (JSON)");page.addView(backup);backup.setOnClickListener(v->startExport());Button restore=button("⬇ Backup importieren");page.addView(restore);restore.setOnClickListener(v->startImport());}
+  private void recipeScreen(){
+    shell("Rezepte");
+    LinearLayout intro=card(Color.rgb(255,249,239));
+    intro.addView(label("🍲 Heute etwas Leckeres kochen?",19));
+    intro.addView(label("Unsere FitRocket-Rezeptideen mit Zutatenmengen und ungefähr berechneten Punkten pro Portion.",13));
+    page.addView(intro);
+    LinearLayout filters=new LinearLayout(this);filters.setOrientation(0);
+    String[] tabs={"Alle","Frühstück","Mittagessen","Abendessen","Snacks"};
+    for(String tab:tabs){
+      TextView item=chip(tab.equals("Frühstück")?"Morgens":tab.equals("Mittagessen")?"Mittags":tab.equals("Abendessen")?"Abends":tab,
+             tab.equals(recipeFilter)?MINT:Color.WHITE);
+      item.setTextSize(11);item.setGravity(Gravity.CENTER);
+      filters.addView(item,new LinearLayout.LayoutParams(0,-2,1));
+      item.setOnClickListener(v->{recipeFilter=tab;recipeScreen();});
+    }
+    page.addView(filters);
+    int count=0;
+    for(JSONObject recipe:recipes){
+      String category=recipe.optString("group");
+      if(!"Alle".equals(recipeFilter) && !("Snacks".equals(recipeFilter)?"Snack":recipeFilter).equals(category))continue;
+      int points;
+      try{points=FitRocketRecipe.pointsPerServing(recipe,foods);}catch(Exception e){continue;}
+      LinearLayout row=card(Color.WHITE);
+      LinearLayout nameRow=new LinearLayout(this);nameRow.setOrientation(0);nameRow.setGravity(Gravity.CENTER_VERTICAL);
+      TextView name=label(recipe.optString("emoji","🍽")+"  "+recipe.optString("name"),17);name.setTypeface(null,1);
+      nameRow.addView(name,new LinearLayout.LayoutParams(0,-2,1));
+      nameRow.addView(chip("ca. "+points+" P",points==0?MINT:PEACH));
+      row.addView(nameRow);
+      row.addView(label(category+" · "+recipe.optInt("minutes")+" Min. · "+
+          recipe.optInt("servings")+" Portion(en)",13));
+      action(row,"Rezept & Zutaten ansehen ›",()->recipeDialog(recipe));
+      page.addView(row);count++;
+    }
+    if(count==0)page.addView(label("Für diese Kategorie sind noch keine Rezeptideen vorhanden.",14));
+  }
+  private void recipeDialog(JSONObject recipe){
+    int points;
+    try{points=FitRocketRecipe.pointsPerServing(recipe,foods);}
+    catch(Exception e){msg("Für dieses Rezept fehlen Nährwerte.");return;}
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(8),dp(20),dp(8));
+    content.addView(label(recipe.optString("emoji","🍽")+" "+
+        recipe.optString("name")+" · ca. "+points+" P pro Portion",18));
+    content.addView(label("Zutaten für "+recipe.optInt("servings")+" Portion(en):",15));
+    content.addView(label(FitRocketRecipe.ingredients(recipe,foods),14));
+    content.addView(label("Zubereitung",16));
+    content.addView(label(recipe.optString("instructions"),14));
+    content.addView(label("Wie viele Portionen möchtest du eintragen?",13));
+    EditText amount=edit("Portionen","1",2);content.addView(amount);
+    Spinner meal=groupSpinner();String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
+    for(int i=0;i<groups.length;i++)if(groups[i].equals(recipe.optString("group")))meal.setSelection(i);
+    content.addView(label("Mahlzeit",13));content.addView(meal);
+    content.addView(label("Die Zutaten und Portionen sind Vorschläge. Ergänzungen wie weitere Soßen, Butter oder Öl separat eintragen.",12));
+    ScrollView scroll=new ScrollView(this);scroll.addView(content);
+    final int pts=points;
+    AlertDialog d=new AlertDialog.Builder(this).setTitle("Rezeptvorschlag").setView(scroll)
+      .setPositiveButton("Zum Tagebuch",null).setNegativeButton("Schließen",null).create();
+    d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{
+      try{
+        int count=Integer.parseInt(amount.getText().toString().trim());
+        if(count<1||count>10||pts*count>2000)throw new IllegalArgumentException();
+        addMeal(recipe.optString("name")+" × "+count+" Portion(en)",pts*count,
+            recipe.optString("id"),"FitRocket-Rezept",meal.getSelectedItem().toString());
+        d.dismiss();afterMealAdded();
+      }catch(Exception e){msg("Bitte eine gültige Anzahl Portionen eingeben.");}
+    }));
+    d.show();
+  }
+
+  private void more(){
+    shell("Mehr");
+    LinearLayout progress=card(Color.WHITE);progress.addView(label("Deine Fortschritte",18));
+    action(progress,"⚖ Gewicht & Verlauf",()->weightScreen());
+    action(progress,"🚶 Bewegungs- und Smartwatch-Konto",()->activityPage());
+    action(progress,"📈 Statistiken",()->statistics());page.addView(progress);
+    LinearLayout ideas=card(Color.WHITE);ideas.addView(label("Ernährung & Inspiration",18));
+    action(ideas,"🍲 Rezeptvorschläge",()->recipeScreen());
+    action(ideas,"▥ Barcode scannen",()->scanBarcode());
+    action(ideas,"💧 Trinkmenge heute",()->waterScreen());page.addView(ideas);
+    LinearLayout options=card(Color.WHITE);options.addView(label("Einstellungen & Daten",18));
+    action(options,"⚙ Tagesbudget & Wochenpunkte",()->settingsDialog());
+    action(options,"⬆ Backup exportieren (JSON)",()->startExport());
+    action(options,"⬇ Backup importieren",()->startImport());page.addView(options);
+  }
+  private void waterScreen(){
+    shell("Trinken");heading("Deine Wasserbilanz");
+    page.addView(waterCard(today()));
+    page.addView(label("Jedes Glas zählt 250 ml. Du bestimmst dein Tagesziel selbst.",13));
+  }
   private void settingsDialog(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(25,5,25,5);EditText b=edit("Tagesbudget",String.valueOf(budget),2),w=edit("Wochenstart-Punkte",String.valueOf(weekly),2);
     l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);
     l.addView(label("Wochenstart-Punkte (Standard 28)",14));l.addView(w);
