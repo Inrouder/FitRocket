@@ -27,6 +27,7 @@ public class MainActivity extends Activity {
   private int budget=23, weekly=FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS;
   private boolean healthBusy=false;
   private String currentScreen="FitRocket";
+  private String lastRenderedDate=null;
   private final int NAVY=Color.rgb(37,46,76), BLUE=Color.rgb(112,117,225), LIGHT=Color.rgb(255,247,242), PEACH=Color.rgb(255,220,204), MINT=Color.rgb(212,242,216), LAV=Color.rgb(240,231,255);
   private int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
   private GradientDrawable shape(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
@@ -56,6 +57,7 @@ public class MainActivity extends Activity {
   private void loadFoods(){try(InputStream in=getAssets().open("foods.json")){ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);JSONArray a=new JSONArray(new String(o.toByteArray(),StandardCharsets.UTF_8));for(int i=0;i<a.length();i++)foods.add(a.getJSONObject(i));}catch(Exception e){msg("Lebensmitteldatenbank konnte nicht geladen werden.");}}
   private void shell(String heading){
     currentScreen=heading;
+    lastRenderedDate=today();
     LinearLayout frame=new LinearLayout(this);frame.setOrientation(1);
     frame.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{Color.rgb(255,247,241),Color.rgb(247,239,255),Color.rgb(255,249,244)}));
     setContentView(frame);
@@ -390,6 +392,11 @@ public class MainActivity extends Activity {
   }
   @Override protected void onResume(){
     super.onResume();
+    if(prefs!=null && lastRenderedDate!=null && !today().equals(lastRenderedDate)){
+      if("FitRocket".equals(currentScreen))home();
+      else if("Aktivität".equals(currentScreen))activityPage();
+      else if("Statistiken".equals(currentScreen))statistics();
+    }
     if(prefs!=null && prefs.getBoolean("healthUse",false) && !healthBusy
          && android.os.Build.VERSION.SDK_INT>=34 && HealthSync.supported(this) && healthPermissionsGranted()){
       long now=System.currentTimeMillis();
