@@ -1,0 +1,101 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "instructions": {
+      "type": "string"
+    },
+    "group": {
+      "type": "string",
+      "enum": [
+        "Frühstück",
+        "Mittagessen",
+        "Abendessen",
+        "Snack",
+        "Getränke"
+      ]
+    },
+    "servings": {
+      "type": "integer"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "hoch",
+        "mittel",
+        "niedrig"
+      ]
+    },
+    "uncertainty": {
+      "type": "string"
+    },
+    "ingredients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "food_id": {
+            "type": "string"
+          },
+          "grams": {
+            "type": "number"
+          },
+          "kcal_100g": {
+            "type": "number"
+          },
+          "saturated_fat_100g": {
+            "type": "number"
+          },
+          "sugar_100g": {
+            "type": "number"
+          },
+          "protein_100g": {
+            "type": "number"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "hoch",
+              "mittel",
+              "niedrig"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "food_id",
+          "grams",
+          "kcal_100g",
+          "saturated_fat_100g",
+          "sugar_100g",
+          "protein_100g",
+          "confidence",
+          "note"
+        ]
+      }
+    }
+  },
+  "required": [
+    "title",
+    "summary",
+    "instructions",
+    "group",
+    "servings",
+    "confidence",
+    "uncertainty",
+    "ingredients"
+  ]
+}
