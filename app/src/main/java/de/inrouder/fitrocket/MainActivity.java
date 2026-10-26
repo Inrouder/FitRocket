@@ -66,7 +66,7 @@ public class MainActivity extends Activity {
   }
   private int used(String date){int total=0;for(JSONObject x:meals)if(date.equals(x.optString("date")))total+=x.optInt("points");return total;}
   private int count(String date){int n=0;for(JSONObject x:meals)if(date.equals(x.optString("date")))n++;return n;}
-  private String kind(JSONObject f){return f.isNull("points")?"Punkte wählen":f.optInt("points")+" P";}
+  private String kind(JSONObject f){return f.isNull("points")?"Punkte eingeben":f.optInt("points")+" P";}
   private void home(){
     shell("FitRocket");
     LinearLayout balance=card(Color.WHITE);
@@ -129,10 +129,8 @@ public class MainActivity extends Activity {
   }
   private double num(String s) { return Double.parseDouble(s.trim().replace(',','.')); }
   // Publicly reconstructed approximation; not the proprietary historic WW formula.
-  private int estimatedSmartPoints(double kcal,double saturated,double sugar,double protein) {
-    if(!Double.isFinite(kcal)||!Double.isFinite(saturated)||!Double.isFinite(sugar)||!Double.isFinite(protein)||
-      kcal<0||saturated<0||sugar<0||protein<0) throw new IllegalArgumentException();
-    return Math.max(0,(int)Math.round(kcal*0.0305+saturated*0.275+sugar*0.12-protein*0.098));
+  private int estimatedSmartPoints(double kcal,double saturated,double sugar,double protein){
+    return FitRocketMath.foodPoints(kcal,saturated,sugar,protein);
   }
   private int calcForGrams(JSONObject f,double grams){
     JSONObject n=f.optJSONObject("nutrition");
@@ -173,56 +171,195 @@ public class MainActivity extends Activity {
   private void textHelper(){EditText input=new EditText(this);input.setMinLines(3);input.setHint("Beispiel: Ich hatte eine Banane und einen Apfel");new AlertDialog.Builder(this).setTitle("Offline-Texterfassung (keine KI)").setMessage("Erkennt eindeutige Lebensmittelnamen aus deiner Datenbank. Mengen und Zutaten müssen vor dem Eintragen geprüft werden.").setView(input).setPositiveButton("Analysieren",(d,w)->interpret(input.getText().toString())).setNegativeButton("Abbrechen",null).show();}
   private void interpret(String source){String q=source.toLowerCase(Locale.ROOT);ArrayList<JSONObject> matches=new ArrayList<>();for(JSONObject f:foods){String name=f.optString("name").toLowerCase(Locale.ROOT);if(name.length()>=5&&q.contains(name))matches.add(f);}if(matches.size()!=1){new AlertDialog.Builder(this).setTitle("Bitte Lebensmittel auswählen").setMessage(matches.isEmpty()?"Keine eindeutige Übereinstimmung gefunden. Bitte suche das Lebensmittel manuell.":"Mehrere Lebensmittel erkannt. Bitte erfasse die Zutaten einzeln über die Suche.").setPositiveButton("Zur Suche",(d,w)->searchScreen()).show();return;}foodDialog(matches.get(0));}
   private void history(){shell("Tagebuch");heading("Mein Tagebuch");page.addView(label("Alle Mahlzeiten auf einen Blick",14));for(int i=meals.size()-1;i>=0;i--)mealRow(meals.get(i),page);if(meals.isEmpty())page.addView(label("Noch keine gespeicherten Einträge.",15));}
-  private void more(){shell("Mehr");Button act=button("🚶 Aktivitäten & Bonuspunkte");page.addView(act);act.setOnClickListener(v->activityPage());Button week=button("📈 Wochen- und Monatsauswertung");page.addView(week);week.setOnClickListener(v->statistics());Button weight=button("⚖ Gewicht erfassen und Verlauf ansehen");page.addView(weight);weight.setOnClickListener(v->weightDialog());Button settings=button("⚙ Budget & Wochen-Extra");page.addView(settings);settings.setOnClickListener(v->settingsDialog());Button backup=button("⬆ Backup exportieren (JSON)");page.addView(backup);backup.setOnClickListener(v->startExport());Button restore=button("⬇ Backup importieren");page.addView(restore);restore.setOnClickListener(v->startImport());}
+  private void more(){shell("Mehr");Button act=button("🚶 Bewegungs- und Punkteübersicht");page.addView(act);act.setOnClickListener(v->activityPage());Button week=button("📈 Wochen- und Monatsauswertung");page.addView(week);week.setOnClickListener(v->statistics());Button weight=button("⚖ Gewicht erfassen und Verlauf ansehen");page.addView(weight);weight.setOnClickListener(v->weightDialog());Button settings=button("⚙ Budget & Wochen-Extra");page.addView(settings);settings.setOnClickListener(v->settingsDialog());Button backup=button("⬆ Backup exportieren (JSON)");page.addView(backup);backup.setOnClickListener(v->startExport());Button restore=button("⬇ Backup importieren");page.addView(restore);restore.setOnClickListener(v->startImport());}
   private void settingsDialog(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(25,5,25,5);EditText b=edit("Tagesbudget",String.valueOf(budget),2),w=edit("Wochen-Extra",String.valueOf(weekly),2);l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);l.addView(label("Wochen-Extra (frei einstellbar; keine automatische WW-Ermittlung)",14));l.addView(w);new AlertDialog.Builder(this).setTitle("Budget").setView(l).setPositiveButton("Speichern",(d,n)->{try{int bb=Integer.parseInt(b.getText().toString()),ww=Integer.parseInt(w.getText().toString());if(bb<1||bb>200||ww<0||ww>500)throw new Exception();budget=bb;weekly=ww;prefs.edit().putInt("budget",bb).putInt("weekly",ww).apply();more();}catch(Exception e){msg("Ungültige Budgetwerte.");}}).setNegativeButton("Abbrechen",null).show();}
   private void statistics(){shell("Statistiken");LocalDate now=LocalDate.now(),start=now.minusDays(now.getDayOfWeek().getValue()-1);page.addView(label("Diese Woche",20));int weeklyUsed=0;for(int i=0;i<7;i++){LocalDate date=start.plusDays(i);int n=used(date.toString());weeklyUsed+=n;page.addView(label(date.getDayOfWeek().toString().substring(0,2)+" "+pretty(date.toString())+": "+n+" Punkte",15));}page.addView(label("Gesamt: "+weeklyUsed+" Punkte; Ø "+String.format(Locale.GERMAN,"%.1f",weeklyUsed/7.0)+" pro Kalendertag",15));page.addView(label("Dieser Monat",20));LocalDate first=now.withDayOfMonth(1);int total=0,tracked=0,days=now.getDayOfMonth();for(int i=0;i<days;i++){String day=first.plusDays(i).toString();total+=used(day);if(count(day)>0)tracked++;}page.addView(label("Erfasste Punkte: "+total+" · Tage mit Einträgen: "+tracked+" / "+days,16));page.addView(label("Ø je dokumentiertem Tag: "+(tracked>0?String.format(Locale.GERMAN,"%.1f",total/(double)tracked):"–"),16));page.addView(label("Achtung: Fehlende Tage gelten nicht als Null-Punkte-Tage.",13));if(!weights.isEmpty()){page.addView(label("Gewichtseinträge: "+weights.size(),16));for(int i=weights.size()-1;i>=Math.max(0,weights.size()-8);i--)page.addView(label(pretty(weights.get(i).optString("date"))+" · "+weights.get(i).optString("kg")+" kg",14));}}
   private void weightDialog(){LinearLayout l=new LinearLayout(this);l.setPadding(20,5,20,5);l.setOrientation(1);EditText e=edit("Gewicht in kg, z. B. 78,5","",8194);l.addView(e);new AlertDialog.Builder(this).setTitle("Gewicht dokumentieren").setView(l).setPositiveButton("Speichern",(d,w)->{try{double kg=Double.parseDouble(e.getText().toString().replace(',','.'));if(!Double.isFinite(kg)||kg<20||kg>400)throw new Exception();JSONObject x=new JSONObject();x.put("date",today());x.put("kg",kg);weights.add(x);persist("weights",weights);statistics();}catch(Exception ex){msg("Gewicht ungültig.");}}).setNegativeButton("Abbrechen",null).show();}
 
   private LocalDate weekStart(){LocalDate d=LocalDate.now();return d.minusDays(d.getDayOfWeek().getValue()-1);}
-  private int earnedWeek(){int sum=0;String start=weekStart().toString(),end=weekStart().plusDays(7).toString();for(JSONObject a:activities){String date=a.optString("date");if(date.compareTo(start)>=0&&date.compareTo(end)<0)sum+=a.optInt("points");}return sum;}
-  private int spentWeek(){int sum=0;LocalDate start=weekStart();for(int i=0;i<7;i++){int used=used(start.plusDays(i).toString());sum+=Math.max(0,used-budget);}return sum;}
-  private int availableWeek(){return Math.max(0,weekly+activityCredit()-spentWeek());}
-  private int activityCredit(){int option=prefs.getInt("activityShare",0);return (int)Math.floor(earnedWeek()*option/100.0);}
-  // A transparent MET-based net activity estimate. This is NOT the WW proprietary FitPoints algorithm.
-  private int estimateActivity(double kg,int duration,double met){if(!Double.isFinite(kg)||!Double.isFinite(met)||kg<=0||duration<0)throw new IllegalArgumentException();double net=Math.max(0,met-1)*3.5*kg/200.0*duration;return Math.max(0,(int)Math.round(net/65.0));}
-  private void activityPage(){
-    shell("Aktivität");heading("Deine Bewegung");
-    LinearLayout overview=card(Color.WHITE);
-    overview.addView(label("Diese Woche: "+earnedWeek()+" Aktivpunkte",20));
-    overview.addView(label("Für Wochenpuffer freigegeben: "+activityCredit()+" Punkte",16));
-    overview.addView(label("Wochenpuffer: "+weekly+" Basis + "+activityCredit()+" Aktivität − "+spentWeek()+" verbraucht = "+availableWeek()+" übrig",14));
-    overview.addView(label("Tagesbudget bleibt "+budget+" Punkte",13));page.addView(overview);
-    LinearLayout settings=card(MINT);settings.addView(label("So nutzt du Aktivpunkte",17));
-    String[] modes={"0 % · nur sammeln","50 % · teilweise verwenden","100 % · vollständig verwenden"};
-    Spinner share=new Spinner(this);share.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,modes));
-    int chosen=prefs.getInt("activityShare",0);share.setSelection(chosen==100?2:chosen==50?1:0);settings.addView(share);
-    action(settings,"Auswahl speichern",()->{prefs.edit().putInt("activityShare",share.getSelectedItemPosition()*50).apply();activityPage();});page.addView(settings);
-    LinearLayout input=card(Color.WHITE);action(input,"＋ Training hinzufügen",()->addActivityDialog());page.addView(input);
-    heading("Bewegungsprotokoll");
-    String start=weekStart().toString(),end=weekStart().plusDays(7).toString();int shown=0;
-    for(int i=activities.size()-1;i>=0;i--){JSONObject act=activities.get(i);String date=act.optString("date");if(date.compareTo(start)<0||date.compareTo(end)>=0)continue;shown++;
-      LinearLayout tile=card(Color.WHITE);tile.addView(label(act.optString("name")+" · +"+act.optInt("points")+" P",16));tile.addView(label(pretty(date)+" · "+act.optInt("minutes")+" Min.",13));page.addView(tile);
-      tile.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Aktivität löschen?").setPositiveButton("Löschen",(d,w)->{activities.remove(act);persist("activities",activities);activityPage();}).setNegativeButton("Abbrechen",null).show());
+  private boolean profileReady(){
+    return prefs.contains("profile_age") && prefs.contains("profile_height")
+        && prefs.contains("profile_weight") && prefs.contains("profile_sex");
+  }
+  private double weightKg(){return Double.parseDouble(prefs.getString("profile_weight","75"));}
+  private double restDaily(){return FitRocketMath.restingCalories(
+      prefs.getInt("profile_age",35), prefs.getInt("profile_height",170),
+      weightKg(),prefs.getInt("profile_sex",2));}
+  private void profileDialog(){
+    LinearLayout box=new LinearLayout(this);box.setOrientation(1);box.setPadding(dp(20),dp(8),dp(20),dp(8));
+    box.addView(label("Deine Werte für die persönliche Aktivitätsrechnung",16));
+    EditText age=edit("Alter",prefs.contains("profile_age")?String.valueOf(prefs.getInt("profile_age",35)):"",2);
+    EditText height=edit("Körpergröße (cm)",prefs.contains("profile_height")?String.valueOf(prefs.getInt("profile_height",170)):"",2);
+    EditText weight=edit("Körpergewicht (kg)",prefs.getString("profile_weight",prefs.getString("activityWeight","")),8194);
+    box.addView(label("Alter",13));box.addView(age);box.addView(label("Größe (cm)",13));box.addView(height);
+    box.addView(label("Gewicht (kg)",13));box.addView(weight);
+    Spinner type=new Spinner(this);
+    type.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,
+      new String[]{"Weibliches Referenzprofil","Männliches Referenzprofil","Mittelwert / nicht angeben"}));
+    type.setSelection(prefs.getInt("profile_sex",2));box.addView(label("Stoffwechsel-Referenzprofil",13));box.addView(type);
+    AlertDialog d=new AlertDialog.Builder(this).setTitle("Dein Bewegungsprofil").setView(box).setNegativeButton("Abbrechen",null).setPositiveButton("Speichern",null).create();
+    d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{
+      try{
+        int a=Integer.parseInt(age.getText().toString().trim());
+        int h=Integer.parseInt(height.getText().toString().trim());
+        double w=num(weight.getText().toString());
+        int t=type.getSelectedItemPosition();
+        double kcal=FitRocketMath.restingCalories(a,h,w,t);
+        prefs.edit().putInt("profile_age",a).putInt("profile_height",h).putString("profile_weight",String.valueOf(w))
+            .putInt("profile_sex",t).apply();
+        d.dismiss();activityPage();
+      }catch(Exception e){msg("Bitte Alter (18–100), Größe (120–230 cm) und Gewicht (30–300 kg) prüfen.");}
+    }));d.show();
+  }
+  private JSONObject stepMap(){
+    try{return new JSONObject(prefs.getString("stepDays","{}"));}
+    catch(Exception e){return new JSONObject();}
+  }
+  private int stepsFor(String date){JSONObject x=stepMap().optJSONObject(date);return x==null?0:x.optInt("total");}
+  private int cadenceFor(String date){JSONObject x=stepMap().optJSONObject(date);return x==null?100:x.optInt("cadence",100);}
+  private int workoutStepsFor(String date){
+    long total=0;for(JSONObject a:activities){
+      if(!date.equals(a.optString("date")))continue;
+      if(a.has("workoutSteps"))total+=a.optInt("workoutSteps");
+      else if("Gehen".equals(a.optString("name")))total+=(long)a.optInt("minutes")*100;
+      else if("Laufen".equals(a.optString("name")))total+=(long)a.optInt("minutes")*150;
     }
-    if(shown==0)page.addView(label("Noch keine Aktivitäten diese Woche.",14));
-    page.addView(label("Schätzmodell: MET-Intensität über Ruheverbrauch, etwa 65 aktive kcal je Punkt. Kein offizieller WW-Rechner.",12));
+    return (int)Math.min(100000,total);
+  }
+  private double stepKcalFor(String date){
+    if(!profileReady())return 0;
+    int steps=stepsFor(date);
+    if(steps==0)return 0;
+    int threshold=prefs.getInt("stepBaseline",3000);
+    int eligible=FitRocketMath.extraSteps(steps,threshold,workoutStepsFor(date));
+    return FitRocketMath.stepCalories(restDaily(),eligible,cadenceFor(date));
+  }
+  private int stepPointsFor(String date){
+    return FitRocketMath.points(stepKcalFor(date),prefs.getInt("kcalPerPoint",65));
+  }
+  private int totalStepPointsWeek(){
+    int n=0;for(int i=0;i<7;i++)n+=stepPointsFor(weekStart().plusDays(i).toString());return n;
+  }
+  private int workoutPointsWeek(){
+    int sum=0;String start=weekStart().toString(),end=weekStart().plusDays(7).toString();
+    for(JSONObject a:activities){String date=a.optString("date");if(date.compareTo(start)>=0&&date.compareTo(end)<0)sum+=a.optInt("points");}
+    return sum;
+  }
+  private void stepDialog(){
+    if(!profileReady()){profileDialog();return;}
+    JSONObject x=stepMap().optJSONObject(today());
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(10),dp(20),dp(10));
+    EditText stepField=edit("Schritte gesamt",x==null?"":String.valueOf(x.optInt("total")),2);
+    content.addView(label("Schritte heute (Gesamtwert)",14));content.addView(stepField);
+    Spinner pace=new Spinner(this);pace.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,
+        new String[]{"Gemütlich (80 Schritte/Min.)","Normal (100 Schritte/Min.)","Zügig (120 Schritte/Min.)"}));
+    int current=x==null?100:x.optInt("cadence",100);pace.setSelection(current==80?0:current==120?2:1);
+    content.addView(label("Gehtempo",14));content.addView(pace);
+    content.addView(label("FitRocket zählt nur Schritte über dem Grundwert und berücksichtigt Schritte aus eingetragenen Workouts.",12));
+    AlertDialog d=new AlertDialog.Builder(this).setTitle("Schritte aktualisieren").setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Speichern",null).create();
+    d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{
+      try{int steps=Integer.parseInt(stepField.getText().toString());if(steps<0||steps>100000)throw new IllegalArgumentException();
+        int[] speeds={80,100,120};JSONObject map=stepMap();JSONObject day=new JSONObject();
+        day.put("total",steps);day.put("cadence",speeds[pace.getSelectedItemPosition()]);
+        map.put(today(),day);prefs.edit().putString("stepDays",map.toString()).apply();
+        d.dismiss();activityPage();
+      }catch(Exception e){msg("Bitte eine gültige Schrittzahl eingeben.");}
+    }));d.show();
+  }
+
+  private int earnedWeek(){return workoutPointsWeek()+totalStepPointsWeek();}
+  private int spentWeek(){int sum=0;LocalDate start=weekStart();for(int i=0;i<7;i++)sum+=Math.max(0,used(start.plusDays(i).toString())-budget);return sum;}
+  private int activityCredit(){return FitRocketMath.credit(earnedWeek(),prefs.getInt("activityShare",0));}
+  private int availableWeek(){return FitRocketMath.remainingWeekly(weekly,earnedWeek(),prefs.getInt("activityShare",0),spentWeek());}
+
+  private void activityPage(){
+    shell("Aktivität");heading("Dein Aktivitätskonto");
+    LinearLayout cardProfile=card(Color.WHITE);
+    if(profileReady()){
+      cardProfile.addView(label("Dein Profil · "+prefs.getInt("profile_age",0)+" J. · "+
+        prefs.getInt("profile_height",0)+" cm · "+weightKg()+" kg",16));
+      cardProfile.addView(label("Geschätzter Ruhebedarf: "+(int)Math.round(restDaily())+" kcal/Tag",13));
+    }else{
+      cardProfile.addView(label("Richte dein Bewegungsprofil für persönliche Punkte ein.",15));
+    }
+    action(cardProfile,profileReady()?"Profil ändern":"Profil einrichten",()->profileDialog());page.addView(cardProfile);
+    LinearLayout overview=card(Color.WHITE);
+    overview.addView(label("Diese Woche: "+earnedWeek()+" Bewegungspunkte",20));
+    overview.addView(label("Training: "+workoutPointsWeek()+" · Schritte: "+totalStepPointsWeek(),15));
+    overview.addView(label("Zum Wochenbudget: +"+activityCredit()+" Punkte",16));
+    overview.addView(label("Wochenpuffer: "+weekly+" Basis + "+activityCredit()+" Bewegung − "+spentWeek()+" genutzt = "+availableWeek()+" übrig",14));
+    overview.addView(label("Tagesbudget bleibt: "+budget+" Punkte",13));page.addView(overview);
+    LinearLayout stepCard=card(MINT);
+    int all=stepsFor(today());int w=workoutStepsFor(today());int eligible=FitRocketMath.extraSteps(all,prefs.getInt("stepBaseline",3000),w);
+    stepCard.addView(label("👟 Schritte heute: "+all,18));
+    stepCard.addView(label("Für Punkte: "+eligible+" Schritte · "+stepPointsFor(today())+" Punkte",14));
+    stepCard.addView(label("Basis "+prefs.getInt("stepBaseline",3000)+" Schritte · Workouts "+w+" Schritte abgezogen",12));
+    action(stepCard,"Schritte eintragen / bearbeiten",()->stepDialog());page.addView(stepCard);
+    LinearLayout settings=card(Color.WHITE);
+    settings.addView(label("Verrechnung deiner Bewegung",17));
+    Spinner share=new Spinner(this);share.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,
+        new String[]{"0 % · nur sammeln","50 % · teilweise verwenden","100 % · alles verwenden"}));
+    int chosen=prefs.getInt("activityShare",0);share.setSelection(chosen==100?2:chosen==50?1:0);
+    settings.addView(share);
+    action(settings,"Auswahl speichern",()->{prefs.edit().putInt("activityShare",share.getSelectedItemPosition()*50).apply();activityPage();});
+    page.addView(settings);
+    LinearLayout activity=card(Color.WHITE);
+    action(activity,"＋ Training hinzufügen",()->addActivityDialog());
+    page.addView(activity);
+    heading("Deine Workouts diese Woche");
+    String start=weekStart().toString(),end=weekStart().plusDays(7).toString();int shown=0;
+    for(int i=activities.size()-1;i>=0;i--){
+      JSONObject act=activities.get(i);String date=act.optString("date");
+      if(date.compareTo(start)<0||date.compareTo(end)>=0)continue;shown++;
+      LinearLayout tile=card(Color.WHITE);tile.addView(label(act.optString("name")+" · +"+act.optInt("points")+" P",16));
+      tile.addView(label(pretty(date)+" · "+act.optInt("minutes")+" Min. · "+act.optInt("workoutSteps")+" Workout-Schritte",13));
+      page.addView(tile);
+      tile.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Eintrag löschen?").setPositiveButton("Löschen",(d,which)->{
+        activities.remove(act);persist("activities",activities);activityPage();}).setNegativeButton("Abbrechen",null).show());
+    }
+    if(shown==0)page.addView(label("Noch keine Workouts für diese Woche.",14));
   }
   private void addActivityDialog(){
+    if(!profileReady()){new AlertDialog.Builder(this).setTitle("Bewegungsprofil fehlt")
+      .setMessage("Bitte zuerst Alter, Größe, Gewicht und Referenzprofil hinterlegen.")
+      .setPositiveButton("Profil öffnen",(d,w)->profileDialog()).setNegativeButton("Abbrechen",null).show();return;}
     LinearLayout box=new LinearLayout(this);box.setOrientation(1);box.setPadding(dp(20),dp(5),dp(20),dp(5));
-    Spinner kind=new Spinner(this);String[] types={"Gehen","Radfahren","Schwimmen","Laufen","Krafttraining","Yoga","Tanzen","Gartenarbeit","Andere Aktivität"};
-    kind.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,types));box.addView(label("Aktivitätsart",14));box.addView(kind);
-    Spinner intensity=new Spinner(this);intensity.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Niedrig","Moderat","Hoch"}));box.addView(label("Intensität",14));box.addView(intensity);
-    EditText minutes=edit("Minuten","30",2),kg=edit("Gewicht in kg",prefs.getString("activityWeight","75"),8194);
-    box.addView(label("Dauer in Minuten",14));box.addView(minutes);box.addView(label("Körpergewicht",14));box.addView(kg);
-    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Training erfassen").setView(box).setNegativeButton("Abbrechen",null).setPositiveButton("Berechnen",null).create();
-    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(w->{
-      try{int time=Integer.parseInt(minutes.getText().toString());double weight=num(kg.getText().toString());if(time<1||time>600||weight<25||weight>400)throw new IllegalArgumentException();
-        double[] mets={2.5,4.5,7};int level=intensity.getSelectedItemPosition();int earned=estimateActivity(weight,time,mets[level]);
-        dialog.dismiss();new AlertDialog.Builder(this).setTitle("Aktivität speichern").setMessage(types[kind.getSelectedItemPosition()]+" · "+time+" Minuten\\nGeschätzte Punkte: "+earned+"\\nAktive Bewegung, keine offiziellen FitPoints.")
-          .setPositiveButton("Gutschreiben",(d,which)->{try{JSONObject a=new JSONObject();a.put("date",today());a.put("name",types[kind.getSelectedItemPosition()]);a.put("minutes",time);a.put("intensity",level);a.put("weight",weight);a.put("points",earned);activities.add(a);persist("activities",activities);prefs.edit().putString("activityWeight",String.valueOf(weight)).apply();activityPage();}catch(Exception e){msg("Konnte Aktivität nicht speichern.");}})
-          .setNegativeButton("Abbrechen",null).show();
-      }catch(Exception e){msg("Bitte gültiges Gewicht und Minuten angeben.");}
-    }));dialog.show();
+    String[] types={"Gehen","Radfahren","Schwimmen","Laufen","Krafttraining","Yoga","Tanzen","Gartenarbeit","Andere Aktivität"};
+    Spinner kind=new Spinner(this);kind.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,types));
+    box.addView(label("Sportart",14));box.addView(kind);
+    Spinner intensity=new Spinner(this);intensity.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,
+        new String[]{"Locker","Mittel","Intensiv"}));box.addView(label("Intensität",14));box.addView(intensity);
+    EditText duration=edit("Minuten","30",2);
+    box.addView(label("Trainingsdauer (Minuten)",14));box.addView(duration);
+    EditText workoutSteps=edit("Workout-Schritte (optional)","",2);
+    box.addView(label("Schritte dieser Einheit, falls im Tageszähler enthalten",12));box.addView(workoutSteps);
+    AlertDialog d=new AlertDialog.Builder(this).setTitle("Training erfassen").setView(box).setNegativeButton("Abbrechen",null).setPositiveButton("Berechnen",null).create();
+    d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{
+      try{
+        int minutes=Integer.parseInt(duration.getText().toString().trim());
+        int sport=kind.getSelectedItemPosition(),level=intensity.getSelectedItemPosition();
+        if(minutes<1||minutes>600)throw new IllegalArgumentException();
+        double met=FitRocketMath.activityMet(sport,level);
+        double kcal=FitRocketMath.activeCalories(restDaily(),met,minutes);
+        int points=FitRocketMath.points(kcal,prefs.getInt("kcalPerPoint",65));
+        int defaultSteps=(sport==0?minutes*100:sport==3?minutes*150:0);
+        int counted=workoutSteps.getText().toString().trim().isEmpty()?defaultSteps:Integer.parseInt(workoutSteps.getText().toString().trim());
+        if(counted<0||counted>100000)throw new IllegalArgumentException();
+        d.dismiss();
+        final int finalSteps=counted;
+        new AlertDialog.Builder(this).setTitle("Training speichern")
+          .setMessage(types[sport]+" · "+minutes+" Min.\n"+String.format(Locale.GERMAN,"%.0f",kcal)+" aktive kcal\n"+points+" Bewegungspunkte\n"+counted+" Schritte nicht doppelt zählen")
+          .setPositiveButton("Speichern",(dialog,which)->{
+            try{JSONObject a=new JSONObject();
+              a.put("date",today());a.put("name",types[sport]);a.put("typeIndex",sport);
+              a.put("minutes",minutes);a.put("intensity",level);a.put("met",met);
+              a.put("restingKcal",restDaily());a.put("calories",kcal);a.put("workoutSteps",finalSteps);
+              a.put("points",points);a.put("calcVersion",2);
+              activities.add(a);persist("activities",activities);activityPage();
+            }catch(Exception e){msg("Eintrag konnte nicht gespeichert werden.");}
+          }).setNegativeButton("Abbrechen",null).show();
+      }catch(Exception e){msg("Bitte Minuten und Schritte prüfen.");}
+    }));d.show();
   }
   private void startExport(){Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");i.putExtra(Intent.EXTRA_TITLE,"FitRocket-Backup-"+today()+".json");startActivityForResult(i,EXPORT_REQUEST);}
   private void startImport(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");startActivityForResult(i,IMPORT_REQUEST);}
