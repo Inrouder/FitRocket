@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
         .putBoolean("weekly28MigrationDone",true).apply();
     }
     weekly=prefs.getInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS);
-    loadFoods();loadScannedFoods();loadRecipes();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);home();}
+    loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);home();}
   private void readArray(String key,ArrayList<JSONObject> into){into.clear();try{JSONArray arr=new JSONArray(prefs.getString(key,"[]"));for(int i=0;i<arr.length();i++)into.add(arr.getJSONObject(i));}catch(Exception ignored){}}
   private void persist(String key,ArrayList<JSONObject> items){JSONArray a=new JSONArray();for(JSONObject x:items)a.put(x);prefs.edit().putString(key,a.toString()).apply();}
   private void loadFoods(){try(InputStream in=getAssets().open("foods.json")){ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);JSONArray a=new JSONArray(new String(o.toByteArray(),StandardCharsets.UTF_8));for(int i=0;i<a.length();i++)foods.add(a.getJSONObject(i));}catch(Exception e){msg("Lebensmitteldatenbank konnte nicht geladen werden.");}}
@@ -65,7 +65,24 @@ public class MainActivity extends Activity {
       while((count=in.read(buffer))!=-1){out.write(buffer,0,count);if(out.size()>250000)throw new IOException("Rezeptliste zu groß");}
       JSONArray list=new JSONArray(new String(out.toByteArray(),StandardCharsets.UTF_8));
       for(int i=0;i<list.length();i++)recipes.add(list.getJSONObject(i));
+      try{
+        JSONArray saved=new JSONArray(prefs.getString("savedAiRecipes","[]"));
+        for(int i=0;i<saved.length();i++){
+          JSONObject recipe=saved.optJSONObject(i);
+          if(recipe!=null)recipes.add(0,recipe);
+        }
+      }catch(Exception ignored){}
+
     }catch(Exception e){msg("Rezeptvorschläge konnten nicht geladen werden.");}
+  }
+  private void loadAiFoods(){
+    try{
+      JSONArray arr=new JSONArray(prefs.getString("aiFoods","[]"));
+      for(int i=0;i<arr.length();i++){
+        JSONObject x=arr.optJSONObject(i);
+        if(x!=null)foods.add(0,x);
+      }
+    }catch(Exception e){msg("Eigene KI-Lebensmittel konnten nicht geladen werden.");}
   }
   private void loadScannedFoods(){
     try{
@@ -312,7 +329,9 @@ public class MainActivity extends Activity {
     row2.addView(find,new LinearLayout.LayoutParams(0,dp(49),1));
     row2.addView(manual,new LinearLayout.LayoutParams(0,dp(49),1));
     find.setOnClickListener(v->searchScreen());manual.setOnClickListener(v->manual());
-    actions.addView(row2);page.addView(actions);
+    actions.addView(row2);
+    action(actions,"✨ KI-Assistent – Essen beschreiben & Rezepte",()->aiHub());
+    page.addView(actions);
 
     heading("Deine Mahlzeiten");
     dayMealGroups(page,today());
@@ -418,6 +437,7 @@ public class MainActivity extends Activity {
     barcodeRow.addView(manualCode,new LinearLayout.LayoutParams(0,dp(50),1));
     scanner.setOnClickListener(v->scanBarcode());manualCode.setOnClickListener(v->barcodeManualDialog());
     searchCard.addView(barcodeRow);
+    action(searchCard,"✨ Lebensmittel per KI einschätzen",()->aiCompose("food"));
     page.addView(searchCard);
     heading("Deine Lebensmittelauswahl");
     LinearLayout results=new LinearLayout(this);results.setOrientation(1);page.addView(results);
@@ -522,7 +542,8 @@ public class MainActivity extends Activity {
     shell("Rezepte");
     LinearLayout intro=card(Color.rgb(255,249,239));
     intro.addView(label("🍲 Heute etwas Leckeres kochen?",19));
-    intro.addView(label("Unsere FitRocket-Rezeptideen mit Zutatenmengen und ungefähr berechneten Punkten pro Portion.",13));
+    intro.addView(label("FitRocket-Rezepte und deine selbst gespeicherten KI-Rezepte – mit Zutaten und geschätzten Punkten.",13));
+    action(intro,"✨ Neues Rezept mit KI erstellen",()->aiCompose("recipe"));
     page.addView(intro);
     LinearLayout filters=new LinearLayout(this);filters.setOrientation(0);
     String[] tabs={"Alle","Frühstück","Mittagessen","Abendessen","Snacks"};
@@ -593,6 +614,7 @@ public class MainActivity extends Activity {
     action(progress,"🚶 Bewegungs- und Smartwatch-Konto",()->activityPage());
     action(progress,"📈 Statistiken",()->statistics());page.addView(progress);
     LinearLayout ideas=card(Color.WHITE);ideas.addView(label("Ernährung & Inspiration",18));
+    action(ideas,"✨ KI-Assistent: Rezepte, Essen & Lebensmittel",()->aiHub());
     action(ideas,"🍲 Rezeptvorschläge",()->recipeScreen());
     action(ideas,"▥ Barcode scannen",()->scanBarcode());
     action(ideas,"💧 Trinkmenge heute",()->waterScreen());page.addView(ideas);
@@ -1198,7 +1220,7 @@ public class MainActivity extends Activity {
     if(request==EXPORT_REQUEST){
       try(OutputStream os=getContentResolver().openOutputStream(uri)){
         JSONObject payload=new JSONObject();
-        payload.put("schemaVersion",4);payload.put("budget",budget);payload.put("weekly",weekly);
+        payload.put("schemaVersion",5);payload.put("budget",budget);payload.put("weekly",weekly);
         payload.put("meals",new JSONArray(prefs.getString("meals","[]")));
         payload.put("weights",new JSONArray(prefs.getString("weights","[]")));
         payload.put("activities",new JSONArray(prefs.getString("activities","[]")));
@@ -1209,6 +1231,9 @@ public class MainActivity extends Activity {
         payload.put("waterDays",waterDays());
         payload.put("waterGoal",waterGoal());
         payload.put("scannedProducts",new JSONArray(prefs.getString("scannedProducts","[]")));
+        payload.put("aiFoods",new JSONArray(prefs.getString("aiFoods","[]")));
+        payload.put("savedAiRecipes",new JSONArray(prefs.getString("savedAiRecipes","[]")));
+        payload.put("aiPreferences",prefs.getString("aiPreferences",""));
         if(goalWeight()>0)payload.put("weightGoal",goalWeight());
         payload.put("activityShare",prefs.getInt("activityShare",0));
         payload.put("stepBaseline",prefs.getInt("stepBaseline",3000));
@@ -1227,7 +1252,7 @@ public class MainActivity extends Activity {
         while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>5000000)throw new IOException("Backup zu groß");}
         JSONObject payload=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8));
         int schema=payload.optInt("schemaVersion",0);
-        if((schema!=1&&schema!=2&&schema!=3&&schema!=4)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
+        if((schema!=1&&schema!=2&&schema!=3&&schema!=4&&schema!=5)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
         JSONArray ma=payload.getJSONArray("meals"),we=payload.getJSONArray("weights");
         JSONArray ac=payload.optJSONArray("activities");if(ac==null)ac=new JSONArray();
         final JSONArray importedActivities=ac;
@@ -1255,6 +1280,17 @@ public class MainActivity extends Activity {
         if(scanned==null)scanned=new JSONArray();
         if(scanned.length()>500)throw new IllegalArgumentException();
         final JSONArray importedScanned=scanned;
+        JSONArray aiProducts=payload.optJSONArray("aiFoods");
+        if(aiProducts==null)aiProducts=new JSONArray();
+        if(aiProducts.length()>250)throw new IllegalArgumentException("Zu viele eigene Lebensmittel");
+        final JSONArray importedAiFoods=aiProducts;
+        JSONArray recipeProducts=payload.optJSONArray("savedAiRecipes");
+        if(recipeProducts==null)recipeProducts=new JSONArray();
+        if(recipeProducts.length()>80)throw new IllegalArgumentException("Zu viele Rezepte");
+        final JSONArray importedAiRecipes=recipeProducts;
+        String preferencesBackup=payload.optString("aiPreferences","");
+        if(preferencesBackup.length()>500)throw new IllegalArgumentException("Vorlieben zu lang");
+        final String importedAiPreferences=preferencesBackup;
         double weightTarget=payload.optDouble("weightGoal",0);
         if(!Double.isFinite(weightTarget)||weightTarget<0||weightTarget>400)throw new IllegalArgumentException();
         final double importedWeightGoal=weightTarget;
@@ -1280,6 +1316,9 @@ public class MainActivity extends Activity {
                 .putString("activities",importedActivities.toString()).putString("stepDays",importedSteps.toString())
                 .putString("waterDays",importedWater.toString()).putInt("waterGoal",importedWaterGoal)
                 .putString("scannedProducts",importedScanned.toString())
+                .putString("aiFoods",importedAiFoods.toString())
+                .putString("savedAiRecipes",importedAiRecipes.toString())
+                .putString("aiPreferences",importedAiPreferences)
                 .putString("healthStepDays",healthSteps.toString())
                 .putString("healthIgnored",ignoredHealth.toString())
                 .putBoolean("healthStepsPreferred",payload.optBoolean("healthStepsPreferred",true))
@@ -1296,7 +1335,7 @@ public class MainActivity extends Activity {
               else e.remove("weightGoal");
               e.apply();budget=bb;weekly=importedWeekly;
               readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
-              foods.clear();loadFoods();loadScannedFoods();loadRecipes();
+              foods.clear();loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();
               home();msg("Backup importiert.");
             }catch(Exception e){msg("Import konnte nicht abgeschlossen werden.");}
           }).setNegativeButton("Abbrechen",null).show();
