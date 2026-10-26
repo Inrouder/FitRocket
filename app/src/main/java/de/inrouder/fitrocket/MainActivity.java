@@ -51,10 +51,131 @@ public class MainActivity extends Activity {
         .putBoolean("weekly28MigrationDone",true).apply();
     }
     weekly=prefs.getInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS);
-    loadFoods();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);home();}
+    loadFoods();loadScannedFoods();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);home();}
   private void readArray(String key,ArrayList<JSONObject> into){into.clear();try{JSONArray arr=new JSONArray(prefs.getString(key,"[]"));for(int i=0;i<arr.length();i++)into.add(arr.getJSONObject(i));}catch(Exception ignored){}}
   private void persist(String key,ArrayList<JSONObject> items){JSONArray a=new JSONArray();for(JSONObject x:items)a.put(x);prefs.edit().putString(key,a.toString()).apply();}
   private void loadFoods(){try(InputStream in=getAssets().open("foods.json")){ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);JSONArray a=new JSONArray(new String(o.toByteArray(),StandardCharsets.UTF_8));for(int i=0;i<a.length();i++)foods.add(a.getJSONObject(i));}catch(Exception e){msg("Lebensmitteldatenbank konnte nicht geladen werden.");}}
+  private void loadScannedFoods(){
+    try{
+      JSONArray saved=new JSONArray(prefs.getString("scannedProducts","[]"));
+      for(int i=0;i<saved.length();i++){JSONObject f=saved.optJSONObject(i);if(f!=null)foods.add(0,f);}
+    }catch(Exception ignored){}
+  }
+  private void saveScannedFood(JSONObject food){
+    try{
+      JSONArray original=new JSONArray(prefs.getString("scannedProducts","[]"));
+      JSONArray saved=new JSONArray();
+      saved.put(food);
+      for(int i=0;i<original.length()&&saved.length()<500;i++){
+        JSONObject f=original.optJSONObject(i);
+        if(f!=null&&!f.optString("id").equals(food.optString("id")))saved.put(f);
+      }
+      prefs.edit().putString("scannedProducts",saved.toString()).apply();
+      foods.removeIf(item->food.optString("id").equals(item.optString("id")));
+      foods.add(0,food);
+    }catch(Exception e){msg("Gescannter Artikel konnte nicht lokal gespeichert werden.");}
+  }
+  private void scanBarcode(){
+    try{
+      com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(this)
+        .startScan()
+        .addOnSuccessListener(barcode->{
+          String code=barcode.getRawValue();
+          if(FitRocketProductLookup.validBarcode(code))lookupBarcode(code);
+          else msg("Bitte einen Lebensmittelbarcode (EAN/UPC) scannen.");
+        })
+        .addOnFailureListener(error->
+          new AlertDialog.Builder(this).setTitle("Scanner nicht verfügbar")
+           .setMessage("Der Kamera-Scanner benötigt Google Play-Dienste. Du kannst die Nummer auf der Verpackung alternativ eingeben.")
+           .setPositiveButton("Nummer eingeben",(d,w)->barcodeManualDialog())
+           .setNegativeButton("Abbrechen",null).show());
+    }catch(Exception e){barcodeManualDialog();}
+  }
+  private void barcodeManualDialog(){
+    EditText field=edit("EAN / UPC (8–14 Ziffern)","",2);
+    LinearLayout holder=new LinearLayout(this);holder.setPadding(dp(20),dp(10),dp(20),dp(10));holder.addView(field);
+    new AlertDialog.Builder(this).setTitle("Barcode eingeben").setView(holder)
+      .setPositiveButton("Produkt suchen",(d,w)->lookupBarcode(field.getText().toString().trim()))
+      .setNegativeButton("Abbrechen",null).show();
+  }
+  private void lookupBarcode(String code){
+    if(!FitRocketProductLookup.validBarcode(code)){msg("Bitte einen Barcode mit 8–14 Ziffern eingeben.");return;}
+    for(JSONObject food:foods){
+      if(code.equals(food.optString("barcode"))){
+        new AlertDialog.Builder(this).setTitle("Gespeicherter Artikel")
+          .setMessage(food.optString("name")+"\\nMöchtest du ihn direkt auswählen oder online aktualisieren?")
+          .setPositiveButton("Auswählen",(d,w)->foodDialog(food))
+          .setNeutralButton("Online prüfen",(d,w)->fetchBarcodeOnline(code))
+          .setNegativeButton("Abbrechen",null).show();
+        return;
+      }
+    }
+    fetchBarcodeOnline(code);
+  }
+  private void fetchBarcodeOnline(String code){
+    AlertDialog loading=new AlertDialog.Builder(this).setTitle("Artikel suchen")
+      .setMessage("Lade Nährwerte aus Open Food Facts …").setCancelable(false).create();
+    loading.show();
+    FitRocketProductLookup.lookup(this,code,new FitRocketProductLookup.Callback(){
+      @Override public void onProduct(FitRocketProductLookup.Product product){
+        loading.dismiss();
+        if(product.complete()){
+          try{
+            JSONObject food=product.toFood();saveScannedFood(food);
+            new AlertDialog.Builder(MainActivity.this).setTitle("Produkt gefunden")
+              .setMessage(product.name+(product.brand.isEmpty()?"":" · "+product.brand)
+                +"\\n"+String.format(Locale.GERMAN,"%.0f kcal / 100 g",product.kcal)
+                +"\\nFitRocket: ca. "+product.points(100)+" P / 100 g"
+                +"\\nBitte Nährwertetikett mit den Angaben vergleichen.")
+              .setPositiveButton("Portion auswählen",(d,w)->foodDialog(food))
+              .setNeutralButton("Nährwerte korrigieren",(d,w)->editBarcodeProduct(product))
+              .setNegativeButton("Schließen",null).show();
+          }catch(Exception e){msg("Nährwertangaben ungültig.");}
+        }else editBarcodeProduct(product);
+      }
+      @Override public void onError(String error){
+        loading.dismiss();
+        new AlertDialog.Builder(MainActivity.this).setTitle("Produkt nicht verfügbar")
+          .setMessage(error+"\\nDu kannst den Barcode und die Nährwerte selbst hinzufügen.")
+          .setPositiveButton("Selbst erfassen",(d,w)->editBarcodeProduct(
+              new FitRocketProductLookup.Product(code,"","", "",null,null,null,null)))
+          .setNegativeButton("Abbrechen",null).show();
+      }
+    });
+  }
+  private void editBarcodeProduct(FitRocketProductLookup.Product data){
+    LinearLayout content=new LinearLayout(this);content.setPadding(dp(20),dp(8),dp(20),dp(8));content.setOrientation(1);
+    content.addView(label("Produktdaten je 100 g / 100 ml",16));
+    EditText name=edit("Produktname",data.name,1);
+    content.addView(name);
+    EditText[] fields={
+      edit("Kilokalorien",data.kcal==null?"":String.valueOf(data.kcal),8194),
+      edit("Gesättigte Fettsäuren (g)",data.saturated==null?"":String.valueOf(data.saturated),8194),
+      edit("Zucker (g)",data.sugar==null?"":String.valueOf(data.sugar),8194),
+      edit("Eiweiß (g)",data.protein==null?"":String.valueOf(data.protein),8194)
+    };
+    String[] labels={"kcal","Gesättigte Fettsäuren (g)","Zucker (g)","Eiweiß (g)"};
+    for(int i=0;i<fields.length;i++){content.addView(label(labels[i],12));content.addView(fields[i]);}
+    content.addView(label("Fehlende Nährwerte müssen von der Verpackung ergänzt werden. Sie werden niemals als 0 angenommen.",12));
+    ScrollView scrolling=new ScrollView(this);scrolling.addView(content);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Produkt vervollständigen").setView(scrolling)
+        .setNegativeButton("Abbrechen",null).setPositiveButton("Speichern",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        String n=name.getText().toString().trim();
+        if(n.length()<2||n.length()>140)throw new IllegalArgumentException();
+        double k=num(fields[0].getText().toString()),sat=num(fields[1].getText().toString()),
+          su=num(fields[2].getText().toString()),pro=num(fields[3].getText().toString());
+        if(!Double.isFinite(k)||!Double.isFinite(sat)||!Double.isFinite(su)||!Double.isFinite(pro)
+            ||k<0||k>2000||sat<0||sat>100||su<0||su>100||pro<0||pro>100)throw new IllegalArgumentException();
+        FitRocketProductLookup.Product product=new FitRocketProductLookup.Product(
+            data.code,n,data.brand,data.quantity,k,sat,su,pro);
+        JSONObject food=product.toFood();
+        saveScannedFood(food);dialog.dismiss();foodDialog(food);
+      }catch(Exception e){msg("Bitte alle vier Nährwerte und den Produktnamen korrekt eingeben.");}
+    }));
+    dialog.show();
+  }
   private void shell(String heading){
     currentScreen=heading;
     lastRenderedDate=today();
@@ -126,6 +247,12 @@ public class MainActivity extends Activity {
     TextView title=label("⌕ Lebensmittel suchen",18);title.setTypeface(null,1);searchCard.addView(title);
     EditText search=edit("Suche nach Lebensmitteln…","",1);
     search.setSingleLine(true);search.setPadding(dp(14),dp(12),dp(14),dp(12));search.setBackground(shape(Color.rgb(248,243,253),20));searchCard.addView(search);
+    LinearLayout barcodeRow=new LinearLayout(this);barcodeRow.setOrientation(0);
+    Button scanner=button("▥ Barcode scannen"),manualCode=button("123 Nummer eingeben");
+    barcodeRow.addView(scanner,new LinearLayout.LayoutParams(0,dp(50),1));
+    barcodeRow.addView(manualCode,new LinearLayout.LayoutParams(0,dp(50),1));
+    scanner.setOnClickListener(v->scanBarcode());manualCode.setOnClickListener(v->barcodeManualDialog());
+    searchCard.addView(barcodeRow);
     page.addView(searchCard);
     heading("Deine Lebensmittelauswahl");
     LinearLayout results=new LinearLayout(this);results.setOrientation(1);page.addView(results);
