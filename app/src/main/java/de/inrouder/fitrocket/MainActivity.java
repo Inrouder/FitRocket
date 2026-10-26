@@ -201,6 +201,74 @@ public class MainActivity extends Activity {
   private int used(String date){int total=0;for(JSONObject x:meals)if(date.equals(x.optString("date")))total+=x.optInt("points");return total;}
   private int count(String date){int n=0;for(JSONObject x:meals)if(date.equals(x.optString("date")))n++;return n;}
   private String kind(JSONObject f){return f.isNull("points")?"Punkte eingeben":f.optInt("points")+" P";}
+  private JSONObject waterDays(){
+    try{return new JSONObject(prefs.getString("waterDays","{}"));}
+    catch(Exception e){return new JSONObject();}
+  }
+  private int waterMl(String day){return waterDays().optInt(day,0);}
+  private void setWaterMl(String day,int ml){
+    try{
+      if(ml<0||ml>10000)throw new IllegalArgumentException();
+      JSONObject map=waterDays();map.put(day,ml);
+      prefs.edit().putString("waterDays",map.toString()).apply();
+    }catch(Exception e){msg("Trinkmenge konnte nicht gespeichert werden.");}
+  }
+  private int waterGoal(){return prefs.getInt("waterGoal",1500);}
+  private void waterGoalDialog(LinearLayout target,String day){
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(10),dp(20),dp(8));
+    content.addView(label("Dein frei wählbares Trinkziel pro Tag (ml)",14));
+    EditText amount=edit("Tagesziel (ml)",String.valueOf(waterGoal()),2);content.addView(amount);
+    new AlertDialog.Builder(this).setTitle("Trinkziel einstellen").setView(content)
+      .setPositiveButton("Speichern",(dialog,w)->{
+        try{
+          int goal=Integer.parseInt(amount.getText().toString().trim());
+          if(goal<250||goal>6000||goal%250!=0)throw new Exception();
+          prefs.edit().putInt("waterGoal",goal).apply();
+          paintWaterCard(target,day);
+        }catch(Exception e){msg("Bitte 250 bis 6000 ml in 250-ml-Schritten eingeben.");}
+      }).setNegativeButton("Abbrechen",null).show();
+  }
+  private LinearLayout waterCard(String day){
+    LinearLayout block=card(Color.WHITE);
+    paintWaterCard(block,day);
+    return block;
+  }
+  private void paintWaterCard(LinearLayout target,String day){
+    target.removeAllViews();
+    int current=waterMl(day),goal=waterGoal();
+    LinearLayout titleRow=new LinearLayout(this);titleRow.setOrientation(0);titleRow.setGravity(Gravity.CENTER_VERTICAL);
+    TextView title=label("💧 Wasser-Challenge",18);title.setTypeface(null,1);
+    titleRow.addView(title,new LinearLayout.LayoutParams(0,-2,1));
+    TextView amount=chip(String.format(Locale.GERMAN,"%.2f / %.2f L",current/1000.0,goal/1000.0),Color.rgb(220,242,255));
+    titleRow.addView(amount);target.addView(titleRow);
+    target.addView(label("Jedes Glas steht für 250 ml · Antippen zum Ändern",12));
+    int glasses=Math.max(6,Math.max(goal,current)/250);
+    glasses=Math.min(24,glasses);
+    android.widget.GridLayout grid=new android.widget.GridLayout(this);grid.setColumnCount(6);
+    for(int i=0;i<glasses;i++){
+      final int index=i;
+      FitRocketWaterGlass cup=new FitRocketWaterGlass(this,(index+1)*250<=current);
+      android.widget.GridLayout.LayoutParams p=new android.widget.GridLayout.LayoutParams();
+      p.width=dp(43);p.height=dp(80);p.setMargins(dp(1),dp(1),dp(1),dp(1));
+      grid.addView(cup,p);
+      cup.setOnClickListener(v->{
+        int currentValue=waterMl(day);
+        int next=(index+1)*250<=currentValue?index*250:(index+1)*250;
+        setWaterMl(day,next);paintWaterCard(target,day);
+      });
+    }
+    target.addView(grid);
+    LinearLayout controls=new LinearLayout(this);controls.setOrientation(0);
+    Button less=button("− 250 ml"),more=button("＋ 250 ml");
+    controls.addView(less,new LinearLayout.LayoutParams(0,dp(46),1));
+    controls.addView(more,new LinearLayout.LayoutParams(0,dp(46),1));
+    less.setOnClickListener(v->{setWaterMl(day,Math.max(0,waterMl(day)-250));paintWaterCard(target,day);});
+    more.setOnClickListener(v->{setWaterMl(day,Math.min(10000,waterMl(day)+250));paintWaterCard(target,day);});
+    target.addView(controls);
+    TextView configure=label("⚙ Trinkziel anpassen",13);
+    configure.setTextColor(BLUE);target.addView(configure);
+    configure.setOnClickListener(v->waterGoalDialog(target,day));
+  }
   private void home(){
     shell("FitRocket");
     LinearLayout balance=card(Color.WHITE);
