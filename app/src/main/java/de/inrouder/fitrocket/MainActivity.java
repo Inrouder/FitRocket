@@ -24,7 +24,7 @@ public class MainActivity extends Activity {
   private LinearLayout page, entries;
   private GlassView glass;
   private TextView summary;
-  private int budget=23, weekly=0;
+  private int budget=23, weekly=FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS;
   private boolean healthBusy=false;
   private String currentScreen="FitRocket";
   private final int NAVY=Color.rgb(37,46,76), BLUE=Color.rgb(112,117,225), LIGHT=Color.rgb(255,247,242), PEACH=Color.rgb(255,220,204), MINT=Color.rgb(212,242,216), LAV=Color.rgb(240,231,255);
@@ -42,7 +42,15 @@ public class MainActivity extends Activity {
   private Button button(String text){Button b=new Button(this);b.setText(text);b.setTextSize(14);b.setAllCaps(false);b.setTextColor(NAVY);b.setBackground(gradient(Color.rgb(255,221,204),Color.rgb(255,239,229),19));return b;}
   private EditText edit(String hint,String value,int input){EditText e=new EditText(this);e.setHint(hint);e.setSingleLine(true);e.setInputType(input);if(value!=null)e.setText(value);return e;}
   private void msg(String text){Toast.makeText(this,text,Toast.LENGTH_LONG).show();}
-  @Override public void onCreate(Bundle saved){super.onCreate(saved);prefs=getSharedPreferences("fitrocket",MODE_PRIVATE);budget=prefs.getInt("budget",23);weekly=prefs.getInt("weekly",0);loadFoods();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);home();}
+  @Override public void onCreate(Bundle saved){super.onCreate(saved);prefs=getSharedPreferences("fitrocket",MODE_PRIVATE);
+    budget=prefs.getInt("budget",23);
+    if(!prefs.getBoolean("weekly28MigrationDone",false)){
+      // One-time move to the new FitRocket weekly start allowance.
+      prefs.edit().putInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS)
+        .putBoolean("weekly28MigrationDone",true).apply();
+    }
+    weekly=prefs.getInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS);
+    loadFoods();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);home();}
   private void readArray(String key,ArrayList<JSONObject> into){into.clear();try{JSONArray arr=new JSONArray(prefs.getString(key,"[]"));for(int i=0;i<arr.length();i++)into.add(arr.getJSONObject(i));}catch(Exception ignored){}}
   private void persist(String key,ArrayList<JSONObject> items){JSONArray a=new JSONArray();for(JSONObject x:items)a.put(x);prefs.edit().putString(key,a.toString()).apply();}
   private void loadFoods(){try(InputStream in=getAssets().open("foods.json")){ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);JSONArray a=new JSONArray(new String(o.toByteArray(),StandardCharsets.UTF_8));for(int i=0;i<a.length();i++)foods.add(a.getJSONObject(i));}catch(Exception e){msg("Lebensmitteldatenbank konnte nicht geladen werden.");}}
@@ -81,6 +89,12 @@ public class MainActivity extends Activity {
     TextView freeChip=chip("🌿 "+remaining+" P\nfrei",MINT);
     TextView extraChip=chip("★ "+availableWeek()+" P\nWochenpuffer",LAV);
     for(TextView x:new TextView[]{usedChip,freeChip,extraChip}){x.setGravity(Gravity.CENTER);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(dp(2),0,dp(2),0);summaries.addView(x,lp);}balance.addView(summaries);page.addView(balance);
+    LinearLayout weekCard=card(LAV);
+    weekCard.addView(label("⭐ Deine Wochenpunkte: "+availableWeek()+" P übrig",18));
+    weekCard.addView(label(weekly+" P Wochenstart  +  "+rolloversWeek()+" P Tagesübertrag  +  "
+       +activityCredit()+" P Bewegung  −  "+spentWeek()+" P verwendet",14));
+    weekCard.addView(label("Jeden Montag neu · bis zu 4 ungenutzte Tagespunkte nach Tagesabschluss",12));
+    page.addView(weekCard);
     LinearLayout activityCard=card(MINT);activityCard.addView(label("🚶 Bewegung · "+earnedWeek()+" Aktivpunkte diese Woche",16));action(activityCard,"Aktivität erfassen ›",()->activityPage());page.addView(activityCard);
     LinearLayout main=card(Color.rgb(255,248,242));
     action(main,"⌕  Lebensmittel suchen    ›",()->searchScreen());
@@ -175,8 +189,12 @@ public class MainActivity extends Activity {
   private void interpret(String source){String q=source.toLowerCase(Locale.ROOT);ArrayList<JSONObject> matches=new ArrayList<>();for(JSONObject f:foods){String name=f.optString("name").toLowerCase(Locale.ROOT);if(name.length()>=5&&q.contains(name))matches.add(f);}if(matches.size()!=1){new AlertDialog.Builder(this).setTitle("Bitte Lebensmittel auswählen").setMessage(matches.isEmpty()?"Keine eindeutige Übereinstimmung gefunden. Bitte suche das Lebensmittel manuell.":"Mehrere Lebensmittel erkannt. Bitte erfasse die Zutaten einzeln über die Suche.").setPositiveButton("Zur Suche",(d,w)->searchScreen()).show();return;}foodDialog(matches.get(0));}
   private void history(){shell("Tagebuch");heading("Mein Tagebuch");page.addView(label("Alle Mahlzeiten auf einen Blick",14));for(int i=meals.size()-1;i>=0;i--)mealRow(meals.get(i),page);if(meals.isEmpty())page.addView(label("Noch keine gespeicherten Einträge.",15));}
   private void more(){shell("Mehr");Button act=button("🚶 Bewegungs- und Punkteübersicht");page.addView(act);act.setOnClickListener(v->activityPage());Button week=button("📈 Wochen- und Monatsauswertung");page.addView(week);week.setOnClickListener(v->statistics());Button weight=button("⚖ Gewicht erfassen und Verlauf ansehen");page.addView(weight);weight.setOnClickListener(v->weightDialog());Button settings=button("⚙ Budget & Wochen-Extra");page.addView(settings);settings.setOnClickListener(v->settingsDialog());Button backup=button("⬆ Backup exportieren (JSON)");page.addView(backup);backup.setOnClickListener(v->startExport());Button restore=button("⬇ Backup importieren");page.addView(restore);restore.setOnClickListener(v->startImport());}
-  private void settingsDialog(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(25,5,25,5);EditText b=edit("Tagesbudget",String.valueOf(budget),2),w=edit("Wochen-Extra",String.valueOf(weekly),2);l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);l.addView(label("Wochen-Extra",14));l.addView(w);new AlertDialog.Builder(this).setTitle("Budget").setView(l).setPositiveButton("Speichern",(d,n)->{try{int bb=Integer.parseInt(b.getText().toString()),ww=Integer.parseInt(w.getText().toString());if(bb<1||bb>200||ww<0||ww>500)throw new Exception();budget=bb;weekly=ww;prefs.edit().putInt("budget",bb).putInt("weekly",ww).apply();more();}catch(Exception e){msg("Ungültige Budgetwerte.");}}).setNegativeButton("Abbrechen",null).show();}
-  private void statistics(){shell("Statistiken");LocalDate now=LocalDate.now(),start=now.minusDays(now.getDayOfWeek().getValue()-1);page.addView(label("Diese Woche",20));int weeklyUsed=0;for(int i=0;i<7;i++){LocalDate date=start.plusDays(i);int n=used(date.toString());weeklyUsed+=n;page.addView(label(date.getDayOfWeek().toString().substring(0,2)+" "+pretty(date.toString())+": "+n+" Punkte",15));}page.addView(label("Gesamt: "+weeklyUsed+" Punkte; Ø "+String.format(Locale.GERMAN,"%.1f",weeklyUsed/7.0)+" pro Kalendertag",15));page.addView(label("Dieser Monat",20));LocalDate first=now.withDayOfMonth(1);int total=0,tracked=0,days=now.getDayOfMonth();for(int i=0;i<days;i++){String day=first.plusDays(i).toString();total+=used(day);if(count(day)>0)tracked++;}page.addView(label("Erfasste Punkte: "+total+" · Tage mit Einträgen: "+tracked+" / "+days,16));page.addView(label("Bewegungspunkte diese Woche: "+earnedWeek()+" · Wochenpuffer übrig: "+availableWeek(),15));page.addView(label("Ø je dokumentiertem Tag: "+(tracked>0?String.format(Locale.GERMAN,"%.1f",total/(double)tracked):"–"),16));page.addView(label("Achtung: Fehlende Tage gelten nicht als Null-Punkte-Tage.",13));if(!weights.isEmpty()){page.addView(label("Gewichtseinträge: "+weights.size(),16));for(int i=weights.size()-1;i>=Math.max(0,weights.size()-8);i--)page.addView(label(pretty(weights.get(i).optString("date"))+" · "+weights.get(i).optString("kg")+" kg",14));}}
+  private void settingsDialog(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(25,5,25,5);EditText b=edit("Tagesbudget",String.valueOf(budget),2),w=edit("Wochenstart-Punkte",String.valueOf(weekly),2);
+    l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);
+    l.addView(label("Wochenstart-Punkte (Standard 28)",14));l.addView(w);
+    l.addView(label("Montags neu verfügbar. Ungenutzte Tagespunkte werden nach Mitternacht automatisch übertragen, maximal 4 pro Tag.",12));new AlertDialog.Builder(this).setTitle("Budget").setView(l).setPositiveButton("Speichern",(d,n)->{try{int bb=Integer.parseInt(b.getText().toString()),ww=Integer.parseInt(w.getText().toString());if(bb<1||bb>200||ww<0||ww>500)throw new Exception();budget=bb;weekly=ww;prefs.edit().putInt("budget",bb).putInt("weekly",ww).apply();more();}catch(Exception e){msg("Ungültige Budgetwerte.");}}).setNegativeButton("Abbrechen",null).show();}
+  private void statistics(){shell("Statistiken");LocalDate now=LocalDate.now(),start=now.minusDays(now.getDayOfWeek().getValue()-1);page.addView(label("Diese Woche",20));int weeklyUsed=0;for(int i=0;i<7;i++){LocalDate date=start.plusDays(i);int n=used(date.toString());weeklyUsed+=n;page.addView(label(date.getDayOfWeek().toString().substring(0,2)+" "+pretty(date.toString())+": "+n+" Punkte",15));}page.addView(label("Gesamt: "+weeklyUsed+" Punkte; Ø "+String.format(Locale.GERMAN,"%.1f",weeklyUsed/7.0)+" pro Kalendertag",15));page.addView(label("Dieser Monat",20));LocalDate first=now.withDayOfMonth(1);int total=0,tracked=0,days=now.getDayOfMonth();for(int i=0;i<days;i++){String day=first.plusDays(i).toString();total+=used(day);if(count(day)>0)tracked++;}page.addView(label("Erfasste Punkte: "+total+" · Tage mit Einträgen: "+tracked+" / "+days,16));page.addView(label("Wochenkonto: "+weekly+" Start + "+rolloversWeek()+" Tagesübertrag + "
+   +activityCredit()+" Bewegungsbonus − "+spentWeek()+" verbraucht = "+availableWeek()+" Punkte übrig",15));page.addView(label("Ø je dokumentiertem Tag: "+(tracked>0?String.format(Locale.GERMAN,"%.1f",total/(double)tracked):"–"),16));page.addView(label("Achtung: Fehlende Tage gelten nicht als Null-Punkte-Tage.",13));if(!weights.isEmpty()){page.addView(label("Gewichtseinträge: "+weights.size(),16));for(int i=weights.size()-1;i>=Math.max(0,weights.size()-8);i--)page.addView(label(pretty(weights.get(i).optString("date"))+" · "+weights.get(i).optString("kg")+" kg",14));}}
   private void weightDialog(){LinearLayout l=new LinearLayout(this);l.setPadding(20,5,20,5);l.setOrientation(1);EditText e=edit("Gewicht in kg, z. B. 78,5","",8194);l.addView(e);new AlertDialog.Builder(this).setTitle("Gewicht dokumentieren").setView(l).setPositiveButton("Speichern",(d,w)->{try{double kg=Double.parseDouble(e.getText().toString().replace(',','.'));if(!Double.isFinite(kg)||kg<20||kg>400)throw new Exception();JSONObject x=new JSONObject();x.put("date",today());x.put("kg",kg);weights.add(x);persist("weights",weights);if(profileReady())prefs.edit().putString("profile_weight",String.valueOf(kg)).apply();statistics();}catch(Exception ex){msg("Gewicht ungültig.");}}).setNegativeButton("Abbrechen",null).show();}
 
   private LocalDate weekStart(){LocalDate d=LocalDate.now();return d.minusDays(d.getDayOfWeek().getValue()-1);}
@@ -287,9 +305,18 @@ public class MainActivity extends Activity {
   }
 
   private int earnedWeek(){return workoutPointsWeek()+totalStepPointsWeek();}
-  private int spentWeek(){int sum=0;LocalDate start=weekStart();for(int i=0;i<7;i++)sum+=Math.max(0,used(start.plusDays(i).toString())-budget);return sum;}
+  private int spentWeek(){
+    return FitRocketWeeklyWallet.spentWeek(LocalDate.now(),budget,
+        date->used(date.toString()));
+  }
+  private int rolloversWeek(){
+    return FitRocketWeeklyWallet.rolloversWeek(LocalDate.now(),budget,
+        date->used(date.toString()));
+  }
   private int activityCredit(){return FitRocketMath.credit(earnedWeek(),prefs.getInt("activityShare",0));}
-  private int availableWeek(){return FitRocketMath.remainingWeekly(weekly,earnedWeek(),prefs.getInt("activityShare",0),spentWeek());}
+  private int availableWeek(){
+    return FitRocketWeeklyWallet.remaining(weekly,rolloversWeek(),activityCredit(),spentWeek());
+  }
 
   private void activityPage(){
     shell("Aktivität");heading("Dein Aktivitätskonto");
@@ -306,7 +333,9 @@ public class MainActivity extends Activity {
     overview.addView(label("Diese Woche: "+earnedWeek()+" Bewegungspunkte",20));
     overview.addView(label("Training: "+workoutPointsWeek()+" · Schritte: "+totalStepPointsWeek(),15));
     overview.addView(label("Zum Wochenbudget: +"+activityCredit()+" Punkte",16));
-    overview.addView(label("Wochenpuffer: "+weekly+" Basis + "+activityCredit()+" Bewegung − "+spentWeek()+" genutzt = "+availableWeek()+" übrig",14));
+    overview.addView(label("Wochenkonto: "+weekly+" Start + "+rolloversWeek()+" Übertrag + "
+        +activityCredit()+" Bewegung − "+spentWeek()+" verbraucht = "+availableWeek()+" übrig",14));
+    overview.addView(label("Täglich höchstens 4 ungenutzte Punkte, Gutschrift erst am Folgetag. Jeden Montag beginnt das Konto neu.",12));
     overview.addView(label("Tagesbudget bleibt: "+budget+" Punkte",13));page.addView(overview);
     LinearLayout stepCard=card(MINT);
     int all=stepsFor(today());int w=workoutStepsFor(today());int eligible=FitRocketMath.extraSteps(all,prefs.getInt("stepBaseline",3000),w);
@@ -637,7 +666,9 @@ public class MainActivity extends Activity {
         JSONArray ac=payload.optJSONArray("activities");if(ac==null)ac=new JSONArray();
         final JSONArray importedActivities=ac;
         if(ma.length()>50000||we.length()>50000||ac.length()>50000)throw new IllegalArgumentException();
-        int bb=payload.optInt("budget",23),ww=payload.optInt("weekly",0);
+        int bb=payload.optInt("budget",23),ww=payload.optInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS);
+        if(schema<=3 && ww==0)ww=FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS;
+        final int importedWeekly=ww;
         int share=payload.optInt("activityShare",0),baseline=payload.optInt("stepBaseline",3000),kpp=payload.optInt("kcalPerPoint",65);
         if(bb<1||bb>200||ww<0||ww>500||!(share==0||share==50||share==100)||
           baseline<0||baseline>20000||kpp<30||kpp>150)throw new IllegalArgumentException();
@@ -667,7 +698,7 @@ public class MainActivity extends Activity {
                 .putString("healthIgnored",ignoredHealth.toString())
                 .putBoolean("healthStepsPreferred",payload.optBoolean("healthStepsPreferred",true))
                 .putBoolean("healthUse",false).remove("healthLastAttempt").remove("healthLastSuccess")
-                .putInt("budget",bb).putInt("weekly",ww).putInt("activityShare",share)
+                .putInt("budget",bb).putInt("weekly",importedWeekly).putBoolean("weekly28MigrationDone",true).putInt("activityShare",share)
                 .putInt("stepBaseline",baseline).putInt("kcalPerPoint",kpp);
               if(importedProfile!=null){
                 e.putInt("profile_age",importedProfile.getInt("age"))
@@ -675,7 +706,7 @@ public class MainActivity extends Activity {
                   .putString("profile_weight",String.valueOf(importedProfile.getDouble("weight")))
                   .putInt("profile_sex",importedProfile.getInt("metabolicProfile"));
               }
-              e.apply();budget=bb;weekly=ww;
+              e.apply();budget=bb;weekly=importedWeekly;
               readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
               home();msg("Backup importiert.");
             }catch(Exception e){msg("Import konnte nicht abgeschlossen werden.");}
