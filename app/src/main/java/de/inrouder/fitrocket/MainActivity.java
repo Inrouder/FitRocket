@@ -116,7 +116,7 @@ public class MainActivity extends Activity {
         LinearLayout item=card(Color.WHITE);
         LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.HORIZONTAL);top.setGravity(Gravity.CENTER_VERTICAL);
         TextView name=label(f.optString("name"),16);name.setTypeface(null,1);top.addView(name,new LinearLayout.LayoutParams(0,-2,1));
-        String text=f.isNull("points")?"Punkte wählen":f.optInt("points")+" P";
+        String text="calculated_estimate".equals(f.optString("status"))?"ca. "+f.optInt("estimatedPoints100")+" P / 100 g":(f.isNull("points")?"Punkte wählen":f.optInt("points")+" P");
         top.addView(chip(text, f.optInt("points")==0&&!f.isNull("points")?MINT:Color.rgb(255,227,208)));
         item.addView(top);item.addView(label(f.optString("category")+" · "+f.optString("portion"),12));
         results.addView(item);item.setOnClickListener(v->foodDialog(f));if(count>=70)break;
