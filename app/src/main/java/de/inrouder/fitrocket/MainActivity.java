@@ -205,7 +205,7 @@ public class MainActivity extends Activity {
     String[] pages={"⌂ Heute","⌕ Suche","▦ Tagebuch","⋯ Mehr"};
     for(int i=0;i<pages.length;i++){final int index=i;TextView item=label(pages[i],12);item.setGravity(Gravity.CENTER);
       if((heading.equals("FitRocket")&&i==0)||( (heading.equals("Lebensmittel")||heading.equals("Rezepte"))&&i==1)||(heading.equals("Tagebuch")&&i==2)||((heading.equals("Mehr")||heading.equals("Gewicht"))&&i==3)){item.setBackground(shape(Color.rgb(255,230,224),16));}
-      nav.addView(item,new LinearLayout.LayoutParams(0,dp(46),1));item.setOnClickListener(v->{switch(index){case 0:home();break;case 1:bookingDate=null;bookingGroup=null;bookingReturn=null;searchScreen();break;case 2:history();break;default:more();}});
+      nav.addView(item,new LinearLayout.LayoutParams(0,dp(46),1));item.setOnClickListener(v->{bookingDate=null;bookingGroup=null;bookingReturn=null;switch(index){case 0:home();break;case 1:bookingDate=null;bookingGroup=null;bookingReturn=null;searchScreen();break;case 2:history();break;default:more();}});
     }
     nav.setPadding(dp(12),dp(7),dp(12),dp(40));
     frame.addView(nav);
@@ -353,6 +353,11 @@ public class MainActivity extends Activity {
   private void refreshMealContext(){
     if("Tagebuch".equals(currentScreen))history();else home();
   }
+  private String mealGroup(JSONObject meal){
+    String raw=meal.optString("group","Snack");
+    if(raw==null||raw.isEmpty()||"Mahlzeit".equals(raw)||"Snacks".equals(raw))return "Snack";
+    return raw;
+  }
   private void dayMealGroups(LinearLayout target,String date){
     final String[] names={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
     final String[] icons={"☀️","🥗","🌙","🍓","🥤"};
@@ -362,7 +367,7 @@ public class MainActivity extends Activity {
       LinearLayout header=new LinearLayout(this);header.setOrientation(0);header.setGravity(Gravity.CENTER_VERTICAL);
       int count=0,points=0;
       for(JSONObject m:meals){
-        if(date.equals(m.optString("date"))&&group.equals(m.optString("group"))){
+        if(date.equals(m.optString("date"))&&group.equals(mealGroup(m))){
           count++;points+=m.optInt("points");
         }
       }
