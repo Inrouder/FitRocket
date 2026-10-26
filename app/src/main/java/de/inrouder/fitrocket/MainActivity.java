@@ -128,8 +128,8 @@ public class MainActivity extends Activity {
     filter.run();
   }
   private double num(String s) { return Double.parseDouble(s.trim().replace(',','.')); }
-  // Publicly reconstructed approximation; not the proprietary historic WW formula.
-  private int estimatedSmartPoints(double kcal,double saturated,double sugar,double protein){
+  // FitRocket-only nutritional scoring, independent of any third-party brand.
+  private int fitRocketFoodScore(double kcal,double saturated,double sugar,double protein){
     return FitRocketMath.foodPoints(kcal,saturated,sugar,protein);
   }
   private int calcForGrams(JSONObject f,double grams){
@@ -172,7 +172,7 @@ public class MainActivity extends Activity {
   private void interpret(String source){String q=source.toLowerCase(Locale.ROOT);ArrayList<JSONObject> matches=new ArrayList<>();for(JSONObject f:foods){String name=f.optString("name").toLowerCase(Locale.ROOT);if(name.length()>=5&&q.contains(name))matches.add(f);}if(matches.size()!=1){new AlertDialog.Builder(this).setTitle("Bitte Lebensmittel auswählen").setMessage(matches.isEmpty()?"Keine eindeutige Übereinstimmung gefunden. Bitte suche das Lebensmittel manuell.":"Mehrere Lebensmittel erkannt. Bitte erfasse die Zutaten einzeln über die Suche.").setPositiveButton("Zur Suche",(d,w)->searchScreen()).show();return;}foodDialog(matches.get(0));}
   private void history(){shell("Tagebuch");heading("Mein Tagebuch");page.addView(label("Alle Mahlzeiten auf einen Blick",14));for(int i=meals.size()-1;i>=0;i--)mealRow(meals.get(i),page);if(meals.isEmpty())page.addView(label("Noch keine gespeicherten Einträge.",15));}
   private void more(){shell("Mehr");Button act=button("🚶 Bewegungs- und Punkteübersicht");page.addView(act);act.setOnClickListener(v->activityPage());Button week=button("📈 Wochen- und Monatsauswertung");page.addView(week);week.setOnClickListener(v->statistics());Button weight=button("⚖ Gewicht erfassen und Verlauf ansehen");page.addView(weight);weight.setOnClickListener(v->weightDialog());Button settings=button("⚙ Budget & Wochen-Extra");page.addView(settings);settings.setOnClickListener(v->settingsDialog());Button backup=button("⬆ Backup exportieren (JSON)");page.addView(backup);backup.setOnClickListener(v->startExport());Button restore=button("⬇ Backup importieren");page.addView(restore);restore.setOnClickListener(v->startImport());}
-  private void settingsDialog(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(25,5,25,5);EditText b=edit("Tagesbudget",String.valueOf(budget),2),w=edit("Wochen-Extra",String.valueOf(weekly),2);l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);l.addView(label("Wochen-Extra (frei einstellbar; keine automatische WW-Ermittlung)",14));l.addView(w);new AlertDialog.Builder(this).setTitle("Budget").setView(l).setPositiveButton("Speichern",(d,n)->{try{int bb=Integer.parseInt(b.getText().toString()),ww=Integer.parseInt(w.getText().toString());if(bb<1||bb>200||ww<0||ww>500)throw new Exception();budget=bb;weekly=ww;prefs.edit().putInt("budget",bb).putInt("weekly",ww).apply();more();}catch(Exception e){msg("Ungültige Budgetwerte.");}}).setNegativeButton("Abbrechen",null).show();}
+  private void settingsDialog(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(25,5,25,5);EditText b=edit("Tagesbudget",String.valueOf(budget),2),w=edit("Wochen-Extra",String.valueOf(weekly),2);l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);l.addView(label("Wochen-Extra",14));l.addView(w);new AlertDialog.Builder(this).setTitle("Budget").setView(l).setPositiveButton("Speichern",(d,n)->{try{int bb=Integer.parseInt(b.getText().toString()),ww=Integer.parseInt(w.getText().toString());if(bb<1||bb>200||ww<0||ww>500)throw new Exception();budget=bb;weekly=ww;prefs.edit().putInt("budget",bb).putInt("weekly",ww).apply();more();}catch(Exception e){msg("Ungültige Budgetwerte.");}}).setNegativeButton("Abbrechen",null).show();}
   private void statistics(){shell("Statistiken");LocalDate now=LocalDate.now(),start=now.minusDays(now.getDayOfWeek().getValue()-1);page.addView(label("Diese Woche",20));int weeklyUsed=0;for(int i=0;i<7;i++){LocalDate date=start.plusDays(i);int n=used(date.toString());weeklyUsed+=n;page.addView(label(date.getDayOfWeek().toString().substring(0,2)+" "+pretty(date.toString())+": "+n+" Punkte",15));}page.addView(label("Gesamt: "+weeklyUsed+" Punkte; Ø "+String.format(Locale.GERMAN,"%.1f",weeklyUsed/7.0)+" pro Kalendertag",15));page.addView(label("Dieser Monat",20));LocalDate first=now.withDayOfMonth(1);int total=0,tracked=0,days=now.getDayOfMonth();for(int i=0;i<days;i++){String day=first.plusDays(i).toString();total+=used(day);if(count(day)>0)tracked++;}page.addView(label("Erfasste Punkte: "+total+" · Tage mit Einträgen: "+tracked+" / "+days,16));page.addView(label("Ø je dokumentiertem Tag: "+(tracked>0?String.format(Locale.GERMAN,"%.1f",total/(double)tracked):"–"),16));page.addView(label("Achtung: Fehlende Tage gelten nicht als Null-Punkte-Tage.",13));if(!weights.isEmpty()){page.addView(label("Gewichtseinträge: "+weights.size(),16));for(int i=weights.size()-1;i>=Math.max(0,weights.size()-8);i--)page.addView(label(pretty(weights.get(i).optString("date"))+" · "+weights.get(i).optString("kg")+" kg",14));}}
   private void weightDialog(){LinearLayout l=new LinearLayout(this);l.setPadding(20,5,20,5);l.setOrientation(1);EditText e=edit("Gewicht in kg, z. B. 78,5","",8194);l.addView(e);new AlertDialog.Builder(this).setTitle("Gewicht dokumentieren").setView(l).setPositiveButton("Speichern",(d,w)->{try{double kg=Double.parseDouble(e.getText().toString().replace(',','.'));if(!Double.isFinite(kg)||kg<20||kg>400)throw new Exception();JSONObject x=new JSONObject();x.put("date",today());x.put("kg",kg);weights.add(x);persist("weights",weights);statistics();}catch(Exception ex){msg("Gewicht ungültig.");}}).setNegativeButton("Abbrechen",null).show();}
 
@@ -302,6 +302,7 @@ public class MainActivity extends Activity {
     int chosen=prefs.getInt("activityShare",0);share.setSelection(chosen==100?2:chosen==50?1:0);
     settings.addView(share);
     action(settings,"Auswahl speichern",()->{prefs.edit().putInt("activityShare",share.getSelectedItemPosition()*50).apply();activityPage();});
+    action(settings,"Punkte-Regeln anpassen",()->activityRulesDialog());
     page.addView(settings);
     LinearLayout activity=card(Color.WHITE);
     action(activity,"＋ Training hinzufügen",()->addActivityDialog());
@@ -318,6 +319,22 @@ public class MainActivity extends Activity {
         activities.remove(act);persist("activities",activities);activityPage();}).setNegativeButton("Abbrechen",null).show());
     }
     if(shown==0)page.addView(label("Noch keine Workouts für diese Woche.",14));
+  }
+  private void activityRulesDialog(){
+    LinearLayout box=new LinearLayout(this);box.setPadding(dp(18),dp(10),dp(18),dp(10));box.setOrientation(1);
+    box.addView(label("Grundschritte pro Tag",14));
+    EditText threshold=edit("Grundschritte",String.valueOf(prefs.getInt("stepBaseline",3000)),2);box.addView(threshold);
+    box.addView(label("Aktive Kalorien je Bewegungspunkt",14));
+    EditText kcal=edit("Kalorien je Punkt",String.valueOf(prefs.getInt("kcalPerPoint",65)),2);box.addView(kcal);
+    AlertDialog d=new AlertDialog.Builder(this).setTitle("FitRocket-Punkteregeln").setView(box).setNegativeButton("Abbrechen",null).setPositiveButton("Speichern",null).create();
+    d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{
+      try{int steps=Integer.parseInt(threshold.getText().toString().trim());
+        int value=Integer.parseInt(kcal.getText().toString().trim());
+        if(steps<0||steps>20000||value<30||value>150)throw new IllegalArgumentException();
+        prefs.edit().putInt("stepBaseline",steps).putInt("kcalPerPoint",value).apply();
+        d.dismiss();activityPage();
+      }catch(Exception e){msg("Bitte Grundschritte (0–20000) und kcal je Punkt (30–150) prüfen.");}
+    }));d.show();
   }
   private void addActivityDialog(){
     if(!profileReady()){new AlertDialog.Builder(this).setTitle("Bewegungsprofil fehlt")
@@ -363,8 +380,75 @@ public class MainActivity extends Activity {
   }
   private void startExport(){Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");i.putExtra(Intent.EXTRA_TITLE,"FitRocket-Backup-"+today()+".json");startActivityForResult(i,EXPORT_REQUEST);}
   private void startImport(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");startActivityForResult(i,IMPORT_REQUEST);}
-  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;Uri uri=data.getData();if(request==EXPORT_REQUEST){try(OutputStream os=getContentResolver().openOutputStream(uri)){JSONObject root=new JSONObject();root.put("schemaVersion",1);root.put("budget",budget);root.put("weekly",weekly);root.put("meals",new JSONArray(prefs.getString("meals","[]")));root.put("weights",new JSONArray(prefs.getString("weights","[]")));root.put("activities",new JSONArray(prefs.getString("activities","[]")));os.write(root.toString(2).getBytes(StandardCharsets.UTF_8));msg("Backup gespeichert.");}catch(Exception e){msg("Backup fehlgeschlagen.");}}else if(request==IMPORT_REQUEST){try(InputStream in=getContentResolver().openInputStream(uri)){ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>5_000_000)throw new IOException("Datei zu groß");}JSONObject root=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8));if(root.optInt("schemaVersion")!=1||!root.has("meals")||!root.has("weights"))throw new Exception();JSONArray ma=root.getJSONArray("meals"),we=root.getJSONArray("weights"),ac=root.optJSONArray("activities");if(ac==null)ac=new JSONArray();final JSONArray importedActivities=ac;if(ma.length()>50000||we.length()>50000||ac.length()>50000)throw new Exception();int bb=root.optInt("budget",23),ww=root.optInt("weekly",0);if(bb<1||bb>200||ww<0||ww>500)throw new Exception();new AlertDialog.Builder(this).setTitle("Backup wirklich importieren?").setMessage("Vorhandene Mahlzeiten und Gewichtseinträge werden ersetzt. "+ma.length()+" Mahlzeiten im Backup.").setPositiveButton("Importieren",(d,w)->{prefs.edit().putString("meals",ma.toString()).putString("weights",we.toString()).putString("activities",importedActivities.toString()).putInt("budget",bb).putInt("weekly",ww).apply();budget=bb;weekly=ww;readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);home();msg("Backup importiert.");}).setNegativeButton("Abbrechen",null).show();}catch(Exception e){msg("Import fehlgeschlagen: Datei ungültig.");}}}
-  private class GlassView extends View {
+  @Override protected void onActivityResult(int request,int result,Intent data){
+    super.onActivityResult(request,result,data);
+    if(result!=RESULT_OK||data==null||data.getData()==null)return;
+    Uri uri=data.getData();
+    if(request==EXPORT_REQUEST){
+      try(OutputStream os=getContentResolver().openOutputStream(uri)){
+        JSONObject payload=new JSONObject();
+        payload.put("schemaVersion",2);payload.put("budget",budget);payload.put("weekly",weekly);
+        payload.put("meals",new JSONArray(prefs.getString("meals","[]")));
+        payload.put("weights",new JSONArray(prefs.getString("weights","[]")));
+        payload.put("activities",new JSONArray(prefs.getString("activities","[]")));
+        payload.put("steps",stepMap());
+        payload.put("activityShare",prefs.getInt("activityShare",0));
+        payload.put("stepBaseline",prefs.getInt("stepBaseline",3000));
+        payload.put("kcalPerPoint",prefs.getInt("kcalPerPoint",65));
+        if(profileReady()){
+          JSONObject p=new JSONObject();p.put("age",prefs.getInt("profile_age",35));p.put("height",prefs.getInt("profile_height",170));
+          p.put("weight",weightKg());p.put("metabolicProfile",prefs.getInt("profile_sex",2));
+          payload.put("profile",p);
+        }
+        os.write(payload.toString(2).getBytes(StandardCharsets.UTF_8));
+        msg("Dein FitRocket-Backup wurde gespeichert.");
+      }catch(Exception e){msg("Backup fehlgeschlagen.");}
+    }else if(request==IMPORT_REQUEST){
+      try(InputStream in=getContentResolver().openInputStream(uri)){
+        ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;
+        while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>5000000)throw new IOException("Backup zu groß");}
+        JSONObject payload=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8));
+        int schema=payload.optInt("schemaVersion",0);
+        if((schema!=1&&schema!=2)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
+        JSONArray ma=payload.getJSONArray("meals"),we=payload.getJSONArray("weights");
+        JSONArray ac=payload.optJSONArray("activities");if(ac==null)ac=new JSONArray();
+        final JSONArray importedActivities=ac;
+        if(ma.length()>50000||we.length()>50000||ac.length()>50000)throw new IllegalArgumentException();
+        int bb=payload.optInt("budget",23),ww=payload.optInt("weekly",0);
+        int share=payload.optInt("activityShare",0),baseline=payload.optInt("stepBaseline",3000),kpp=payload.optInt("kcalPerPoint",65);
+        if(bb<1||bb>200||ww<0||ww>500||!(share==0||share==50||share==100)||
+          baseline<0||baseline>20000||kpp<30||kpp>150)throw new IllegalArgumentException();
+        JSONObject steps=payload.optJSONObject("steps");if(steps==null)steps=new JSONObject();
+        if(steps.length()>2000)throw new IllegalArgumentException();
+        final JSONObject importedSteps=steps;
+        JSONObject profile=payload.optJSONObject("profile");
+        if(profile!=null){FitRocketMath.restingCalories(profile.getInt("age"),profile.getDouble("height"),
+                profile.getDouble("weight"),profile.getInt("metabolicProfile"));}
+        final JSONObject importedProfile=profile;
+        new AlertDialog.Builder(this).setTitle("Backup importieren?")
+          .setMessage("Gespeicherte Mahlzeiten, Gewichte, Aktivitäten und Schrittwerte werden durch das Backup ersetzt.")
+          .setPositiveButton("Importieren",(d,w)->{
+            try{
+              android.content.SharedPreferences.Editor e=prefs.edit();
+              e.putString("meals",ma.toString()).putString("weights",we.toString())
+                .putString("activities",importedActivities.toString()).putString("stepDays",importedSteps.toString())
+                .putInt("budget",bb).putInt("weekly",ww).putInt("activityShare",share)
+                .putInt("stepBaseline",baseline).putInt("kcalPerPoint",kpp);
+              if(importedProfile!=null){
+                e.putInt("profile_age",importedProfile.getInt("age"))
+                  .putInt("profile_height",importedProfile.getInt("height"))
+                  .putString("profile_weight",String.valueOf(importedProfile.getDouble("weight")))
+                  .putInt("profile_sex",importedProfile.getInt("metabolicProfile"));
+              }
+              e.apply();budget=bb;weekly=ww;
+              readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
+              home();msg("Backup importiert.");
+            }catch(Exception e){msg("Import konnte nicht abgeschlossen werden.");}
+          }).setNegativeButton("Abbrechen",null).show();
+      }catch(Exception e){msg("Die Backup-Datei ist ungültig.");}
+    }
+  }
+    private class GlassView extends View {
     final Paint p=new Paint(3);GlassView(){super(MainActivity.this);}
     @Override protected void onDraw(Canvas c){
       super.onDraw(c);float w=getWidth(),h=getHeight(),cx=w/2,cy=h*.75f;
