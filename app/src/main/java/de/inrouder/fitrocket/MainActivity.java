@@ -18,13 +18,15 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
-  private static final int EXPORT_REQUEST=81,IMPORT_REQUEST=82;
+  private static final int EXPORT_REQUEST=81,IMPORT_REQUEST=82,HEALTH_PERMISSION_REQUEST=83;
   private final ArrayList<JSONObject> foods=new ArrayList<>(), meals=new ArrayList<>(), weights=new ArrayList<>(), activities=new ArrayList<>();
   private android.content.SharedPreferences prefs;
   private LinearLayout page, entries;
   private GlassView glass;
   private TextView summary;
   private int budget=23, weekly=0;
+  private boolean healthBusy=false;
+  private String currentScreen="FitRocket";
   private final int NAVY=Color.rgb(37,46,76), BLUE=Color.rgb(112,117,225), LIGHT=Color.rgb(255,247,242), PEACH=Color.rgb(255,220,204), MINT=Color.rgb(212,242,216), LAV=Color.rgb(240,231,255);
   private int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
   private GradientDrawable shape(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
@@ -45,6 +47,7 @@ public class MainActivity extends Activity {
   private void persist(String key,ArrayList<JSONObject> items){JSONArray a=new JSONArray();for(JSONObject x:items)a.put(x);prefs.edit().putString(key,a.toString()).apply();}
   private void loadFoods(){try(InputStream in=getAssets().open("foods.json")){ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);JSONArray a=new JSONArray(new String(o.toByteArray(),StandardCharsets.UTF_8));for(int i=0;i<a.length();i++)foods.add(a.getJSONObject(i));}catch(Exception e){msg("Lebensmitteldatenbank konnte nicht geladen werden.");}}
   private void shell(String heading){
+    currentScreen=heading;
     LinearLayout frame=new LinearLayout(this);frame.setOrientation(1);
     frame.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{Color.rgb(255,247,241),Color.rgb(247,239,255),Color.rgb(255,249,244)}));
     setContentView(frame);
@@ -215,7 +218,19 @@ public class MainActivity extends Activity {
     try{return new JSONObject(prefs.getString("stepDays","{}"));}
     catch(Exception e){return new JSONObject();}
   }
-  private int stepsFor(String date){JSONObject x=stepMap().optJSONObject(date);return x==null?0:x.optInt("total");}
+  private JSONObject healthStepMap(){
+    try{return new JSONObject(prefs.getString("healthStepDays","{}"));}
+    catch(Exception e){return new JSONObject();}
+  }
+  private int stepsFor(String date){
+    JSONObject manual=stepMap().optJSONObject(date);
+    int manualCount=manual==null?0:manual.optInt("total");
+    if(prefs.getBoolean("healthUse",false)){
+      JSONObject watch=healthStepMap().optJSONObject(date);
+      if(watch!=null && watch.optInt("total")>0)return watch.optInt("total");
+    }
+    return manualCount;
+  }
   private int cadenceFor(String date){JSONObject x=stepMap().optJSONObject(date);return x==null?100:x.optInt("cadence",100);}
   private int workoutStepsFor(String date){
     long total=0;for(JSONObject a:activities){
@@ -295,7 +310,11 @@ public class MainActivity extends Activity {
     stepCard.addView(label("👟 Schritte heute: "+all,18));
     stepCard.addView(label("Für Punkte: "+eligible+" Schritte · "+stepPointsFor(today())+" Punkte",14));
     stepCard.addView(label("Basis "+prefs.getInt("stepBaseline",3000)+" Schritte · Workouts "+w+" Schritte abgezogen",12));
+    if(prefs.getBoolean("healthUse",false) && healthStepMap().optJSONObject(today())!=null){
+      stepCard.addView(label("Schrittquelle: Health Connect (Synchronisation)",12));
+    }
     action(stepCard,"Schritte eintragen / bearbeiten",()->stepDialog());page.addView(stepCard);
+    healthSection();
     LinearLayout settings=card(Color.WHITE);
     settings.addView(label("Verrechnung deiner Bewegung",17));
     Spinner share=new Spinner(this);share.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,
@@ -314,12 +333,195 @@ public class MainActivity extends Activity {
       JSONObject act=activities.get(i);String date=act.optString("date");
       if(date.compareTo(start)<0||date.compareTo(end)>=0)continue;shown++;
       LinearLayout tile=card(Color.WHITE);tile.addView(label(act.optString("name")+" · +"+pointsOfActivity(act)+" P",16));
-      tile.addView(label(pretty(date)+" · "+act.optInt("minutes")+" Min. · "+act.optInt("workoutSteps")+" Workout-Schritte",13));
+      tile.addView(label(pretty(date)+" · "+act.optInt("minutes")+" Min. · "+act.optInt("workoutSteps")+" Workout-Schritte"
+          +("health_connect".equals(act.optString("source"))?" · ⌚ Health Connect":" · manuell"),13));
       page.addView(tile);
       tile.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Eintrag löschen?").setPositiveButton("Löschen",(d,which)->{
+        if("health_connect".equals(act.optString("source"))){
+          try{JSONArray hidden=new JSONArray(prefs.getString("healthIgnored","[]"));hidden.put(act.optString("externalId"));
+            prefs.edit().putString("healthIgnored",hidden.toString()).apply();}catch(Exception ignored){}
+        }
         activities.remove(act);persist("activities",activities);activityPage();}).setNegativeButton("Abbrechen",null).show());
     }
     if(shown==0)page.addView(label("Noch keine Workouts für diese Woche.",14));
+  }
+  @Override protected void onResume(){
+    super.onResume();
+    if(prefs!=null && prefs.getBoolean("healthUse",false) && !healthBusy
+         && HealthSync.supported(this) && healthPermissionsGranted()){
+      long now=System.currentTimeMillis();
+      if(now-prefs.getLong("healthLastAttempt",0)>20L*60*1000)syncHealth(false);
+    }
+  }
+  private boolean healthPermissionsGranted(){
+    if(android.os.Build.VERSION.SDK_INT<34)return false;
+    return checkSelfPermission(android.health.connect.HealthPermissions.READ_STEPS)==android.content.pm.PackageManager.PERMISSION_GRANTED
+        && checkSelfPermission(android.health.connect.HealthPermissions.READ_EXERCISE)==android.content.pm.PackageManager.PERMISSION_GRANTED;
+  }
+  private void healthSection(){
+    LinearLayout health=card(LAV);
+    health.addView(label("⌚ Smartwatch & Health Connect",18));
+    if(!HealthSync.supported(this)){
+      health.addView(label("Der direkte Health-Connect-Abgleich benötigt Android 14 oder neuer. Manuelle Schritte und Training bleiben verfügbar.",13));
+      page.addView(health);return;
+    }
+    boolean enabled=prefs.getBoolean("healthUse",false);
+    boolean granted=healthPermissionsGranted();
+    health.addView(label(enabled&&granted?"Verbunden · schreibgeschützter Zugriff":"Noch nicht verbunden",14));
+    health.addView(label("Schritte und Workouts der laufenden Woche einlesen. "
+        +"Deine Uhr muss sie über ihre Fitness-App in Health Connect bereitstellen.",13));
+    if(enabled&&granted){
+      long when=prefs.getLong("healthLastSuccess",0);
+      health.addView(label(when==0?"Noch nicht synchronisiert":"Letzter Abgleich: "+
+           java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(new Date(when)),12));
+      action(health,healthBusy?"Synchronisiere …":"Jetzt synchronisieren",()->syncHealth(true));
+      action(health,"Berechtigungen verwalten",()->openHealthSettings());
+      action(health,"Health Connect trennen",()->new AlertDialog.Builder(this)
+          .setTitle("Verbindung trennen?")
+          .setMessage("Die eingelesenen Schritte und Trainingseinheiten werden aus FitRocket entfernt. "
+              +"Deine manuellen Einträge bleiben erhalten. Die Android-Zugriffsrechte kannst du separat in Health Connect widerrufen.")
+          .setNegativeButton("Abbrechen",null)
+          .setPositiveButton("Trennen",(d,w)->disconnectHealth()).show());
+    }else{
+      action(health,"Health Connect verbinden",()->connectHealth());
+    }
+    page.addView(health);
+  }
+  private void connectHealth(){
+    if(!HealthSync.supported(this)){msg("Für den direkten Abgleich wird Android 14 oder neuer benötigt.");return;}
+    if(!profileReady()){
+      new AlertDialog.Builder(this).setTitle("Bewegungsprofil erforderlich")
+        .setMessage("Für die Bewegungspunkte benötigt FitRocket zunächst dein Profil. "
+            +"Danach kannst du Health Connect verbinden.")
+        .setPositiveButton("Profil öffnen",(d,w)->profileDialog())
+        .setNegativeButton("Abbrechen",null).show();
+      return;
+    }
+    if(healthPermissionsGranted()){prefs.edit().putBoolean("healthUse",true).apply();syncHealth(true);return;}
+    new AlertDialog.Builder(this).setTitle("Fitnessdaten einlesen?")
+      .setMessage("FitRocket möchte deine Schritte und Trainingseinheiten aus Health Connect lesen. "
+          +"Es werden keine Daten in Health Connect geschrieben oder an FitRocket-Server versendet. "
+          +"Du kannst die Verbindung jederzeit trennen. Die Daten werden nur lokal gespeichert.")
+      .setPositiveButton("Berechtigungen auswählen",(d,w)->requestPermissions(new String[]{
+          android.health.connect.HealthPermissions.READ_STEPS,
+          android.health.connect.HealthPermissions.READ_EXERCISE},HEALTH_PERMISSION_REQUEST))
+      .setNegativeButton("Abbrechen",null).show();
+  }
+  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grantResults){
+    super.onRequestPermissionsResult(request,permissions,grantResults);
+    if(request!=HEALTH_PERMISSION_REQUEST)return;
+    if(healthPermissionsGranted()){
+      prefs.edit().putBoolean("healthUse",true).apply();
+      syncHealth(true);
+    }else{
+      msg("Für die gemeinsame Synchronisation werden die Freigaben für Schritte und Training benötigt.");
+      activityPage();
+    }
+  }
+  private void openHealthSettings(){
+    if(android.os.Build.VERSION.SDK_INT<34)return;
+    try{Intent i=new Intent(android.health.connect.HealthConnectManager.ACTION_MANAGE_HEALTH_PERMISSIONS);
+      i.putExtra(Intent.EXTRA_PACKAGE_NAME,getPackageName());startActivity(i);
+    }catch(Exception e){msg("Öffne Health Connect über die Android-Einstellungen.");}
+  }
+  private void syncHealth(boolean showResult){
+    if(healthBusy || !HealthSync.supported(this))return;
+    if(!healthPermissionsGranted()){
+      prefs.edit().putBoolean("healthUse",false).apply();
+      if(showResult)msg("Die Health-Connect-Berechtigungen fehlen. Bitte erneut verbinden.");
+      if("Aktivität".equals(currentScreen))activityPage();
+      return;
+    }
+    if(!profileReady()){
+      if(showResult)msg("Bitte zuerst dein Bewegungsprofil einrichten.");
+      return;
+    }
+    healthBusy=true;
+    prefs.edit().putLong("healthLastAttempt",System.currentTimeMillis()).apply();
+    HealthSync.readWeek(this,weekStart(),new HealthSync.Callback(){
+      @Override public void onSuccess(HealthSync.Result result){
+        try{
+          int updated=applyHealthResult(result);
+          prefs.edit().putLong("healthLastSuccess",System.currentTimeMillis()).apply();
+          if(showResult)msg("Health Connect: 7 Tage Schritte und "+updated+" Trainings übernommen.");
+          healthBusy=false;
+          if("Aktivität".equals(currentScreen))activityPage();
+          else if("FitRocket".equals(currentScreen))home();
+        }catch(Exception e){healthBusy=false;if(showResult)msg("Abgleich nicht gespeichert: "+e.getMessage());}
+      }
+      @Override public void onFailure(String reason){
+        healthBusy=false;
+        if(showResult)msg("Synchronisation fehlgeschlagen: "+reason);
+        if("Aktivität".equals(currentScreen))activityPage();
+      }
+    });
+  }
+  private boolean nearDuplicate(JSONObject saved,String date,int type,long startMs,int minutes){
+    if(!date.equals(saved.optString("date")))return false;
+    if(saved.has("startEpochMs")){
+      long old=saved.optLong("startEpochMs",0);
+      if(old>0 && Math.abs(old-startMs)<12*60*1000L
+         && Math.abs(saved.optInt("minutes")-minutes)<12)return true;
+    }
+    return !saved.has("startEpochMs") && saved.optInt("typeIndex",-1)==type
+          && Math.abs(saved.optInt("minutes")-minutes)<=5;
+  }
+  private int applyHealthResult(HealthSync.Result result) throws JSONException {
+    final String start=weekStart().toString(),end=weekStart().plusDays(7).toString();
+    // Build the replacement in memory first; never partially modify the journal on sync errors.
+    ArrayList<JSONObject> nextActivities=new ArrayList<>();
+    for(JSONObject a:activities){
+      boolean inWeek=a.optString("date").compareTo(start)>=0&&a.optString("date").compareTo(end)<0;
+      if(!inWeek||!"health_connect".equals(a.optString("source")))nextActivities.add(a);
+    }
+    Set<String> ignored=new HashSet<>();
+    JSONArray hidden=new JSONArray(prefs.getString("healthIgnored","[]"));
+    for(int i=0;i<hidden.length();i++)ignored.add(hidden.optString(i));
+    Set<String> encountered=new HashSet<>();
+    int added=0;
+    for(HealthSync.Workout w:result.workouts){
+      String date=w.date().toString();
+      int type=FitRocketHealthType.typeIndex(w.type);
+      int minutes=w.minutes();
+      if(date.compareTo(start)<0||date.compareTo(end)>=0||ignored.contains(w.id)
+          ||!encountered.add(w.id))continue;
+      long epoch=w.start.toEpochMilli();
+      boolean duplicate=false;
+      for(JSONObject a:nextActivities)if(nearDuplicate(a,date,type,epoch,minutes)){duplicate=true;break;}
+      if(duplicate)continue;
+      double met=FitRocketMath.activityMet(type,1);
+      double active=FitRocketMath.activeCalories(restDaily(),met,minutes);
+      int steps=type==0?minutes*100:type==3?minutes*150:0;
+      JSONObject a=new JSONObject();
+      a.put("date",date);a.put("name",FitRocketHealthType.name(type));
+      a.put("minutes",minutes);a.put("typeIndex",type);a.put("intensity",1);
+      a.put("met",met);a.put("calories",active);
+      a.put("points",FitRocketMath.points(active,prefs.getInt("kcalPerPoint",65)));
+      a.put("startEpochMs",epoch);a.put("workoutSteps",steps);
+      a.put("source","health_connect");a.put("externalId",w.id);a.put("sourceApp",w.source);
+      a.put("calcVersion",3);nextActivities.add(a);added++;
+    }
+    JSONObject stepCopy=healthStepMap();
+    for(Map.Entry<String,Integer> e:result.dailySteps.entrySet()){
+      JSONObject x=new JSONObject();x.put("total",e.getValue());x.put("cadence",100);
+      stepCopy.put(e.getKey(),x);
+    }
+    // Commit both sync datasets together. Manual step values are never overwritten.
+    prefs.edit().putString("healthStepDays",stepCopy.toString())
+      .putString("activities",new JSONArray(nextActivities).toString()).apply();
+    activities.clear();activities.addAll(nextActivities);
+    return added;
+  }
+  private void disconnectHealth(){
+    healthBusy=false;
+    ArrayList<JSONObject> retained=new ArrayList<>();
+    for(JSONObject x:activities)if(!"health_connect".equals(x.optString("source")))retained.add(x);
+    activities.clear();activities.addAll(retained);
+    prefs.edit().putBoolean("healthUse",false).remove("healthStepDays")
+      .remove("healthIgnored").remove("healthLastAttempt").remove("healthLastSuccess")
+      .putString("activities",new JSONArray(activities).toString()).apply();
+    msg("Health-Connect-Daten wurden aus FitRocket entfernt.");
+    activityPage();
   }
   private void activityRulesDialog(){
     LinearLayout box=new LinearLayout(this);box.setPadding(dp(18),dp(10),dp(18),dp(10));box.setOrientation(1);
@@ -370,6 +572,7 @@ public class MainActivity extends Activity {
           .setPositiveButton("Speichern",(dialog,which)->{
             try{JSONObject a=new JSONObject();
               a.put("date",today());a.put("name",types[sport]);a.put("typeIndex",sport);
+              a.put("startEpochMs",System.currentTimeMillis()-minutes*60000L);
               a.put("minutes",minutes);a.put("intensity",level);a.put("met",met);
               a.put("restingKcal",restDaily());a.put("calories",kcal);a.put("workoutSteps",finalSteps);
               a.put("points",points);a.put("calcVersion",2);
