@@ -1,5 +1,15 @@
 # Versionshinweise
 
+## 0.6.0 – Aktivitätskonto
+- Training nach Art, Intensität (niedrig/mittel/hoch) und Dauer eingeben.
+- Persönliches Körpergewicht in die Aktivitätsabschätzung einbeziehen.
+- Eigenes Aktivitätsprotokoll mit Löschmöglichkeit und Wochenreset nach Kalenderwoche.
+- Punkte wahlweise 0 %, 50 % oder 100 % in den Wochenpuffer übertragen.
+- Basis-Tagesbudget bleibt unverändert; überzogene Tagesbudgets werden vom Wochenpuffer abgezogen.
+- Aktivitätsprotokoll bei JSON-Backup und -Wiederherstellung enthalten.
+- Eigene transparente Näherung für Aktivpunkte statt behaupteter offizieller WW-FitPoints-Formel.
+- Kein Schrittetracking oder automatischer 3000-Schritte-Abzug; reine Workouts werden gesondert erfasst.
+
 ## 0.5.0 – Datenbank- und Berechnungsupdate
 - Historische WW-Blue-Quellen abgeglichen; 30 zusätzliche US-ZeroPoint-Einträge dokumentiert.
 - 45 Alltagslebensmittel mit Nährwertprofilen ergänzt.
