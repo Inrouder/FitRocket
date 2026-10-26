@@ -5,12 +5,25 @@
 ## APK installieren
 1. [GitHub Actions – Android APK](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml) öffnen.
 2. Den neuesten **erfolgreichen** Build auswählen.
-3. Unter *Artifacts* das Paket `FitRocket-v0.8.0-debug-apk` herunterladen.
+3. Unter *Artifacts* das Paket `FitRocket-v0.8.1-debug-apk` herunterladen.
 4. ZIP entpacken und `app-debug.apk` installieren.
 
 Eine Debug-APK ist zum privaten Testen gedacht. Deine bereits lokal gespeicherten Mahlzeiten bleiben bei regulärem Update mit derselben App-ID erhalten; vor größeren Änderungen empfiehlt sich **Mehr → Backup exportieren**.
 
-## Neue Funktionen in Version 0.8.0
+## Neu in Version 0.8.1 – Wochenkonto
+
+- **28 Punkte Wochenstartguthaben**, jede Woche ab Montag automatisch neu verfügbar.
+- **Bis zu 4 ungenutzte Tagespunkte** gehen nach Ende des jeweiligen Tages automatisch ins laufende Wochenkonto.
+- Nicht genutzte Tagespunkte des aktuellen Tages werden **noch nicht** gutgeschrieben.
+- Auch Tage ohne Tagebucheintrag gelten als ungenutzt (Tagesverbrauch = 0). So funktioniert der Übertrag ohne manuelles Bestätigen.
+- Tagesüberschreitungen werden automatisch aus dem Wochenkonto ausgeglichen; du kannst Wochenpunkte also frei für zusätzliche Lebensmittel verwenden.
+- Bewegungspunkte gemäß deiner gewählten Freigabe (0/50/100 %) werden weiterhin zusätzlich gutgeschrieben.
+- Tagesüberträge, Sportgutschriften, Wochenstart und Verbrauch erscheinen separat im Wochenkonto.
+- Die Berechnung berücksichtigt nur die aktuelle Kalenderwoche: alte Guthaben werden nicht in die nächste Woche mitgenommen.
+- Einmalige Umstellung bestehender Installationen auf 28 Wochenstartpunkte; bisheriges Tagebuch und die 280 Basislebensmittel bleiben erhalten.
+- Unter **Mehr → Tagesbudget & Wochenpunkte** kannst du die Startpunktzahl bei Bedarf weiterhin anpassen.
+
+## Funktionen aus Version 0.8.0
 - **Smartwatch & Health Connect (Android 14+):** Einmalige Freigabe, Schritte und Trainingseinheiten der aktuellen Woche einlesen.
 - Importierte Trainings werden mit eindeutiger Datenquellen-Kennung aktualisiert, statt beim nächsten Abgleich nochmals verbucht.
 - Schrittzahlen werden über Health Connect aggregiert; im Tagebuch können Uhr und manuelle Eingaben als bevorzugte Quelle gewählt werden.

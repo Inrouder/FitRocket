@@ -1,5 +1,16 @@
 # FitRocket – Versionshinweise
 
+## 0.8.1 – 28 Wochenpunkte und Tagesübertrag
+- 28 Punkte stehen jeden Montag als neues Wochenstartguthaben bereit.
+- Unverbrauchte Tagespunkte bis maximal 4 werden nach Abschluss des Tages dem aktuellen Wochenkonto gutgeschrieben.
+- Gutschriften gelten für abgeschlossene Tage von Montag bis gestern, nicht für den laufenden Tag oder künftige Tage.
+- Nicht dokumentierte Tage gelten als ungenutzt und erhalten den Tagesübertrag.
+- Wochenverbrauch durch Tagesbudget-Überschreitungen wird abgezogen.
+- Vorhandene Aktivitätspunkte-Gutschriften bleiben erhalten; Guthaben wird getrennt erläutert.
+- Tagesbezogene Gutschriften im Aktivitätskonto aufgelistet, Änderungen an vergangenen Mahlzeiten werden erneut berechnet.
+- Einmalige Umstellung des Wochenstartwerts auf 28 Punkte, bereits bestehende Tagebuchdaten bleiben unangetastet.
+- JUnit-Tests für Wochenwechsel, Tagesabschluss, Begrenzung und Verbrauch.
+
 ## 0.8.0 – Smartwatch-Synchronisation
 - Health Connect direkt über Android 14+ Framework-API lesend integriert.
 - Schritte werden für die aktuelle Kalenderwoche täglich aggregiert.

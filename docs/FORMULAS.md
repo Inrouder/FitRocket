@@ -49,17 +49,23 @@ Beim Aufzeichnen von Gehen oder Laufen schlägt FitRocket automatisch 100 bzw. 1
 
 Schritte werden je Tag zu Punkten gerundet, anschließend über die Woche addiert. Eine lückenlose technische Deduplizierung erfordert zukünftig Zeitstempel von Fitnessgeräten; bisher beruhen Schritt- und Trainingswerte auf manueller Eingabe.
 
-## 5. Wochenkonto
-- Training + Schrittgutschriften werden pro Kalenderwoche addiert.
-- Freigabeanteil: 0, 50 oder 100 %.
-- **Freigeschaltete Bewegungspunkte = floor(Bewegungspunkte × Anteil)**
-- **Wöchentliche Tagesüberschreitungen = Σ max(0, verbrauchte Tagespunkte − Tagesbudget)**
-- **Wochenguthaben übrig = max(0, Wochen-Extra + freigeschaltete Bewegungspunkte − Überschreitungen)**
+## 5. Eigenständiges Wochenkonto mit Tagesüberträgen (v0.8.1)
 
-Das tägliche Basisbudget bleibt unverändert. Wochenwechsellogik: Montag bis Sonntag, rückwirkende Tagebuchänderungen fließen ein.
+- **Wochenstart: 28 Punkte** (Standardwert ab Migration), jeden Montag automatisch neu. Unter den Budgeteinstellungen anpassbar.
+- Das feste tägliche Basisbudget bleibt bestehen und wird nicht durch Wochenpunkte erhöht.
+- **Übertrag je abgeschlossenem Tag = min(4, max(0, Tagesbudget − Tagesverbrauch))**.
+- Es werden nur abgeschlossene Tage der **aktuellen Kalenderwoche**, von Montag bis gestern, für den Übertrag berücksichtigt. Heute wird erst nach Tagesabschluss mitgerechnet. Tage ohne Essenseinträge haben 0 verbrauchte Tagespunkte und erhalten deshalb den vollen maximalen Übertrag.
+- **Bewegungsgutschrift = floor(verdiente Wochen-Bewegungspunkte × freigegebener Anteil)**. Freigabeanteil bleibt 0 %, 50 % oder 100 %.
+- **Wöchentliche Tagesüberschreitungen = Summe von max(0, Tagesverbrauch − Tagesbudget)** für Montag bis heute.
+- **Verfügbare Wochenpunkte = max(0, Wochenstart + abgeschlossene Tagesüberträge + Bewegungsgutschrift − Tagesüberschreitungen)**.
+- Wochenpunkte werden flexibel verwendet, indem Lebensmittel oberhalb des täglichen Basisbudgets eingetragen werden. Es ist kein manuelles Übertragshäkchen erforderlich.
+- Die Punkte eines Vorwochenkontos und die Tagesüberträge der Vorwoche werden **nicht** in die neue Woche übernommen.
+- Der Kontostand wird aus Tagebuch, Uhrzeit und Aktivitätskonto abgeleitet, ohne dauerhaft einzelne Tagesgutschriften zu verdoppeln. Rückwirkende Bearbeitungen vergangener Tage passen ihn an.
+
+Bei der einmaligen Migration vorhandener v0.8.0-Installationen wird das Wochenstartguthaben auf 28 Punkte gesetzt. Danach bleibt eine manuelle Anpassung erhalten.
 
 ## 6. Daten und Rückwärtskompatibilität
 - Trainierte Einheiten der Vorversion behalten ihre bereits gespeicherte Energieschätzung, falls vorhanden. Bei Wechsel des kcal-pro-Punkt-Faktors werden neuere Einheiten neu bewertet, ältere ohne Energieangabe behalten gespeicherte Punkte.
 - Profiländerungen beeinflussen zukünftige Workouts und Schrittberechnungen; bereits dokumentierte Trainingseinheiten behalten ihre Energieaufnahme.
-- Backup-Schema 2: Mahlzeiten, Gewichte, Training, Schritte, Benutzerprofil und Punkteinstellungen. Import von Schema 1 ist möglich.
-- Die App nutzt keine automatischen Fitnessdaten, solange keine Gerätefreigabe und passende Schnittstelle implementiert sind.
+- Backup-Schema 3 (mit Aktivitäts- und Uhr-Schrittdaten): Mahlzeiten, Gewichte, Training, Schritte, Benutzerprofil und Punkteinstellungen. Import von Schema 1 ist möglich.
+- Health-Connect-Daten werden bei freigegebenem Zugriff eingelesen; ein automatischer Abruf wird nur bei bestehender Verbindung ausgeführt.
