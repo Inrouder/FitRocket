@@ -1,0 +1,333 @@
+[
+  {
+    "id": "R001",
+    "name": "Gemüseomelett",
+    "group": "Frühstück",
+    "emoji": "🍳",
+    "servings": 1,
+    "minutes": 15,
+    "instructions": "Paprika und Tomaten schneiden. Öl erhitzen, Gemüse kurz garen und die verquirlten Eier stocken lassen.",
+    "ingredients": [
+      {
+        "id": "ZP071",
+        "grams": 110
+      },
+      {
+        "id": "ZP214",
+        "grams": 120
+      },
+      {
+        "id": "ZP134",
+        "grams": 80
+      },
+      {
+        "id": "CALC045",
+        "grams": 5
+      }
+    ]
+  },
+  {
+    "id": "R002",
+    "name": "Beeren-Quark mit Haferflocken",
+    "group": "Frühstück",
+    "emoji": "🫐",
+    "servings": 1,
+    "minutes": 5,
+    "instructions": "Magerquark cremig rühren, mit frischen Beeren und Haferflocken toppen.",
+    "ingredients": [
+      {
+        "id": "ZP105",
+        "grams": 200
+      },
+      {
+        "id": "ZP039",
+        "grams": 120
+      },
+      {
+        "id": "CALC014",
+        "grams": 40
+      }
+    ]
+  },
+  {
+    "id": "R003",
+    "name": "Hähnchen-Reis-Pfanne",
+    "group": "Mittagessen",
+    "emoji": "🍚",
+    "servings": 1,
+    "minutes": 25,
+    "instructions": "Reis vorbereiten. Hähnchen in Öl anbraten, Paprika dazugeben und mit Reis vermengen.",
+    "ingredients": [
+      {
+        "id": "ZP064",
+        "grams": 150
+      },
+      {
+        "id": "CALC012",
+        "grams": 180
+      },
+      {
+        "id": "ZP134",
+        "grams": 110
+      },
+      {
+        "id": "CALC044",
+        "grams": 5
+      }
+    ]
+  },
+  {
+    "id": "R004",
+    "name": "Thunfisch-Bohnensalat",
+    "group": "Mittagessen",
+    "emoji": "🥗",
+    "servings": 1,
+    "minutes": 10,
+    "instructions": "Bohnen abspülen. Mit Thunfisch und geschnittenen Tomaten vermischen, mit Öl und Kräutern abrunden.",
+    "ingredients": [
+      {
+        "id": "ZP210",
+        "grams": 120
+      },
+      {
+        "id": "ZP085",
+        "grams": 130
+      },
+      {
+        "id": "ZP214",
+        "grams": 120
+      },
+      {
+        "id": "CALC045",
+        "grams": 7
+      }
+    ]
+  },
+  {
+    "id": "R005",
+    "name": "Lachs mit Quinoa und Spinat",
+    "group": "Abendessen",
+    "emoji": "🐟",
+    "servings": 1,
+    "minutes": 25,
+    "instructions": "Quinoa kochen. Lachs in wenig Öl garen, Spinat kurz dünsten und alles gemeinsam servieren.",
+    "ingredients": [
+      {
+        "id": "ZP095",
+        "grams": 160
+      },
+      {
+        "id": "CALC004",
+        "grams": 160
+      },
+      {
+        "id": "ZP194",
+        "grams": 120
+      },
+      {
+        "id": "CALC045",
+        "grams": 5
+      }
+    ]
+  },
+  {
+    "id": "R006",
+    "name": "Tofu-Reis-Gemüse-Pfanne",
+    "group": "Mittagessen",
+    "emoji": "🥢",
+    "servings": 1,
+    "minutes": 20,
+    "instructions": "Tofu würfeln und im Öl anbraten. Paprika hinzufügen und mit Reis servieren.",
+    "ingredients": [
+      {
+        "id": "ZP213",
+        "grams": 160
+      },
+      {
+        "id": "CALC013",
+        "grams": 160
+      },
+      {
+        "id": "ZP134",
+        "grams": 150
+      },
+      {
+        "id": "CALC044",
+        "grams": 6
+      }
+    ]
+  },
+  {
+    "id": "R007",
+    "name": "Couscous-Gemüsesalat",
+    "group": "Mittagessen",
+    "emoji": "🥒",
+    "servings": 1,
+    "minutes": 15,
+    "instructions": "Couscous zubereiten. Gurke und Tomate würfeln, mit Öl unterheben und würzen.",
+    "ingredients": [
+      {
+        "id": "CALC008",
+        "grams": 170
+      },
+      {
+        "id": "ZP062",
+        "grams": 120
+      },
+      {
+        "id": "ZP214",
+        "grams": 120
+      },
+      {
+        "id": "CALC045",
+        "grams": 8
+      }
+    ]
+  },
+  {
+    "id": "R008",
+    "name": "Süßkartoffel mit Kräuterquark",
+    "group": "Abendessen",
+    "emoji": "🍠",
+    "servings": 1,
+    "minutes": 30,
+    "instructions": "Süßkartoffel mit wenig Öl im Ofen rösten. Magerquark mit Zwiebeln und Kräutern vermengen.",
+    "ingredients": [
+      {
+        "id": "CALC003",
+        "grams": 240
+      },
+      {
+        "id": "ZP105",
+        "grams": 150
+      },
+      {
+        "id": "ZP236",
+        "grams": 30
+      },
+      {
+        "id": "CALC045",
+        "grams": 5
+      }
+    ]
+  },
+  {
+    "id": "R009",
+    "name": "Overnight Oats mit Banane",
+    "group": "Frühstück",
+    "emoji": "🍌",
+    "servings": 1,
+    "minutes": 5,
+    "instructions": "Haferflocken mit Naturjoghurt vermischen. Banane in Scheiben daraufgeben und kalt stellen.",
+    "ingredients": [
+      {
+        "id": "CALC014",
+        "grams": 45
+      },
+      {
+        "id": "ZP013",
+        "grams": 120
+      },
+      {
+        "id": "ZP104",
+        "grams": 170
+      }
+    ]
+  },
+  {
+    "id": "R010",
+    "name": "Vollkornpasta mit Tomaten",
+    "group": "Abendessen",
+    "emoji": "🍝",
+    "servings": 1,
+    "minutes": 20,
+    "instructions": "Vollkornnudeln garen. Tomate und Zwiebel in Öl anschwitzen und mit Nudeln vermischen.",
+    "ingredients": [
+      {
+        "id": "CALC011",
+        "grams": 210
+      },
+      {
+        "id": "ZP214",
+        "grams": 170
+      },
+      {
+        "id": "ZP236",
+        "grams": 50
+      },
+      {
+        "id": "CALC045",
+        "grams": 8
+      }
+    ]
+  },
+  {
+    "id": "R011",
+    "name": "Erdbeerjoghurt mit Mandeln",
+    "group": "Snacks",
+    "emoji": "🍓",
+    "servings": 1,
+    "minutes": 5,
+    "instructions": "Erdbeeren schneiden, in Joghurt geben und Mandeln darüberstreuen.",
+    "ingredients": [
+      {
+        "id": "ZP104",
+        "grams": 200
+      },
+      {
+        "id": "ZP039",
+        "grams": 150
+      },
+      {
+        "id": "CALC028",
+        "grams": 15
+      }
+    ]
+  },
+  {
+    "id": "R012",
+    "name": "Avocado-Tomaten-Knäckebrot",
+    "group": "Frühstück",
+    "emoji": "🥑",
+    "servings": 1,
+    "minutes": 10,
+    "instructions": "Avocado zerdrücken, auf Knäckebrot streichen und mit Tomatenscheiben belegen.",
+    "ingredients": [
+      {
+        "id": "CALC001",
+        "grams": 80
+      },
+      {
+        "id": "CALC015",
+        "grams": 30
+      },
+      {
+        "id": "ZP214",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "id": "R013",
+    "name": "Pilz-Rührei",
+    "group": "Abendessen",
+    "emoji": "🍄",
+    "servings": 1,
+    "minutes": 12,
+    "instructions": "Champignons schneiden, in wenig Öl anbraten und die verquirlten Eier dazugeben.",
+    "ingredients": [
+      {
+        "id": "ZP071",
+        "grams": 110
+      },
+      {
+        "id": "ZP023",
+        "grams": 150
+      },
+      {
+        "id": "CALC045",
+        "grams": 5
+      }
+    ]
+  }
+]
