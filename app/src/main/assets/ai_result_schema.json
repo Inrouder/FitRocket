@@ -86,6 +86,9 @@
           "note"
         ]
       }
+    },
+    "minutes": {
+      "type": "integer"
     }
   },
   "required": [
@@ -96,6 +99,7 @@
     "servings",
     "confidence",
     "uncertainty",
-    "ingredients"
+    "ingredients",
+    "minutes"
   ]
 }
