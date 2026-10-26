@@ -225,7 +225,7 @@ public class MainActivity extends Activity {
   private int stepsFor(String date){
     JSONObject manual=stepMap().optJSONObject(date);
     int manualCount=manual==null?0:manual.optInt("total");
-    if(prefs.getBoolean("healthUse",false)){
+    if(prefs.getBoolean("healthUse",false) && prefs.getBoolean("healthStepsPreferred",true) && healthPermissionsGranted()){
       JSONObject watch=healthStepMap().optJSONObject(date);
       if(watch!=null && watch.optInt("total")>0)return watch.optInt("total");
     }
@@ -272,6 +272,9 @@ public class MainActivity extends Activity {
     int current=x==null?100:x.optInt("cadence",100);pace.setSelection(current==80?0:current==120?2:1);
     content.addView(label("Gehtempo",14));content.addView(pace);
     content.addView(label("FitRocket zählt nur Schritte über dem Grundwert und berücksichtigt Schritte aus eingetragenen Workouts.",12));
+    if(prefs.getBoolean("healthUse",false) && prefs.getBoolean("healthStepsPreferred",true)){
+      content.addView(label("Hinweis: Zurzeit werden bevorzugt die Uhr-Schritte genutzt. Wechsle im Aktivitätskonto zur manuellen Schrittquelle.",12));
+    }
     AlertDialog d=new AlertDialog.Builder(this).setTitle("Schritte aktualisieren").setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Speichern",null).create();
     d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{
       try{int steps=Integer.parseInt(stepField.getText().toString());if(steps<0||steps>100000)throw new IllegalArgumentException();
@@ -310,7 +313,7 @@ public class MainActivity extends Activity {
     stepCard.addView(label("👟 Schritte heute: "+all,18));
     stepCard.addView(label("Für Punkte: "+eligible+" Schritte · "+stepPointsFor(today())+" Punkte",14));
     stepCard.addView(label("Basis "+prefs.getInt("stepBaseline",3000)+" Schritte · Workouts "+w+" Schritte abgezogen",12));
-    if(prefs.getBoolean("healthUse",false) && healthStepMap().optJSONObject(today())!=null){
+    if(prefs.getBoolean("healthUse",false) && prefs.getBoolean("healthStepsPreferred",true) && healthPermissionsGranted() && healthStepMap().optJSONObject(today())!=null){
       stepCard.addView(label("Schrittquelle: Health Connect (Synchronisation)",12));
     }
     action(stepCard,"Schritte eintragen / bearbeiten",()->stepDialog());page.addView(stepCard);
@@ -348,7 +351,7 @@ public class MainActivity extends Activity {
   @Override protected void onResume(){
     super.onResume();
     if(prefs!=null && prefs.getBoolean("healthUse",false) && !healthBusy
-         && HealthSync.supported(this) && healthPermissionsGranted()){
+         && android.os.Build.VERSION.SDK_INT>=34 && HealthSync.supported(this) && healthPermissionsGranted()){
       long now=System.currentTimeMillis();
       if(now-prefs.getLong("healthLastAttempt",0)>20L*60*1000)syncHealth(false);
     }
@@ -361,7 +364,7 @@ public class MainActivity extends Activity {
   private void healthSection(){
     LinearLayout health=card(LAV);
     health.addView(label("⌚ Smartwatch & Health Connect",18));
-    if(!HealthSync.supported(this)){
+    if(android.os.Build.VERSION.SDK_INT<34 || !HealthSync.supported(this)){
       health.addView(label("Der direkte Health-Connect-Abgleich benötigt Android 14 oder neuer. Manuelle Schritte und Training bleiben verfügbar.",13));
       page.addView(health);return;
     }
@@ -375,6 +378,13 @@ public class MainActivity extends Activity {
       health.addView(label(when==0?"Noch nicht synchronisiert":"Letzter Abgleich: "+
            java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(new Date(when)),12));
       action(health,healthBusy?"Synchronisiere …":"Jetzt synchronisieren",()->syncHealth(true));
+      action(health,prefs.getBoolean("healthStepsPreferred",true)
+          ?"Schrittquelle: Uhr → auf manuell umstellen"
+          :"Schrittquelle: manuell → auf Uhr umstellen",()->{
+          boolean newValue=!prefs.getBoolean("healthStepsPreferred",true);
+          prefs.edit().putBoolean("healthStepsPreferred",newValue).apply();
+          activityPage();
+      });
       action(health,"Berechtigungen verwalten",()->openHealthSettings());
       action(health,"Health Connect trennen",()->new AlertDialog.Builder(this)
           .setTitle("Verbindung trennen?")
@@ -388,7 +398,7 @@ public class MainActivity extends Activity {
     page.addView(health);
   }
   private void connectHealth(){
-    if(!HealthSync.supported(this)){msg("Für den direkten Abgleich wird Android 14 oder neuer benötigt.");return;}
+    if(android.os.Build.VERSION.SDK_INT<34 || !HealthSync.supported(this)){msg("Für den direkten Abgleich wird Android 14 oder neuer benötigt.");return;}
     if(!profileReady()){
       new AlertDialog.Builder(this).setTitle("Bewegungsprofil erforderlich")
         .setMessage("Für die Bewegungspunkte benötigt FitRocket zunächst dein Profil. "
@@ -425,7 +435,7 @@ public class MainActivity extends Activity {
     }catch(Exception e){msg("Öffne Health Connect über die Android-Einstellungen.");}
   }
   private void syncHealth(boolean showResult){
-    if(healthBusy || !HealthSync.supported(this))return;
+    if(healthBusy || android.os.Build.VERSION.SDK_INT<34 || !HealthSync.supported(this))return;
     if(!healthPermissionsGranted()){
       prefs.edit().putBoolean("healthUse",false).apply();
       if(showResult)msg("Die Health-Connect-Berechtigungen fehlen. Bitte erneut verbinden.");
@@ -519,7 +529,7 @@ public class MainActivity extends Activity {
     for(JSONObject x:activities)if(!"health_connect".equals(x.optString("source")))retained.add(x);
     activities.clear();activities.addAll(retained);
     prefs.edit().putBoolean("healthUse",false).remove("healthStepDays")
-      .remove("healthIgnored").remove("healthLastAttempt").remove("healthLastSuccess")
+      .remove("healthIgnored").remove("healthLastAttempt").remove("healthLastSuccess").remove("healthStepsPreferred")
       .putString("activities",new JSONArray(activities).toString()).apply();
     msg("Health-Connect-Daten wurden aus FitRocket entfernt.");
     activityPage();
@@ -599,6 +609,7 @@ public class MainActivity extends Activity {
         payload.put("steps",stepMap());
         payload.put("healthSteps",healthStepMap());
         payload.put("healthIgnored",new JSONArray(prefs.getString("healthIgnored","[]")));
+        payload.put("healthStepsPreferred",prefs.getBoolean("healthStepsPreferred",true));
         payload.put("activityShare",prefs.getInt("activityShare",0));
         payload.put("stepBaseline",prefs.getInt("stepBaseline",3000));
         payload.put("kcalPerPoint",prefs.getInt("kcalPerPoint",65));
@@ -649,6 +660,7 @@ public class MainActivity extends Activity {
                 .putString("activities",importedActivities.toString()).putString("stepDays",importedSteps.toString())
                 .putString("healthStepDays",healthSteps.toString())
                 .putString("healthIgnored",ignoredHealth.toString())
+                .putBoolean("healthStepsPreferred",payload.optBoolean("healthStepsPreferred",true))
                 .putBoolean("healthUse",false).remove("healthLastAttempt").remove("healthLastSuccess")
                 .putInt("budget",bb).putInt("weekly",ww).putInt("activityShare",share)
                 .putInt("stepBaseline",baseline).putInt("kcalPerPoint",kpp);
