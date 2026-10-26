@@ -61,6 +61,7 @@ public class MainActivity extends Activity {
       if((heading.equals("FitRocket")&&i==0)||(heading.equals("Lebensmittel")&&i==1)||(heading.equals("Tagebuch")&&i==2)||(heading.equals("Mehr")&&i==3)){item.setBackground(shape(Color.rgb(255,230,224),16));}
       nav.addView(item,new LinearLayout.LayoutParams(0,dp(46),1));item.setOnClickListener(v->{switch(index){case 0:home();break;case 1:searchScreen();break;case 2:history();break;default:more();}});
     }
+    nav.setPadding(dp(12),dp(7),dp(12),dp(40));
     frame.addView(nav);
   }
   private int used(String date){int total=0;for(JSONObject x:meals)if(date.equals(x.optString("date")))total+=x.optInt("points");return total;}
