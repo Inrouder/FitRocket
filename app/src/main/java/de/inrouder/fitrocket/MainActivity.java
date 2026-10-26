@@ -510,7 +510,136 @@ public class MainActivity extends Activity {
     l.addView(label("Montags neu verfügbar. Ungenutzte Tagespunkte werden nach Mitternacht automatisch übertragen, maximal 4 pro Tag.",12));new AlertDialog.Builder(this).setTitle("Budget").setView(l).setPositiveButton("Speichern",(d,n)->{try{int bb=Integer.parseInt(b.getText().toString()),ww=Integer.parseInt(w.getText().toString());if(bb<1||bb>200||ww<0||ww>500)throw new Exception();budget=bb;weekly=ww;prefs.edit().putInt("budget",bb).putInt("weekly",ww).apply();more();}catch(Exception e){msg("Ungültige Budgetwerte.");}}).setNegativeButton("Abbrechen",null).show();}
   private void statistics(){shell("Statistiken");LocalDate now=LocalDate.now(),start=now.minusDays(now.getDayOfWeek().getValue()-1);page.addView(label("Diese Woche",20));int weeklyUsed=0;for(int i=0;i<7;i++){LocalDate date=start.plusDays(i);int n=used(date.toString());weeklyUsed+=n;page.addView(label(date.getDayOfWeek().toString().substring(0,2)+" "+pretty(date.toString())+": "+n+" Punkte",15));}page.addView(label("Gesamt: "+weeklyUsed+" Punkte; Ø "+String.format(Locale.GERMAN,"%.1f",weeklyUsed/7.0)+" pro Kalendertag",15));page.addView(label("Dieser Monat",20));LocalDate first=now.withDayOfMonth(1);int total=0,tracked=0,days=now.getDayOfMonth();for(int i=0;i<days;i++){String day=first.plusDays(i).toString();total+=used(day);if(count(day)>0)tracked++;}page.addView(label("Erfasste Punkte: "+total+" · Tage mit Einträgen: "+tracked+" / "+days,16));page.addView(label("Wochenkonto: "+weekly+" Start + "+rolloversWeek()+" Tagesübertrag + "
    +activityCredit()+" Bewegungsbonus − "+spentWeek()+" verbraucht = "+availableWeek()+" Punkte übrig",15));page.addView(label("Ø je dokumentiertem Tag: "+(tracked>0?String.format(Locale.GERMAN,"%.1f",total/(double)tracked):"–"),16));page.addView(label("Achtung: Fehlende Tage gelten nicht als Null-Punkte-Tage.",13));if(!weights.isEmpty()){page.addView(label("Gewichtseinträge: "+weights.size(),16));for(int i=weights.size()-1;i>=Math.max(0,weights.size()-8);i--)page.addView(label(pretty(weights.get(i).optString("date"))+" · "+weights.get(i).optString("kg")+" kg",14));}}
-  private void weightDialog(){LinearLayout l=new LinearLayout(this);l.setPadding(20,5,20,5);l.setOrientation(1);EditText e=edit("Gewicht in kg, z. B. 78,5","",8194);l.addView(e);new AlertDialog.Builder(this).setTitle("Gewicht dokumentieren").setView(l).setPositiveButton("Speichern",(d,w)->{try{double kg=Double.parseDouble(e.getText().toString().replace(',','.'));if(!Double.isFinite(kg)||kg<20||kg>400)throw new Exception();JSONObject x=new JSONObject();x.put("date",today());x.put("kg",kg);weights.add(x);persist("weights",weights);if(profileReady())prefs.edit().putString("profile_weight",String.valueOf(kg)).apply();statistics();}catch(Exception ex){msg("Gewicht ungültig.");}}).setNegativeButton("Abbrechen",null).show();}
+  private double latestWeight(){
+    double value=0;String lastDate="";
+    for(JSONObject x:weights){
+      String day=x.optString("date");
+      double kg=x.optDouble("kg",0);
+      if(kg>0 && day.compareTo(lastDate)>=0){value=kg;lastDate=day;}
+    }
+    if(value<=0&&profileReady())return weightKg();
+    return value;
+  }
+  private double earliestWeight(){
+    double value=0;String firstDate="9999-12-31";
+    for(JSONObject x:weights){
+      String day=x.optString("date");double kg=x.optDouble("kg",0);
+      if(kg>0&&day.compareTo(firstDate)<0){value=kg;firstDate=day;}
+    }
+    return value;
+  }
+  private double goalWeight(){
+    try{
+      String val=prefs.getString("weightGoal","");
+      return val.isEmpty()?0:Double.parseDouble(val);
+    }catch(Exception e){return 0;}
+  }
+  private void goalWeightDialog(){
+    LinearLayout content=new LinearLayout(this);content.setPadding(dp(18),dp(10),dp(18),dp(10));content.setOrientation(1);
+    content.addView(label("Dein persönliches Wunschgewicht in Kilogramm",14));
+    EditText edit=edit("Zielgewicht",goalWeight()>0?String.format(Locale.GERMAN,"%.1f",goalWeight()):"",8194);
+    content.addView(edit);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Gewichtsziel").setView(content)
+      .setPositiveButton("Speichern",null).setNegativeButton("Abbrechen",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        double kg=num(edit.getText().toString());
+        if(!Double.isFinite(kg)||kg<20||kg>300)throw new IllegalArgumentException();
+        prefs.edit().putString("weightGoal",String.valueOf(kg)).apply();
+        dialog.dismiss();weightScreen();
+      }catch(Exception e){msg("Bitte ein Zielgewicht zwischen 20 und 300 kg eingeben.");}
+    }));
+    dialog.show();
+  }
+  private void weightScreen(){
+    shell("Gewicht");
+    LinearLayout summaryCard=card(Color.WHITE);
+    TextView title=label("⚖ Dein Gewichtsverlauf",20);title.setTypeface(null,1);
+    summaryCard.addView(title);
+    LinearLayout metrics=new LinearLayout(this);metrics.setOrientation(0);
+    double first=earliestWeight(),latest=latestWeight(),goal=goalWeight();
+    String[] values={
+      first>0?String.format(Locale.GERMAN,"%.1f kg",first):"–",
+      latest>0?String.format(Locale.GERMAN,"%.1f kg",latest):"–",
+      goal>0?String.format(Locale.GERMAN,"%.1f kg",goal):"–"
+    };
+    String[] names={"Start","Aktuell","Ziel"};
+    for(int i=0;i<3;i++){
+      LinearLayout metric=new LinearLayout(this);metric.setOrientation(1);
+      TextView val=label(values[i],17);val.setTypeface(null,1);val.setGravity(Gravity.CENTER);
+      TextView caption=label(names[i],12);caption.setGravity(Gravity.CENTER);
+      metric.addView(val);metric.addView(caption);metrics.addView(metric,new LinearLayout.LayoutParams(0,-2,1));
+    }
+    summaryCard.addView(metrics);
+    if(first>0&&latest>0)summaryCard.addView(label(
+      "Seit Beginn: "+String.format(Locale.GERMAN,"%+.1f kg",latest-first),15));
+    action(summaryCard,"＋ Gewicht eintragen",()->weightDialog());
+    action(summaryCard,"🎯 Zielgewicht festlegen",()->goalWeightDialog());
+    page.addView(summaryCard);
+    LinearLayout chart=card(Color.WHITE);
+    chart.addView(label("Deine Entwicklung",18));
+    chart.addView(new FitRocketWeightChart(this,weights,goal>0?goal:null),
+      new LinearLayout.LayoutParams(-1,dp(265)));
+    page.addView(chart);
+    heading("Letzte Messungen");
+    ArrayList<JSONObject> sorted=new ArrayList<>(weights);
+    sorted.sort((one,two)->two.optString("date").compareTo(one.optString("date")));
+    int n=0;
+    for(JSONObject item:sorted){
+      LinearLayout line=card(Color.WHITE);
+      line.addView(label(pretty(item.optString("date"))+"  ·  "+
+          String.format(Locale.GERMAN,"%.1f kg",item.optDouble("kg")),16));
+      page.addView(line);
+      line.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Messung löschen?")
+        .setMessage(pretty(item.optString("date"))+" · "+item.optString("kg")+" kg")
+        .setPositiveButton("Löschen",(d,w)->{
+          weights.remove(item);persist("weights",weights);weightScreen();
+        }).setNegativeButton("Abbrechen",null).show());
+      if(++n>=12)break;
+    }
+    if(sorted.isEmpty())page.addView(label("Noch keine Messungen eingetragen.",14));
+  }
+  private void weightDialog(){
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(6),dp(20),dp(8));
+    content.addView(label("Wie viel wiegst du heute?",16));
+    double initial=latestWeight();
+    if(initial<30||initial>250)initial=80;
+    TextView preview=label(String.format(Locale.GERMAN,"%.1f kg",initial),22);preview.setGravity(Gravity.CENTER);
+    content.addView(preview);
+    SeekBar scale=new SeekBar(this);scale.setMax(2200);
+    scale.setProgress((int)Math.round(initial*10)-300);
+    content.addView(scale);
+    TextView range=label("30 kg                                                  250 kg",11);
+    range.setGravity(Gravity.CENTER);content.addView(range);
+    EditText input=edit("Kilogramm (z. B. 81,4)",String.format(Locale.GERMAN,"%.1f",initial),8194);
+    content.addView(input);
+    scale.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+      public void onProgressChanged(SeekBar bar,int progress,boolean fromUser){
+        if(fromUser){
+          double value=(progress+300)/10.0;
+          preview.setText(String.format(Locale.GERMAN,"%.1f kg",value));
+          input.setText(String.format(Locale.GERMAN,"%.1f",value));
+        }
+      }
+      public void onStartTrackingTouch(SeekBar b){}
+      public void onStopTrackingTouch(SeekBar b){}
+    });
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Gewicht erfassen").setView(content)
+      .setPositiveButton("Speichern",null).setNegativeButton("Abbrechen",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        double kg=num(input.getText().toString());
+        if(!Double.isFinite(kg)||kg<20||kg>400)throw new IllegalArgumentException();
+        JSONObject x=new JSONObject();x.put("date",today());x.put("kg",kg);
+        // One measurement per day; replace the prior value without multiplying chart markers.
+        weights.removeIf(item->today().equals(item.optString("date")));
+        weights.add(x);persist("weights",weights);
+        if(profileReady())prefs.edit().putString("profile_weight",String.valueOf(kg)).apply();
+        dialog.dismiss();weightScreen();
+      }catch(Exception e){msg("Bitte ein gültiges Gewicht in Kilogramm eingeben.");}
+    }));
+    dialog.show();
+  }
 
   private LocalDate weekStart(){LocalDate d=LocalDate.now();return d.minusDays(d.getDayOfWeek().getValue()-1);}
   private boolean profileReady(){
