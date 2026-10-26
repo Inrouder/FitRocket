@@ -1,7 +1,7 @@
-# FitRocket Roadmap
+# FitRocket – Roadmap
 
-- **0.3.0:** Alltagsfunktionen, Lebensmittelsuche, Datenbankergänzung, Backup, Wochen-/Monatsstatistik.
-- **0.4.0:** Oberfläche und originale Troll-Animation, Erinnerungen, Gewichtsdiagramme und Testergebnisse.
-- **0.5.0:** Health Connect mit granularem Consent, Schritte, Training, keine automatische Fitnesspunktverrechnung.
-- **0.6.0:** Google-Anmeldung optional und sicherer KI-Adapter mit strukturiertem Prompt, Vorschau und Bestätigung; keine Schlüssel in APK.
-- **1.0.0:** Qualitätsprüfungen, Signierung, Release und Upgradefähigkeit.
+- **0.7.0:** Eigenständiger Nahrungsscore, persönliche Bewegungsrechnung, manuelle Schritte, Sportarten/Intensitäten, Wochenkonto, Datenexport und Unit-Tests.
+- **0.8.0:** Verbesserte Cozy-Grafik, Verlaufsgrafiken und Barrierefreiheit.
+- **0.9.0:** Health Connect, optionale Smartwatch-Synchronisation, Zeitstempel-basierte Deduplizierung und Berechtigungsverwaltung.
+- **1.0.0:** Stabilisierung, Performance, Release-Signierung und Datenmigration.
+- Spätere Ausbaustufe: optionale Texteingabe über ein datenschutzfreundliches KI-Modell.

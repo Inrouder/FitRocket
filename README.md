@@ -1,28 +1,45 @@
 # FitRocket 🚀
 
-Cozy Android-Ernährungstagebuch mit lokaler Lebensmitteldatenbank.
+**Dein persönliches Ernährungstagebuch mit Bewegungspunkten.** FitRocket arbeitet lokal auf Android, nutzt einen eigenen Nährwertscore und bietet eine gemütliche Oberfläche mit Tagesbilanz, Lebensmittelsuche und Wochenpuffer.
 
-## Version 0.4.0
-- Pastellfarbene Benutzeroberfläche nach dem freigegebenen Vier-Screens-Mockup
-- Heute: Halbkreis-Punkteanzeige Grün–Orange–Rot, kompakte Tagesbilanz, Schnellzugriff
-- Suche: abgerundete Lebensmittellisten und Portionsdialoge
-- Tagebuch: Mahlzeitenkarten, Bearbeiten und Löschen
-- Mehr: Statistik, Gewicht, Budget, JSON-Backup
-- 283 lokale Datenbankeinträge, bestehende Daten bleiben erhalten
+## APK installieren
+1. [GitHub Actions – Android APK](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml) öffnen.
+2. Den neuesten **erfolgreichen** Build auswählen.
+3. Unter *Artifacts* das Paket `FitRocket-v0.7.0-debug-apk` herunterladen.
+4. ZIP entpacken und `app-debug.apk` installieren.
 
-## Installation
-Öffne [Actions – Android APK](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml), wähle einen erfolgreichen Lauf, lade das Artifact **FitRocket-v0.4.0-debug-apk**, entpacke das ZIP und installiere `app-debug.apk`.
+Eine Debug-APK ist zum privaten Testen gedacht. Deine bereits lokal gespeicherten Mahlzeiten bleiben bei regulärem Update mit derselben App-ID erhalten; vor größeren Änderungen empfiehlt sich **Mehr → Backup exportieren**.
 
-## Weiterhin geplant
-Eigener Hintergrund-Illustrationsasset, echte Troll-Animation, LLM-KI, Google-Anmeldung, Wearables, Benachrichtigungen und signierter Release.
-Punktwerte ohne historischen Originalnachweis bleiben nur Richtwerte; die Datenbank behält ihre Statusfelder.
+## Neue Funktionen in Version 0.7.0
+- Eigenständige FitRocket-Rechenregeln statt externer Programme.
+- Bewegungsprofil mit **Alter, Körpergröße, Gewicht und wählbarem Stoffwechsel-Referenzprofil**.
+- Persönlicher Ruheenergiebedarf als Ausgangspunkt der Aktivitätsabschätzung.
+- **9 Sportarten × 3 Intensitäten**, Trainingsdauer und geschätzte *aktive* Kilokalorien.
+- **Schritttagebuch**, individuell einstellbare Grundschritte (Standard 3.000), Tempo (80/100/120 Schritte/Minute).
+- Schutz vor Doppelzählung: geschätzte oder eingegebene Schritte aus Gehen/Laufen werden bei der Tages-Schrittgutschrift abgezogen.
+- Gutschrift von Bewegungspunkten zu **0 %, 50 % oder 100 %** ins Wochenbudget.
+- Tägliches Budget unverändert. Wochenpuffer berücksichtigt durch Essen überzogene Tagesbudgets.
+- Einstellbarer Faktor **30–150 aktive kcal je Bewegungspunkt** (Standard 65).
+- Vollständige JSON-Datensicherung inklusive Profil, Aktivität, Schritte und Punkte-Einstellungen. Importiert auch Backups älterer Versionen.
+- 358 lokale Lebensmittel: 280 Basislebensmittel, 23 Portionsvorschläge, 45 Nährwertprofile und 10 manuell bewertbare Lebensmittel.
+- GitHub Actions führt sowohl **Unit-Tests** der Formeln als auch die APK-Kompilierung aus.
 
-## Datenbank v0.6.0
-358 Einträge: 283 bisherige, 30 ergänzte historische US-ZeroPoint-Einträge, 45 generische Nährwertprofile. Die 45 Punktewerte sind berechnete Annäherungen, keine offiziellen WW-Werte. Originalquellen und Regeln in docs/DATABASE_AUDIT.md.
+## App-Bereiche
+- **Heute:** Tagespunkte, verfügbare Punkte, Wochenpuffer und Bewegung.
+- **Suche:** Lebensmittel auswählen, Portionsmenge ändern und eintragen.
+- **Tagebuch:** Einträge ansehen, korrigieren und löschen.
+- **Mehr:** Aktivitätskonto, Wochen-/Monatsstatistik, Gewicht, Punktebudget und Backup.
 
-## Bewegung (v0.6.0)
-Unter „Mehr → Aktivitäten & Bonuspunkte“ oder auf „Heute“ Training erfassen. Intensität und Minuten auswählen und ein Körpergewicht eingeben. Die App schätzt aktive Kalorien anhand eines MET-Faktors über dem Ruheverbrauch. Daraus erfolgt ein Schätzwert bei ca. 65 aktiven kcal je Punkt. Die vereinfachte Näherung ist kein offizieller WW-FitPoints-Rechner.
+## Transparente Regeln
+Die App nutzt ein selbst definiertes Punktesystem. Die Werte der Basislebensmittel und vorhandenen Vorschlagsportionen sind die FitRocket-Startdaten, nicht Produktmessungen. Marken- und Rezeptangaben können abweichen. Details findest du in [docs/FORMULAS.md](docs/FORMULAS.md).
 
-Es gibt die Einstellung 0 / 50 / 100 % Gutschrift ins **Wochen-Extra**, standardmäßig 0 %. Tagesbudget bleibt unverändert; der Wochenpuffer berücksichtigt bereits ausgegebene Tagesüberschreitungen. Punkte gelten nur in der aktuellen Kalenderwoche, Aktivitäten bleiben im Verlauf gespeichert. Direkte Schritte-/Smartwatch-Synchronisation und ein 3000-Schritte-Schwellenwert sind nicht implementiert, um doppelte Bewegungszählung zu vermeiden.
+**Bewegungsdaten sind derzeit manuell:** Es gibt noch keine automatische Smartwatch-Anbindung, keine automatische Schrittzählung und keine Online-KI. Das System funktioniert offline; es fordert keinen Account und benötigt keinen Zugang zu privaten Fitnessdiensten.
 
-Historische WW-Referenzen: https://www.weightwatchers.com/de/blog/fitpoints-verstehen und https://www.weightwatchers.com/de/blog/alles-ueber-fitpointsr.
+## Entwicklung
+- JDK 17
+- Android SDK 35
+- Gradle 8.11.1
+- Testlauf: `gradle :app:testDebugUnitTest :app:assembleDebug`
+- Package-ID: `de.inrouder.fitrocket`
+
+FitRocket ist ein eigenständiges Open-Source-Projekt mit lokalen Nutzerdaten.
