@@ -1193,7 +1193,7 @@ public class MainActivity extends Activity {
     if(request==EXPORT_REQUEST){
       try(OutputStream os=getContentResolver().openOutputStream(uri)){
         JSONObject payload=new JSONObject();
-        payload.put("schemaVersion",3);payload.put("budget",budget);payload.put("weekly",weekly);
+        payload.put("schemaVersion",4);payload.put("budget",budget);payload.put("weekly",weekly);
         payload.put("meals",new JSONArray(prefs.getString("meals","[]")));
         payload.put("weights",new JSONArray(prefs.getString("weights","[]")));
         payload.put("activities",new JSONArray(prefs.getString("activities","[]")));
@@ -1201,6 +1201,10 @@ public class MainActivity extends Activity {
         payload.put("healthSteps",healthStepMap());
         payload.put("healthIgnored",new JSONArray(prefs.getString("healthIgnored","[]")));
         payload.put("healthStepsPreferred",prefs.getBoolean("healthStepsPreferred",true));
+        payload.put("waterDays",waterDays());
+        payload.put("waterGoal",waterGoal());
+        payload.put("scannedProducts",new JSONArray(prefs.getString("scannedProducts","[]")));
+        if(goalWeight()>0)payload.put("weightGoal",goalWeight());
         payload.put("activityShare",prefs.getInt("activityShare",0));
         payload.put("stepBaseline",prefs.getInt("stepBaseline",3000));
         payload.put("kcalPerPoint",prefs.getInt("kcalPerPoint",65));
@@ -1218,7 +1222,7 @@ public class MainActivity extends Activity {
         while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>5000000)throw new IOException("Backup zu groß");}
         JSONObject payload=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8));
         int schema=payload.optInt("schemaVersion",0);
-        if((schema!=1&&schema!=2&&schema!=3)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
+        if((schema!=1&&schema!=2&&schema!=3&&schema!=4)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
         JSONArray ma=payload.getJSONArray("meals"),we=payload.getJSONArray("weights");
         JSONArray ac=payload.optJSONArray("activities");if(ac==null)ac=new JSONArray();
         final JSONArray importedActivities=ac;
@@ -1231,6 +1235,24 @@ public class MainActivity extends Activity {
           baseline<0||baseline>20000||kpp<30||kpp>150)throw new IllegalArgumentException();
         JSONObject steps=payload.optJSONObject("steps");if(steps==null)steps=new JSONObject();
         if(steps.length()>2000)throw new IllegalArgumentException();
+        JSONObject waterBackup=payload.optJSONObject("waterDays");
+        if(waterBackup==null)waterBackup=new JSONObject();
+        if(waterBackup.length()>2000)throw new IllegalArgumentException();
+        for(java.util.Iterator<String> it=waterBackup.keys();it.hasNext();){
+          String day=it.next();int ml=waterBackup.optInt(day,-1);
+          if(ml<0||ml>10000||ml%250!=0)throw new IllegalArgumentException();
+        }
+        final JSONObject importedWater=waterBackup;
+        int waterTarget=payload.optInt("waterGoal",1500);
+        if(waterTarget<250||waterTarget>6000||waterTarget%250!=0)throw new IllegalArgumentException();
+        final int importedWaterGoal=waterTarget;
+        JSONArray scanned=payload.optJSONArray("scannedProducts");
+        if(scanned==null)scanned=new JSONArray();
+        if(scanned.length()>500)throw new IllegalArgumentException();
+        final JSONArray importedScanned=scanned;
+        double weightTarget=payload.optDouble("weightGoal",0);
+        if(!Double.isFinite(weightTarget)||weightTarget<0||weightTarget>400)throw new IllegalArgumentException();
+        final double importedWeightGoal=weightTarget;
         final JSONObject importedSteps=steps;
         JSONObject importedHealthSteps=payload.optJSONObject("healthSteps");
         if(importedHealthSteps==null)importedHealthSteps=new JSONObject();
@@ -1251,6 +1273,8 @@ public class MainActivity extends Activity {
               android.content.SharedPreferences.Editor e=prefs.edit();
               e.putString("meals",ma.toString()).putString("weights",we.toString())
                 .putString("activities",importedActivities.toString()).putString("stepDays",importedSteps.toString())
+                .putString("waterDays",importedWater.toString()).putInt("waterGoal",importedWaterGoal)
+                .putString("scannedProducts",importedScanned.toString())
                 .putString("healthStepDays",healthSteps.toString())
                 .putString("healthIgnored",ignoredHealth.toString())
                 .putBoolean("healthStepsPreferred",payload.optBoolean("healthStepsPreferred",true))
@@ -1263,8 +1287,11 @@ public class MainActivity extends Activity {
                   .putString("profile_weight",String.valueOf(importedProfile.getDouble("weight")))
                   .putInt("profile_sex",importedProfile.getInt("metabolicProfile"));
               }
+              if(importedWeightGoal>0)e.putString("weightGoal",String.valueOf(importedWeightGoal));
+              else e.remove("weightGoal");
               e.apply();budget=bb;weekly=importedWeekly;
               readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
+              foods.clear();loadFoods();loadScannedFoods();loadRecipes();
               home();msg("Backup importiert.");
             }catch(Exception e){msg("Import konnte nicht abgeschlossen werden.");}
           }).setNegativeButton("Abbrechen",null).show();
