@@ -1,4 +1,12 @@
 # Versionshinweise
+
+## 0.5.0 – Datenbank- und Berechnungsupdate
+- Historische WW-Blue-Quellen abgeglichen; 30 zusätzliche US-ZeroPoint-Einträge dokumentiert.
+- 45 Alltagslebensmittel mit Nährwertprofilen ergänzt.
+- Grammgenaue Näherungsformel für neue Datensätze; auf ganze Punkte am Ende gerundet.
+- 358 Einträge, alle bisherigen Datensätze bleiben erhalten.
+- Keine Behauptung einer offiziellen WW-Punkteberechnung.
+
 ## 0.4.0 – Cozy Redesign
 - Startseite, Lebensmittelsuche, Tagebuch und Navigation im abgerundeten Pastell-Design.
 - Punkteanzeige als farbiger Halbkreis von Grün über Orange zu Rot.

@@ -16,3 +16,6 @@ Cozy Android-Ernährungstagebuch mit lokaler Lebensmitteldatenbank.
 ## Weiterhin geplant
 Eigener Hintergrund-Illustrationsasset, echte Troll-Animation, LLM-KI, Google-Anmeldung, Wearables, Benachrichtigungen und signierter Release.
 Punktwerte ohne historischen Originalnachweis bleiben nur Richtwerte; die Datenbank behält ihre Statusfelder.
+
+## Datenbank v0.5.0
+358 Einträge: 283 bisherige, 30 ergänzte historische US-ZeroPoint-Einträge, 45 generische Nährwertprofile. Die 45 Punktewerte sind berechnete Annäherungen, keine offiziellen WW-Werte. Originalquellen und Regeln in docs/DATABASE_AUDIT.md.
