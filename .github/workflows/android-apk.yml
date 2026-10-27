@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: fitrocket-android-${{ github.ref }}
@@ -51,8 +51,20 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  publish:
+    name: Publish verified APK
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: FitRocket-v0.12.0-debug-apk
+          path: apk
       - name: Publish or refresh stable GitHub Release
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -61,7 +73,7 @@ jobs:
           VERSION=$(sed -nE 's/.*versionName = "([0-9]+\.[0-9]+\.[0-9]+)".*/\1/p' app/build.gradle.kts | head -n1)
           test -n "$VERSION"
           TAG="v$VERSION"
-          cp app/build/outputs/apk/debug/app-debug.apk /tmp/FitRocket.apk
+          cp apk/app-debug.apk /tmp/FitRocket.apk
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release upload "$TAG" /tmp/FitRocket.apk --clobber --repo "$GITHUB_REPOSITORY"
             gh release edit "$TAG" --title "FitRocket $TAG" --notes-file docs/RELEASE_NOTES.md --latest --repo "$GITHUB_REPOSITORY"
