@@ -405,63 +405,114 @@ public class MainActivity extends Activity {
   }
   private void home(){
     shell("FitRocket");
+    int todayPoints=used(today());
+    int remaining=Math.max(0,budget-todayPoints);
     LinearLayout balance=card(Color.WHITE);
-    TextView subtitle=label("Heute · "+pretty(today()),18);subtitle.setTypeface(null,1);
-    balance.addView(subtitle);
-    glass=new GlassView();balance.addView(glass,new LinearLayout.LayoutParams(-1,dp(190)));
-    int usedToday=used(today()),remaining=Math.max(0,budget-usedToday);
+    TextView date=label("Heute · "+pretty(today()),17);date.setTypeface(null,1);
+    balance.addView(date);
+    glass=new GlassView();
+    balance.addView(glass,new LinearLayout.LayoutParams(-1,dp(160)));
     LinearLayout chips=new LinearLayout(this);chips.setOrientation(0);
-    for(TextView item:new TextView[]{
-      chip("🍽 "+usedToday+" P\\ngenutzt",Color.rgb(255,241,229)),
-      chip("🌿 "+remaining+" P\\nübrig",MINT),
-      chip("★ "+availableWeek()+" P\\nWoche",LAV)}){
-      item.setGravity(Gravity.CENTER);
-      LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(dp(2),0,dp(2),0);
-      chips.addView(item,p);
+    String[] text={
+      todayPoints+" P gegessen",
+      remaining+" P frei",
+      availableWeek()+" P Woche"
+    };
+    int[] shades={Color.rgb(255,241,229),MINT,LAV};
+    for(int i=0;i<text.length;i++){
+      TextView item=chip(text[i],shades[i]);item.setGravity(Gravity.CENTER);
+      item.setTextSize(12);item.setSingleLine(true);
+      LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(40),1);
+      p.setMargins(dp(2),0,dp(2),0);chips.addView(item,p);
     }
-    balance.addView(chips);page.addView(balance);
+    balance.addView(chips);
+    page.addView(balance);
 
-    LinearLayout actions=card(Color.rgb(255,249,245));
-    TextView quick=label("Schnell hinzufügen",17);quick.setTypeface(null,1);actions.addView(quick);
-    LinearLayout row1=new LinearLayout(this);row1.setOrientation(0);
-    Button scanner=button("▥ Barcode"),recipes=button("🍲 Rezepte");
-    row1.addView(scanner,new LinearLayout.LayoutParams(0,dp(49),1));
-    row1.addView(recipes,new LinearLayout.LayoutParams(0,dp(49),1));
-    scanner.setOnClickListener(v->scanBarcode());recipes.setOnClickListener(v->recipeScreen());
-    actions.addView(row1);
-    LinearLayout row2=new LinearLayout(this);row2.setOrientation(0);
-    Button find=button("⌕ Lebensmittel"),manual=button("＋ Manuell");
-    row2.addView(find,new LinearLayout.LayoutParams(0,dp(49),1));
-    row2.addView(manual,new LinearLayout.LayoutParams(0,dp(49),1));
-    find.setOnClickListener(v->searchScreen());manual.setOnClickListener(v->manual());
-    actions.addView(row2);
-    action(actions,"✨ KI-Assistent – Essen beschreiben & Rezepte",()->aiHub());
-    page.addView(actions);
+    LinearLayout shortcuts=card(Color.WHITE);
+    TextView quick=label("Schnell erfassen",16);quick.setTypeface(null,1);
+    shortcuts.addView(quick);
+    LinearLayout row=new LinearLayout(this);row.setOrientation(0);
+    Button search=button("＋ Lebensmittel"),scanner=button("▥ Barcode");
+    row.addView(search,new LinearLayout.LayoutParams(0,dp(49),1));
+    row.addView(scanner,new LinearLayout.LayoutParams(0,dp(49),1));
+    search.setOnClickListener(v->searchScreen());scanner.setOnClickListener(v->scanBarcode());
+    shortcuts.addView(row);
+    action(shortcuts,"✨ Mit KI beschreiben oder Rezept finden",()->aiHub());
+    page.addView(shortcuts);
 
     heading("Deine Mahlzeiten");
-    dayMealGroups(page,today());
+    LinearLayout mealsCard=card(Color.WHITE);
+    dayMealSummary(mealsCard,today());
+    page.addView(mealsCard);
 
-    page.addView(waterCard(today()));
+    LinearLayout water=card(Color.WHITE);
+    LinearLayout head=new LinearLayout(this);head.setOrientation(0);
+    head.setGravity(Gravity.CENTER_VERTICAL);
+    TextView waterTitle=label("💧 Wasser",16);waterTitle.setTypeface(null,1);
+    head.addView(waterTitle,new LinearLayout.LayoutParams(0,-2,1));
+    TextView value=chip(String.format(Locale.GERMAN,"%.2f / %.2f L",
+        waterMl(today())/1000.0,waterGoal()/1000.0),Color.rgb(222,242,254));
+    head.addView(value);water.addView(head);
+    LinearLayout waterControls=new LinearLayout(this);waterControls.setOrientation(0);
+    Button addWater=button("＋ 250 ml");
+    waterControls.addView(addWater,new LinearLayout.LayoutParams(0,dp(44),1));
+    Button waterDetail=button("Alle Gläser ›");
+    waterControls.addView(waterDetail,new LinearLayout.LayoutParams(0,dp(44),1));
+    addWater.setOnClickListener(v->{
+      setWaterMl(today(),Math.min(10000,waterMl(today())+250));
+      home();
+    });
+    waterDetail.setOnClickListener(v->waterScreen());
+    water.addView(waterControls);page.addView(water);
 
-    LinearLayout weightCard=card(Color.WHITE);
-    TextView title=label("⚖ Gewicht & Verlauf",18);title.setTypeface(null,1);weightCard.addView(title);
-    double last=latestWeight(),goal=goalWeight();
-    weightCard.addView(label(last>0?String.format(Locale.GERMAN,"Aktuelles Gewicht: %.1f kg",last):
-       "Erfasse dein Gewicht und verfolge deinen Verlauf.",15));
-    if(goal>0)weightCard.addView(label(String.format(Locale.GERMAN,"Dein Ziel: %.1f kg",goal),13));
-    if(!weights.isEmpty())weightCard.addView(new FitRocketWeightChart(this,weights,goal>0?goal:null),
-       new LinearLayout.LayoutParams(-1,dp(150)));
-    action(weightCard,"Gewicht eintragen / Verlauf öffnen ›",()->weightScreen());
-    page.addView(weightCard);
+    LinearLayout overview=card(Color.WHITE);
+    TextView moreTitle=label("Dein Fortschritt",16);moreTitle.setTypeface(null,1);
+    overview.addView(moreTitle);
+    double last=latestWeight();
+    String weightText=last>0?String.format(Locale.GERMAN,"%.1f kg",last):"Noch keine Messung";
+    settingsRow(overview,"⚖ Gewicht",weightText,()->weightScreen());
+    settingsRow(overview,"🚶 Bewegung",earnedWeek()+" P diese Woche",()->activityPage());
+    settingsRow(overview,"⭐ Wochenkonto",availableWeek()+" P verfügbar",()->progressPage());
+    page.addView(overview);
+  }
 
-    LinearLayout weekCard=card(LAV);
-    weekCard.addView(label("⭐ Wochenpunkte: "+availableWeek()+" P übrig",18));
-    weekCard.addView(label(weekly+" P Wochenstart · +"+rolloversWeek()+" Tagesübertrag · +"+
-       activityCredit()+" Bewegung · −"+spentWeek()+" verwendet",13));
-    page.addView(weekCard);
-
-    LinearLayout movement=card(MINT);movement.addView(label("🚶 Bewegung · "+earnedWeek()+" P diese Woche",16));
-    action(movement,"Aktivitäten & Smartwatch ›",()->activityPage());page.addView(movement);
+  private void dayMealSummary(LinearLayout target,String date){
+    String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
+    String[] emoji={"☀","🥗","☾","🍓","🥤"};
+    for(int i=0;i<groups.length;i++){
+      final String group=groups[i];
+      int points=0,count=0;String first="";
+      for(JSONObject m:meals){
+        if(date.equals(m.optString("date"))&&group.equals(mealGroup(m))){
+          points+=m.optInt("points",0);count++;
+          if(first.isEmpty())first=m.optString("name","");
+        }
+      }
+      LinearLayout item=new LinearLayout(this);item.setOrientation(0);
+      item.setGravity(Gravity.CENTER_VERTICAL);
+      item.setPadding(dp(2),dp(6),dp(2),dp(6));
+      LinearLayout lines=new LinearLayout(this);lines.setOrientation(1);
+      TextView title=label(emoji[i]+"  "+group,14);title.setTypeface(null,1);
+      title.setPadding(dp(2),0,dp(2),dp(2));lines.addView(title);
+      TextView hint=label(count==0?"Noch nichts eingetragen":
+          first+(count>1?"  +"+(count-1)+" weitere":""),12);
+      hint.setTextColor(muted());hint.setMaxLines(1);
+      hint.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      hint.setPadding(dp(2),dp(2),dp(2),0);lines.addView(hint);
+      item.addView(lines,new LinearLayout.LayoutParams(0,-2,1));
+      TextView counter=chip(points+" P",count==0?Color.rgb(245,244,247):MINT);
+      item.addView(counter);
+      TextView plus=chip("＋",Color.rgb(255,231,219));plus.setTextSize(19);
+      LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2);lp.setMargins(dp(8),0,0,0);
+      item.addView(plus,lp);
+      plus.setOnClickListener(v->beginGroupBooking(group,date));
+      item.setOnClickListener(v->{diaryDate=LocalDate.parse(date);history();});
+      target.addView(item);
+      if(i<groups.length-1){
+        View divider=new View(this);divider.setBackgroundColor(FitRocketTheme.divider(this));
+        target.addView(divider,new LinearLayout.LayoutParams(-1,dp(1)));
+      }
+    }
   }
   private void beginGroupBooking(String group,String date){
     bookingDate=date;bookingGroup=group;
@@ -1289,22 +1340,193 @@ public class MainActivity extends Activity {
     d.show();
   }
 
-  private void more(){
-    shell("Mehr");
-    LinearLayout progress=card(Color.WHITE);progress.addView(label("Deine Fortschritte",18));
-    action(progress,"⚖ Gewicht & Verlauf",()->weightScreen());
-    action(progress,"🚶 Bewegungs- und Smartwatch-Konto",()->activityPage());
-    action(progress,"📈 Statistiken",()->statistics());page.addView(progress);
-    LinearLayout ideas=card(Color.WHITE);ideas.addView(label("Ernährung & Inspiration",18));
-    action(ideas,"✨ KI-Assistent: Rezepte, Essen & Lebensmittel",()->aiHub());
-    action(ideas,"🍲 Rezeptvorschläge",()->recipeScreen());
-    action(ideas,"▥ Barcode scannen",()->scanBarcode());
-    action(ideas,"💧 Trinkmenge heute",()->waterScreen());page.addView(ideas);
-    LinearLayout options=card(Color.WHITE);options.addView(label("Einstellungen & Daten",18));
-    action(options,"⚙ Tagesbudget & Wochenpunkte",()->settingsDialog());
-    action(options,"⬆ Backup exportieren (JSON)",()->startExport());
-    action(options,"⬇ Backup importieren",()->startImport());page.addView(options);
+  /** Compatibility for older navigation callbacks; the menu is now the Profile tab. */
+  private void more(){profilePage();}
+
+  private void progressPage(){
+    shell("Fortschritt");
+    LinearLayout score=card(LAV);
+    TextView week=label("⭐ "+availableWeek()+" Wochenpunkte",21);week.setTypeface(null,1);
+    score.addView(week);
+    score.addView(label(weekly+" Start · +"+rolloversWeek()+" gespart · +"+
+        activityCredit()+" Bewegung · −"+spentWeek()+" verbraucht",13));
+    page.addView(score);
+
+    LinearLayout weightCard=card(Color.WHITE);
+    double latest=latestWeight(),goal=goalWeight(),first=earliestWeight();
+    TextView weightTitle=label("⚖ Gewicht",17);weightTitle.setTypeface(null,1);
+    weightCard.addView(weightTitle);
+    weightCard.addView(label(latest>0
+       ?String.format(Locale.GERMAN,"Aktuell %.1f kg",latest)
+       :"Noch keine Messung",16));
+    if(goal>0)weightCard.addView(label(String.format(Locale.GERMAN,"Ziel %.1f kg",goal),13));
+    if(first>0 && latest>0)
+      weightCard.addView(label(String.format(Locale.GERMAN,"Veränderung %+.1f kg",latest-first),13));
+    if(!weights.isEmpty())
+      weightCard.addView(new FitRocketWeightChart(this,weights,goal>0?goal:null),
+          new LinearLayout.LayoutParams(-1,dp(185)));
+    settingsRow(weightCard,"Gewichtsverlauf ansehen","Messung eintragen und Ziel festlegen",()->weightScreen());
+    page.addView(weightCard);
+
+    LinearLayout activity=card(Color.WHITE);
+    activity.addView(label("🚶 Bewegung & Auswertung",17));
+    settingsRow(activity,"Aktivitäten & Smartwatch",earnedWeek()+" Bewegungspunkte diese Woche",()->activityPage());
+    settingsRow(activity,"Ernährungsstatistik","Wochen- und Monatsauswertung",()->statistics());
+    settingsRow(activity,"Wasserbilanz",
+      String.format(Locale.GERMAN,"Heute %.2f von %.2f L",waterMl(today())/1000.0,waterGoal()/1000.0),
+      ()->waterScreen());
+    page.addView(activity);
   }
+
+  private void profilePage(){
+    shell("Profil");
+    LinearLayout identity=card(Color.WHITE);
+    LinearLayout top=new LinearLayout(this);top.setOrientation(0);
+    top.setGravity(Gravity.CENTER_VERTICAL);
+    TextView avatar=chip("🌿",LAV);avatar.setTextSize(28);
+    avatar.setGravity(Gravity.CENTER);
+    top.addView(avatar,new LinearLayout.LayoutParams(dp(61),dp(61)));
+    LinearLayout summary=new LinearLayout(this);summary.setOrientation(1);
+    String name=prefs.getString("profile_name","").trim();
+    TextView display=label(name.isEmpty()?"Dein Profil":name,21);display.setTypeface(null,1);
+    summary.addView(display);
+    TextView description=label(profileReady()?"Dein persönliches Bewegungsprofil":"Richte deine persönlichen Daten ein",12);
+    description.setTextColor(muted());summary.addView(description);
+    top.addView(summary,new LinearLayout.LayoutParams(0,-2,1));identity.addView(top);
+    settingsRow(identity,"Profilname bearbeiten","Name nur auf diesem Gerät",()->profileNameDialog());
+    page.addView(identity);
+
+    LinearLayout personal=card(Color.WHITE);
+    personal.addView(label("Meine Ziele",18));
+    settingsRow(personal,"Körperdaten & Aktivitätsprofil","Alter, Größe und Gewicht",()->profileDialog());
+    settingsRow(personal,"Gewichtsziel",goalWeight()>0?
+      String.format(Locale.GERMAN,"%.1f kg",goalWeight()):"Zielgewicht festlegen",()->weightScreen());
+    settingsRow(personal,"Punktebudget",
+      budget+" pro Tag · "+weekly+" zum Wochenstart",()->settingsDialog());
+    page.addView(personal);
+
+    LinearLayout appearance=card(Color.WHITE);
+    appearance.addView(label("Darstellung",18));
+    String mode=FitRocketTheme.normalized(prefs.getString(FitRocketTheme.KEY,FitRocketTheme.SYSTEM));
+    settingsRow(appearance,"Hell-/Dunkelmodus",
+      FitRocketTheme.DARK.equals(mode)?"Dunkel":
+        FitRocketTheme.LIGHT.equals(mode)?"Hell":"Systemeinstellung",()->themeDialog());
+    page.addView(appearance);
+
+    LinearLayout integrations=card(Color.WHITE);
+    integrations.addView(label("KI & Verbindungen",18));
+    settingsRow(integrations,"KI-Assistent & Vorlieben",
+      selectedAiProviderName()+" · Rezeptideen und Schätzungen",()->aiHub());
+    settingsRow(integrations,"Smartwatch & Health Connect",
+      "Schritte und Training synchronisieren",()->activityPage());
+    page.addView(integrations);
+
+    LinearLayout storage=card(Color.WHITE);
+    storage.addView(label("Daten & Sicherheit",18));
+    settingsRow(storage,"Backup exportieren","Dein Tagebuch lokal sichern",()->startExport());
+    settingsRow(storage,"Backup importieren","Vorhandene Sicherung wiederherstellen",()->startImport());
+    page.addView(storage);
+
+    LinearLayout about=card(Color.WHITE);
+    about.addView(label("App & Hilfe",18));
+    settingsRow(about,"Auf Updates prüfen","Installiert: v"+installedVersion(),()->checkForUpdates());
+    settingsRow(about,"Neueste APK & Release-Notizen","GitHub Releases öffnen",
+        ()->openSafeUrl(FitRocketUpdate.REPO+"/releases/latest"));
+    settingsRow(about,"FitRocket-Projektseite","Informationen und Quellcode",
+        ()->openSafeUrl(FitRocketUpdate.REPO));
+    page.addView(about);
+  }
+
+  private void profileNameDialog(){
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);
+    content.setPadding(dp(18),dp(8),dp(18),dp(8));
+    content.addView(label("Wie soll dich FitRocket nennen?",14));
+    EditText name=edit("Name (optional)",prefs.getString("profile_name",""),1);
+    content.addView(name);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Profilname")
+      .setView(content).setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Speichern",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      String value=name.getText().toString().trim();
+      if(value.length()>40){msg("Bitte maximal 40 Zeichen verwenden.");return;}
+      prefs.edit().putString("profile_name",value).apply();dialog.dismiss();profilePage();
+    }));
+    dialog.show();
+  }
+
+  private void themeDialog(){
+    String[] choices={"Systemeinstellung","Hell","Dunkel"};
+    String saved=FitRocketTheme.normalized(prefs.getString(FitRocketTheme.KEY,FitRocketTheme.SYSTEM));
+    int chosen=FitRocketTheme.DARK.equals(saved)?2:FitRocketTheme.LIGHT.equals(saved)?1:0;
+    new AlertDialog.Builder(this).setTitle("Darstellung")
+      .setSingleChoiceItems(choices,chosen,(d,which)->{
+        String value=which==2?FitRocketTheme.DARK:
+             which==1?FitRocketTheme.LIGHT:FitRocketTheme.SYSTEM;
+        d.dismiss();
+        if(!value.equals(saved)){
+          prefs.edit().putString(FitRocketTheme.KEY,value).apply();
+          currentScreen="Profil";recreate();
+        }
+      }).setNegativeButton("Abbrechen",null).show();
+  }
+
+  private String installedVersion(){
+    try{
+      return getPackageManager().getPackageInfo(getPackageName(),0).versionName;
+    }catch(Exception e){return "0.0.0";}
+  }
+
+  private void openSafeUrl(String target){
+    if(!(target.equals(FitRocketUpdate.REPO) ||
+        target.startsWith(FitRocketUpdate.REPO+"/releases/"))){
+      msg("Unbekannter Download-Link.");return;
+    }
+    try{
+      startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(target)));
+    }catch(Exception e){msg("Kein Browser gefunden.");}
+  }
+
+  private void checkForUpdates(){
+    AlertDialog loading=new AlertDialog.Builder(this)
+      .setTitle("Updateprüfung").setMessage("Prüfe das aktuelle GitHub Release …")
+      .setCancelable(false).create();loading.show();
+    FitRocketUpdate.check(this,new FitRocketUpdate.Callback(){
+      @Override public void onSuccess(FitRocketUpdate.Release release){
+        loading.dismiss();
+        boolean update;
+        try{update=FitRocketUpdate.newer(release.version,installedVersion());}
+        catch(Exception e){msg("Versionsvergleich fehlgeschlagen.");return;}
+        if(!update){
+          new AlertDialog.Builder(MainActivity.this)
+            .setTitle("FitRocket ist aktuell")
+            .setMessage("Installiert: v"+installedVersion()+
+               "\nNeueste Veröffentlichung: "+release.version)
+            .setPositiveButton("OK",null)
+            .setNeutralButton("Release öffnen",(d,w)->openSafeUrl(release.pageUrl)).show();
+          return;
+        }
+        String notes=release.notes.isEmpty()?"Neues Update verfügbar.":release.notes;
+        new AlertDialog.Builder(MainActivity.this)
+          .setTitle("Update "+release.version+" verfügbar")
+          .setMessage("Installiert: v"+installedVersion()+
+            "\n\n"+notes+"\n\nDie APK wird nur auf deinen Wunsch geöffnet bzw. heruntergeladen. "
+            +"Android fragt vor einer Installation nach.")
+          .setPositiveButton("APK herunterladen",(d,w)->
+            openSafeUrl(release.apkUrl.isEmpty()?release.pageUrl:release.apkUrl))
+          .setNeutralButton("Release ansehen",(d,w)->openSafeUrl(release.pageUrl))
+          .setNegativeButton("Später",null).show();
+      }
+      @Override public void onFailure(String message){
+        loading.dismiss();
+        new AlertDialog.Builder(MainActivity.this).setTitle("Updateprüfung")
+          .setMessage(message)
+          .setPositiveButton("GitHub öffnen",(d,w)->
+            openSafeUrl(FitRocketUpdate.REPO+"/releases"))
+          .setNegativeButton("Schließen",null).show();
+      }
+    });
+  }
+
   private void waterScreen(){
     shell("Trinken");heading("Deine Wasserbilanz");
     page.addView(waterCard(today()));
@@ -1478,7 +1700,7 @@ public class MainActivity extends Activity {
         double kcal=FitRocketMath.restingCalories(a,h,w,t);
         prefs.edit().putInt("profile_age",a).putInt("profile_height",h).putString("profile_weight",String.valueOf(w))
             .putInt("profile_sex",t).apply();
-        d.dismiss();activityPage();
+        d.dismiss();profilePage();
       }catch(Exception e){msg("Bitte Alter (18–100), Größe (120–230 cm) und Gewicht (30–300 kg) prüfen.");}
     }));d.show();
   }
