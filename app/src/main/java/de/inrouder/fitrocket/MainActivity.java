@@ -560,10 +560,11 @@ public class MainActivity extends Activity {
   }
 
   private void selectGeminiModel(){
-    String[] choices={"Gemini 2.5 Flash-Lite · sparsam, Standard",
-        "Gemini 2.5 Flash · höhere Qualität"};
+    String[] choices={"Gemini 3.5 Flash-Lite · sparsam, Standard",
+        "Gemini 3.8 Flash · anspruchsvollere Rezepte"};
     int current=FitRocketGeminiApi.MODEL_FLASH.equals(
-        prefs.getString("geminiModel",FitRocketGeminiApi.DEFAULT_MODEL))?1:0;
+        FitRocketGeminiApi.safeModel(
+          prefs.getString("geminiModel",FitRocketGeminiApi.DEFAULT_MODEL)))?1:0;
     new AlertDialog.Builder(this).setTitle("Gemini-Modell")
       .setSingleChoiceItems(choices,current,(d,which)->{
         prefs.edit().putString("geminiModel",
@@ -602,8 +603,9 @@ public class MainActivity extends Activity {
     action(connection,"KI-Anbieter wechseln",()->selectAiProvider());
     if(FitRocketAiSecrets.GEMINI.equals(provider)){
       boolean flash=FitRocketGeminiApi.MODEL_FLASH.equals(
-        prefs.getString("geminiModel",FitRocketGeminiApi.DEFAULT_MODEL));
-      connection.addView(label("Modell: "+(flash?"Gemini 2.5 Flash":"Gemini 2.5 Flash-Lite")
+        FitRocketGeminiApi.safeModel(
+          prefs.getString("geminiModel",FitRocketGeminiApi.DEFAULT_MODEL)));
+      connection.addView(label("Modell: "+(flash?"Gemini 3.8 Flash":"Gemini 3.5 Flash-Lite")
         +" · kostenlose Nutzung nur innerhalb der verfügbaren API-Limits",13));
       action(connection,"Gemini-Modell auswählen",()->selectGeminiModel());
       connection.addView(label("Hinweis: Google kann Eingaben der kostenlosen "
