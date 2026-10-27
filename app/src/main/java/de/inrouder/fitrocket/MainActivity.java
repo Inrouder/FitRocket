@@ -819,51 +819,184 @@ public class MainActivity extends Activity {
       }).setNegativeButton("Abbrechen",null).show();
   }
 
+  private double referenceWeight(JSONObject food){
+    java.util.regex.Matcher match=java.util.regex.Pattern.compile(
+        "(\\d+(?:[.,]\\d+)?)\\s*(g|ml)\\b",
+        java.util.regex.Pattern.CASE_INSENSITIVE)
+        .matcher(food.optString("portion",""));
+    if(!match.find())return Double.NaN;
+    return Double.parseDouble(match.group(1).replace(',','.'));
+  }
+
+  private TextWatcher valueWatcher(Runnable onChanged){
+    return new TextWatcher(){
+      public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+      public void onTextChanged(CharSequence s,int start,int before,int count){onChanged.run();}
+      public void afterTextChanged(Editable s){}
+    };
+  }
+
+  /**
+   * One dialog for foods with nutrient values (100 g/100 ml reference).
+   * Both quick portions and an exact amount use the SAME decimal calculation.
+   */
   private void nutritionDialog(JSONObject f) {
-    LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(8),dp(20),dp(8));
-    content.addView(label(f.optString("name")+" · ca. Punkte nach Nährwerten",16));
-    content.addView(label("Menge in "+(FitRocketFoodDisplay.isDrink(f)?"Milliliter (ml)":"Gramm (g)"),13));
-    EditText amount=edit("Menge","100",8194);content.addView(amount);
-    JSONObject n=f.optJSONObject("nutrition");if(n==null)return;
-    content.addView(label("Werte je 100 "+FitRocketFoodDisplay.unit(f)+": "+n.optDouble("kcal")+" kcal · "+n.optDouble("sugar_g")+" g Zucker · "+n.optDouble("saturatedFat_g")+" g gesättigte Fette · "+n.optDouble("protein_g")+" g Protein",13));
-    TextView estimate=label("ca. "+calcForGrams(f,100)+" Punkte",17);content.addView(estimate);
-    amount.addTextChangedListener(new TextWatcher(){
-      public void beforeTextChanged(CharSequence s,int a,int b,int c){}
-      public void onTextChanged(CharSequence s,int a,int b,int c){
-        try {estimate.setText("ca. "+calcForGrams(f,num(s.toString()))+" Punkte");}
-        catch(Exception ex){estimate.setText("Menge eingeben");}
-      }
-      public void afterTextChanged(Editable e){}
-    });
+    String unit=FitRocketFoodDisplay.unit(f);
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);
+    content.setPadding(dp(20),dp(8),dp(20),dp(8));
+    content.addView(label(f.optString("name"),18));
+    hint(content,"Berechnung anhand der hinterlegten Nährwerte je 100 "+unit+".");
+    Spinner mode=new Spinner(this);
+    mode.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,
+        new String[]{"Portionen (je 100 "+unit+")","Menge in "+unit+" (genau)"}));
+    content.addView(label("Eingabeart",13));content.addView(mode);
+    EditText qty=edit("Menge","1",8194);
+    content.addView(qty);
+    TextView preview=label("Punkte",19);preview.setTypeface(null,1);
+    content.addView(preview);
     Spinner group=groupSpinner();content.addView(group);
-    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Portion berechnen").setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();
-    dialog.setOnShowListener(x->dialog.getButton(-1).setOnClickListener(v->{
-      try{double grams=num(amount.getText().toString());int pts=calcForGrams(f,grams);
-        addMeal(f.optString("name")+" ("+FitRocketFoodDisplay.quantityLabel(f,grams)+")",pts,f.optString("id"),"Nährwertschätzung",group.getSelectedItem().toString());
-        if(!meals.isEmpty()) {
-          try { JSONObject saved=meals.get(meals.size()-1);
-            saved.put("quantity",grams);saved.put("quantityUnit",FitRocketFoodDisplay.unit(f));
-            saved.put("baseName",f.optString("name"));
-            persist("meals",meals);
-          } catch(JSONException ignored){}
+    Runnable refresh=()->{
+      boolean inGrams=mode.getSelectedItemPosition()==1;
+      qty.setHint(inGrams?"Menge in "+unit:"Anzahl Portionen");
+      try{
+        double amount=FitRocketFavoriteMath.positive(num(qty.getText().toString()));
+        double grams=inGrams?amount:amount*100;
+        preview.setText(pt(FitRocketPointLedger.food(f,grams))+" P für "+
+          FitRocketFoodDisplay.quantityLabel(f,grams));
+      }catch(Exception ignored){preview.setText("Bitte eine Menge eingeben.");}
+    };
+    mode.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){
+      public void onItemSelected(android.widget.AdapterView<?> p,View v,int position,long id){
+        qty.setText(position==1?"100":"1");refresh.run();
+      }
+      public void onNothingSelected(android.widget.AdapterView<?> p){}
+    });
+    qty.addTextChangedListener(valueWatcher(refresh));
+    refresh.run();
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Lebensmittel eintragen")
+      .setView(content).setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Eintragen",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        double amount=FitRocketFavoriteMath.positive(num(qty.getText().toString()));
+        double grams=mode.getSelectedItemPosition()==1?amount:amount*100;
+        double score=FitRocketPointLedger.food(f,grams);
+        addMeal(f.optString("name")+" ("+FitRocketFoodDisplay.quantityLabel(f,grams)+")",
+          score,f.optString("id"),"Nährwertschätzung",group.getSelectedItem().toString());
+        if(!meals.isEmpty()){
+          JSONObject saved=meals.get(meals.size()-1);
+          saved.put("baseName",f.optString("name"));
+          saved.put("quantity",grams);
+          saved.put("quantityUnit",unit);
+          saved.put("referenceQuantity",100);
+          saved.put("referencePoints",FitRocketPointLedger.food(f,100));
+          persist("meals",meals);
         }
         dialog.dismiss();afterMealAdded();
-      }catch(Exception ex){msg("Bitte eine gültige Menge angeben.");}
+      }catch(Exception e){msg("Bitte gültige Mengen eingeben.");}
     }));
     dialog.show();
   }
-  private void foodDialog(JSONObject f){if("nutrition".equals(f.optString("status"))){nutritionDialog(f);return;}LinearLayout content=new LinearLayout(this);content.setPadding(22,8,22,8);content.setOrientation(1);content.addView(label(f.optString("category")+"\n"+kind(f)+"\nPortion: "+f.optString("portion")+"\n"+f.optString("notes"),14));EditText mult=edit("Portionsfaktor","1",8194),points=edit("Punkte pro Portion",f.isNull("points")?"":String.valueOf(f.optInt("points")),2);content.addView(label("Portionsfaktor: bei 150 g Referenzportion z. B. 0,5 für 75 g",13));content.addView(mult);content.addView(points);Spinner group=groupSpinner();content.addView(group);AlertDialog d=new AlertDialog.Builder(this).setTitle(f.optString("name")).setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Buchen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{double factor=Double.parseDouble(mult.getText().toString().replace(',','.'));int pointsPer=Integer.parseInt(points.getText().toString());if(!Double.isFinite(factor)||factor<=0||factor>100||pointsPer<0||pointsPer>2000)throw new Exception();int total=(int)Math.round(pointsPer*factor);if(total>2000)throw new Exception();addMeal(f.optString("name")+" × "+factor,total,f.optString("id"),kind(f),group.getSelectedItem().toString());
-      if(!meals.isEmpty()){
-        JSONObject saved=meals.get(meals.size()-1);
-        saved.put("baseName",f.optString("name"));
-        java.util.regex.Matcher qty=java.util.regex.Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*(g|ml)").matcher(f.optString("portion",""));
-        if(qty.find()){
-          double amount=Double.parseDouble(qty.group(1).replace(',','.'))*factor;
-          saved.put("quantity",amount);saved.put("quantityUnit",qty.group(2).toLowerCase(Locale.ROOT));
-        }
-        persist("meals",meals);
+
+  /**
+   * Catalog foods with defined points/portion (e.g. 1 handful = 25 g).
+   * Use the reference portion for quick entry or enter any grams/ml precisely.
+   * For an old product without reference weight, do not invent a conversion.
+   */
+  private void foodDialog(JSONObject f){
+    if("nutrition".equals(f.optString("status"))){nutritionDialog(f);return;}
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);
+    content.setPadding(dp(20),dp(8),dp(20),dp(8));
+    content.addView(label(f.optString("name"),18));
+    final String unit=FitRocketFoodDisplay.unit(f);
+    final double reference=referenceWeight(f);
+    final int fixed=f.optInt("points",0);
+    final boolean needsManual=f.isNull("points");
+    String portion=f.optString("portion","");
+    content.addView(label("Referenz: "+portion,14));
+    Spinner mode=new Spinner(this);
+    mode.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,
+        new String[]{"Portionen (schnell)","Menge in "+unit+" (genau)"}));
+    content.addView(label("Eingabeart",13));content.addView(mode);
+    EditText amount=edit("Portionen","1",8194);content.addView(amount);
+    EditText per=edit("Punkte pro Referenzportion",
+       needsManual?"":String.valueOf(fixed),8194);
+    if(needsManual){
+      content.addView(label("Punkte je Referenzportion eingeben",13));
+      content.addView(per);
+    }
+    EditText portionWeight=edit("Gewicht einer Portion",
+        Double.isFinite(reference)?pt(reference):"",8194);
+    LinearLayout missingWeight=new LinearLayout(this);missingWeight.setOrientation(1);
+    missingWeight.addView(label("Wie viel "+unit+" wiegt eine Referenzportion?",13));
+    missingWeight.addView(portionWeight);
+    content.addView(missingWeight);
+    TextView preview=label("Punkte",19);preview.setTypeface(null,1);
+    content.addView(preview);
+    Spinner group=groupSpinner();content.addView(group);
+    Runnable refresh=()->{
+      boolean exact=mode.getSelectedItemPosition()==1;
+      missingWeight.setVisibility(exact&&!Double.isFinite(reference)?View.VISIBLE:View.GONE);
+      amount.setHint(exact?"Menge in "+unit:"Anzahl Portionen");
+      try{
+        double quantity=FitRocketFavoriteMath.positive(num(amount.getText().toString()));
+        double value=needsManual?FitRocketPointLedger.validPoints(num(per.getText().toString())):fixed;
+        double weight=Double.isFinite(reference)?reference:
+           (exact?FitRocketFavoriteMath.positive(num(portionWeight.getText().toString())):Double.NaN);
+        double points=exact?FitRocketPointLedger.scaled(value,weight,quantity):
+          FitRocketPointLedger.validPoints(value*quantity);
+        String desc=exact?FitRocketFoodDisplay.quantityLabel(f,quantity):
+          (pt(quantity)+" Portion(en)");
+        preview.setText(pt(points)+" P · "+desc);
+      }catch(Exception e){preview.setText("Menge oder Referenz prüfen.");}
+    };
+    mode.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){
+      public void onItemSelected(android.widget.AdapterView<?> parent,View v,int position,long id){
+        amount.setText(position==1&&Double.isFinite(reference)?pt(reference):"1");
+        refresh.run();
       }
-      d.dismiss();afterMealAdded();}catch(Exception ex){msg("Bitte gültige Portion und Punkte eingeben.");}}));d.show();}
+      public void onNothingSelected(android.widget.AdapterView<?> p){}
+    });
+    amount.addTextChangedListener(valueWatcher(refresh));
+    per.addTextChangedListener(valueWatcher(refresh));
+    portionWeight.addTextChangedListener(valueWatcher(refresh));
+    refresh.run();
+    ScrollView scroll=new ScrollView(this);scroll.addView(content);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Portion wählen")
+      .setView(scroll).setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Buchen",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        boolean exact=mode.getSelectedItemPosition()==1;
+        double quantity=FitRocketFavoriteMath.positive(num(amount.getText().toString()));
+        double value=needsManual?FitRocketPointLedger.validPoints(num(per.getText().toString())):fixed;
+        double weight=Double.isFinite(reference)?reference:
+          (exact?FitRocketFavoriteMath.positive(num(portionWeight.getText().toString())):Double.NaN);
+        double points=exact?FitRocketPointLedger.scaled(value,weight,quantity):
+          FitRocketPointLedger.validPoints(value*quantity);
+        double effectiveWeight=exact?quantity:(Double.isFinite(reference)?reference*quantity:Double.NaN);
+        String title=f.optString("name")+(Double.isFinite(effectiveWeight)?
+          " ("+FitRocketFoodDisplay.quantityLabel(f,effectiveWeight)+")":
+          " ("+pt(quantity)+" Portion(en))");
+        addMeal(title,points,f.optString("id"),kind(f),group.getSelectedItem().toString());
+        if(!meals.isEmpty()){
+          JSONObject saved=meals.get(meals.size()-1);
+          saved.put("baseName",f.optString("name"));
+          saved.put("referencePoints",value);
+          if(Double.isFinite(effectiveWeight)){
+            saved.put("quantity",effectiveWeight);
+            saved.put("referenceQuantity",weight);
+            saved.put("quantityUnit",unit);
+          }else{
+            saved.put("portionCount",quantity);
+          }
+          persist("meals",meals);
+        }
+        dialog.dismiss();afterMealAdded();
+      }catch(Exception ex){msg("Bitte Portion, Referenzmenge und Punkte prüfen.");}
+    }));
+    dialog.show();
+  }
   private Spinner groupSpinner(){
     Spinner s=new Spinner(this);
     String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
@@ -874,7 +1007,7 @@ public class MainActivity extends Activity {
     }
     return s;
   }
-  private void addMeal(String name,int points,String foodId,String quality,String group){try{JSONObject x=new JSONObject();x.put("name",name);x.put("points",points);x.put("foodId",foodId);x.put("quality",quality);x.put("group",group);x.put("date",bookingDate==null?today():bookingDate);meals.add(x);persist("meals",meals);}catch(Exception e){msg("Speichern fehlgeschlagen.");}}
+  private void addMeal(String name,double points,String foodId,String quality,String group){try{JSONObject x=new JSONObject();x.put("name",name);x.put("points",FitRocketPointLedger.validPoints(points));x.put("foodId",foodId);x.put("quality",quality);x.put("group",group);x.put("date",bookingDate==null?today():bookingDate);meals.add(x);persist("meals",meals);}catch(Exception e){msg("Speichern fehlgeschlagen.");}}
   private void manual(){LinearLayout l=new LinearLayout(this);l.setPadding(22,4,22,4);l.setOrientation(1);EditText name=edit("Lebensmittel / Gericht","",1),points=edit("Punkte (manuell)",null,2);l.addView(name);l.addView(points);Spinner g=groupSpinner();l.addView(g);AlertDialog d=new AlertDialog.Builder(this).setTitle("Manuell erfassen").setView(l).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{String n=name.getText().toString().trim();int p=Integer.parseInt(points.getText().toString());if(n.length()<2||p<0||p>2000)throw new Exception();addMeal(n,p,"","Manuell",g.getSelectedItem().toString());d.dismiss();home();}catch(Exception ex){msg("Bitte Name und gültige Punkte angeben.");}}));d.show();}
   private void textHelper(){EditText input=new EditText(this);input.setMinLines(3);input.setHint("Beispiel: Ich hatte eine Banane und einen Apfel");new AlertDialog.Builder(this).setTitle("Offline-Texterfassung (keine KI)").setMessage("Erkennt eindeutige Lebensmittelnamen aus deiner Datenbank. Mengen und Zutaten müssen vor dem Eintragen geprüft werden.").setView(input).setPositiveButton("Analysieren",(d,w)->interpret(input.getText().toString())).setNegativeButton("Abbrechen",null).show();}
   private void interpret(String source){String q=source.toLowerCase(Locale.ROOT);ArrayList<JSONObject> matches=new ArrayList<>();for(JSONObject f:foods){String name=f.optString("name").toLowerCase(Locale.ROOT);if(name.length()>=5&&q.contains(name))matches.add(f);}if(matches.size()!=1){new AlertDialog.Builder(this).setTitle("Bitte Lebensmittel auswählen").setMessage(matches.isEmpty()?"Keine eindeutige Übereinstimmung gefunden. Bitte suche das Lebensmittel manuell.":"Mehrere Lebensmittel erkannt. Bitte erfasse die Zutaten einzeln über die Suche.").setPositiveButton("Zur Suche",(d,w)->searchScreen()).show();return;}foodDialog(matches.get(0));}
