@@ -1440,6 +1440,199 @@ public class MainActivity extends Activity {
   /** Compatibility for older navigation callbacks; the menu is now the Profile tab. */
   private void more(){profilePage();}
 
+
+  private JSONArray favoriteItems(){
+    try{return new JSONArray(prefs.getString("favoriteMeals","[]"));}
+    catch(Exception e){return new JSONArray();}
+  }
+  private void saveFavorite(JSONObject meal){
+    try{
+      JSONArray all=favoriteItems();String name=meal.optString("name");
+      for(int i=0;i<all.length();i++){
+        JSONObject x=all.optJSONObject(i);
+        if(x!=null&&name.equalsIgnoreCase(x.optString("name"))&&
+           x.optInt("points")==meal.optInt("points")){
+          msg("Diese Mahlzeit ist bereits als Favorit gespeichert.");return;
+        }
+      }
+      if(all.length()>=300){msg("Maximal 300 Favoriten möglich.");return;}
+      JSONObject favorite=new JSONObject();
+      favorite.put("name",name);
+      favorite.put("points",meal.optInt("points"));
+      favorite.put("group",meal.optString("group","Snack"));
+      favorite.put("foodId",meal.optString("foodId",""));
+      favorite.put("quality",meal.optString("quality",""));
+      if(meal.has("aiIngredients"))favorite.put("aiIngredients",
+        new JSONArray(meal.getJSONArray("aiIngredients").toString()));
+      if(meal.has("aiUncertainty"))favorite.put("aiUncertainty",meal.optString("aiUncertainty"));
+      all.put(favorite);
+      prefs.edit().putString("favoriteMeals",all.toString()).apply();
+      msg("★ Mahlzeit als Favorit gespeichert.");
+    }catch(Exception e){msg("Favorit konnte nicht gespeichert werden.");}
+  }
+
+  private void bookFavorite(JSONObject favorite,String group){
+    try{
+      JSONObject entry=new JSONObject(favorite.toString());
+      entry.put("date",bookingDate==null?today():bookingDate);
+      entry.put("group",group);
+      meals.add(entry);persist("meals",meals);
+      msg("Mahlzeit erneut eingetragen.");
+      afterMealAdded();
+    }catch(Exception e){msg("Favorit konnte nicht eingetragen werden.");}
+  }
+
+  private void favoritesScreen(){
+    shell("Favoriten");
+    LinearLayout intro=card(LAV);
+    intro.addView(label("★ Deine gespeicherten Mahlzeiten",19));
+    intro.addView(label("Eine ganze Mahlzeit mit ihren bestätigten Punkten erneut eintragen. "
+       +"Die Zutatenliste von KI-Gerichten bleibt erhalten.",13));
+    page.addView(intro);
+    JSONArray list=favoriteItems();
+    if(list.length()==0){
+      LinearLayout empty=card(Color.WHITE);
+      empty.addView(label("Noch keine Favoriten vorhanden.",15));
+      empty.addView(label("Tippe im Tagebuch auf eine eingetragene Mahlzeit "
+          +"und wähle „Als Favorit speichern“.",13));
+      page.addView(empty);return;
+    }
+    for(int i=0;i<list.length();i++){
+      JSONObject fav=list.optJSONObject(i);if(fav==null)continue;
+      LinearLayout box=card(Color.WHITE);
+      box.addView(label("★ "+fav.optString("name")+" · "+fav.optInt("points")+" P",16));
+      box.addView(label(fav.optString("group","Snack"),12));
+      action(box,"Für eine Mahlzeit eintragen",()->{
+        final String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
+        final String defaultGroup=fav.optString("group","Snack");
+        int current=3;for(int j=0;j<groups.length;j++)if(groups[j].equals(defaultGroup))current=j;
+        new AlertDialog.Builder(this).setTitle("Zu welcher Mahlzeit?")
+          .setSingleChoiceItems(groups,current,(dialog,index)->{
+            dialog.dismiss();bookFavorite(fav,groups[index]);
+          }).setNegativeButton("Abbrechen",null).show();
+      });
+      action(box,"Aus Favoriten entfernen",()->new AlertDialog.Builder(this)
+        .setTitle("Favorit entfernen?")
+        .setMessage("Deine bisherigen Tagebucheinträge bleiben erhalten.")
+        .setPositiveButton("Entfernen",(d,w)->{
+          JSONArray old=favoriteItems(),items=new JSONArray();
+          for(int k=0;k<old.length();k++){
+            JSONObject x=old.optJSONObject(k);
+            if(x!=null&&!x.similar(fav))items.put(x);
+          }
+          prefs.edit().putString("favoriteMeals",items.toString()).apply();
+          favoritesScreen();
+        }).setNegativeButton("Abbrechen",null).show());
+      page.addView(box);
+    }
+  }
+
+  private void weeklyReview(){
+    shell("Wochenrückblick");
+    JSONObject report=FitRocketInsights.week(LocalDate.now(),budget,waterGoal(),
+      new JSONArray(prefs.getString("meals","[]")),waterDays());
+    LinearLayout overall=card(LAV);
+    overall.addView(label("📊 Wochenrückblick",21));
+    overall.addView(label(pretty(report.optString("from"))+" bis "+pretty(report.optString("through")),14));
+    overall.addView(label(report.optInt("totalPoints")+" verzehrte Punkte an "+
+      report.optInt("loggedDays")+" protokollierten Tagen",15));
+    overall.addView(label(report.optInt("withinBudget")+
+       " erfasste Tage innerhalb des Tagesbudgets",14));
+    overall.addView(label("Wochenkonto aktuell: "+availableWeek()+" P",16));
+    overall.addView(label(weekly+" Start + "+rolloversWeek()+" gespart + "+
+      activityCredit()+" Bewegung − "+spentWeek()+" Mehrverbrauch",13));
+    page.addView(overall);
+    LinearLayout water=card(Color.WHITE);
+    water.addView(label("💧 Trinkbilanz",17));
+    water.addView(label(report.optInt("waterGoalDays")+" Tage mit erreichtem Trinkziel",15));
+    water.addView(label(String.format(Locale.GERMAN,"Insgesamt %.2f Liter erfasst",
+      report.optInt("waterTotal")/1000.0),14));
+    page.addView(water);
+    heading("Tagesübersicht");
+    JSONArray rows=report.optJSONArray("daysDetail");
+    for(int i=0;rows!=null&&i<rows.length();i++){
+      JSONObject day=rows.optJSONObject(i);if(day==null)continue;
+      LinearLayout row=card(Color.WHITE);
+      row.addView(label(pretty(day.optString("date"))+
+        " · "+(day.optBoolean("logged")?day.optInt("points")+" P":"Keine Mahlzeiten")+
+        " · "+String.format(Locale.GERMAN,"%.2f L",day.optInt("waterMl")/1000.0),14));
+      page.addView(row);
+    }
+    page.addView(label("Tage ohne Einträge werden nicht als eingehaltene Tage gewertet. "
+      +"Dies ist eine sachliche Auswertung deines Tagebuchs, keine Ernährungsbewertung.",12));
+  }
+
+  private void waterReminderSettings(){
+    LinearLayout box=new LinearLayout(this);box.setOrientation(1);box.setPadding(dp(20),dp(8),dp(20),dp(8));
+    CheckBox enable=new CheckBox(this);enable.setText("Wassererinnerungen einschalten");
+    enable.setChecked(prefs.getBoolean("waterReminderEnabled",false));
+    box.addView(enable);
+    int start=prefs.getInt("waterReminderStart",9),end=prefs.getInt("waterReminderEnd",20);
+    int hours=prefs.getInt("waterReminderInterval",2);
+    box.addView(label("Erinnerungszeitraum (ganze Stunden, ohne Nachtruhe)",13));
+    EditText first=edit("Beginn (0–22)",String.valueOf(start),2);
+    EditText last=edit("Ende (1–23)",String.valueOf(end),2);
+    EditText every=edit("Intervall in Stunden (1–6)",String.valueOf(hours),2);
+    box.addView(label("Beginn (Uhrzeit)",13));box.addView(first);
+    box.addView(label("Ende (Uhrzeit)",13));box.addView(last);
+    box.addView(label("Alle wie viele Stunden?",13));box.addView(every);
+    box.addView(label("Die Erinnerungen sind freiwillig. Android kann sie aus "
+      +"Energiespargründen etwas verzögert anzeigen.",12));
+    ScrollView scroll=new ScrollView(this);scroll.addView(box);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("💧 Wassererinnerungen")
+      .setView(scroll).setPositiveButton("Speichern",null)
+      .setNegativeButton("Abbrechen",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        int a=Integer.parseInt(first.getText().toString().trim());
+        int b=Integer.parseInt(last.getText().toString().trim());
+        int c=Integer.parseInt(every.getText().toString().trim());
+        if(a<0||a>22||b<=a||b>23||c<1||c>6)throw new Exception();
+        prefs.edit().putBoolean("waterReminderEnabled",enable.isChecked())
+          .putInt("waterReminderStart",a)
+          .putInt("waterReminderEnd",b)
+          .putInt("waterReminderInterval",c).apply();
+        FitRocketWaterReminder.schedule(this);
+        if(enable.isChecked()&&Build.VERSION.SDK_INT>=33&&
+            checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=
+              android.content.pm.PackageManager.PERMISSION_GRANTED){
+          requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},1301);
+        }
+        dialog.dismiss();profilePage();
+      }catch(Exception e){msg("Bitte gültige Uhrzeiten und Intervalle eingeben.");}
+    }));
+    dialog.show();
+  }
+
+  private void toggleUpdateChecks(){
+    boolean newValue=!prefs.getBoolean("updateChecks",true);
+    prefs.edit().putBoolean("updateChecks",newValue).apply();
+    profilePage();
+  }
+
+  private void maybeCheckUpdatesOnLaunch(){
+    if(!prefs.getBoolean("updateChecks",true))return;
+    long last=prefs.getLong("updateCheckTimestamp",0),now=System.currentTimeMillis();
+    if(now-last<86400000L)return;
+    prefs.edit().putLong("updateCheckTimestamp",now).apply();
+    FitRocketUpdate.check(this,new FitRocketUpdate.Callback(){
+      public void onSuccess(FitRocketUpdate.Release release){
+        try{
+          if(!FitRocketUpdate.newer(release.version,installedVersion()))return;
+          new AlertDialog.Builder(MainActivity.this)
+            .setTitle("FitRocket "+release.version+" verfügbar")
+            .setMessage("Eine neue signierte Version ist auf GitHub verfügbar. "
+                +"Möchtest du die Änderungen ansehen?")
+            .setPositiveButton("Update ansehen",(d,w)->checkForUpdates())
+            .setNegativeButton("Später",null).show();
+        }catch(Exception ignored){}
+      }
+      public void onFailure(String message){
+        // Background discovery is unobtrusive; manual checks show meaningful errors.
+      }
+    });
+  }
+
   private void progressPage(){
     shell("Fortschritt");
     LinearLayout score=card(LAV);
