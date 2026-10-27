@@ -1,20 +1,16 @@
-# FitRocket v0.15.5 – Raketen-Widgets in horizontal und vertikal
+# FitRocket v0.15.6 – Echtes kompaktes 1×2-Raketenwidget
 
-FitRocket hat jetzt **zwei getrennt auswählbare Android-Startbildschirm-Widgets**.
+Zusätzlich zu den Widgets Horizontal (4×2) und Vertikal (2×3) gibt es jetzt **FitRocket – Kompakt 1×2**.
 
-- **Horizontal (4×2):** breites Design mit großen Tagesrestpunkten, verbrauchten Punkten, Wasserstand und Wasser-Fortschrittsleiste.
-- **Vertikal (2×3):** schmales Hochformat mit denselben Werten, aufgeteilt in gut lesbare Bereiche.
-- **Design:** dunkler, abgerundeter Widget-Hintergrund, lavendelfarbene Akzente und eine große halbtransparente Rakete im Hintergrund, inspiriert vom FitRocket-Mockup.
-- Beide Formate aktualisieren sich nach Tagebucheinträgen, Wasseränderungen sowie Android-System-Updates.
-- Ein Tipp auf das Widget öffnet FitRocket.
-- Beide Widgets verwenden die vorhandene lokale Punkteberechnung; keine zusätzlichen Berechtigungen oder Cloud-Verbindungen.
-- Je nach Android-Launcher sind die Widgets größenveränderbar.
+- Für **eine Spalte und zwei Reihen** ausgelegt: Android-Widget-Metadaten `targetCellWidth=1`, `targetCellHeight=2`.
+- Übersicht auf engstem Raum: **verfügbare Tagespunkte**, **getrunkene Liter** und ein **miniaturisierter Wasser-Fortschrittsbalken**.
+- Dezente halbtransparente Rakete vor dem dunklen FitRocket-Hintergrund.
+- Extra kurze Beschriftungen, automatische Textgrößenanpassung und schmale Innenabstände.
+- Automatische Aktualisierung aller drei Widget-Varianten bei neuen Einträgen, Trinkmengenänderungen sowie Datum-/Zeitwechsel.
+- Durch Antippen startet FitRocket.
 
-## Platzieren
-1. Auf dem Android-Startbildschirm einen freien Bereich lange gedrückt halten.
-2. Widgets → FitRocket öffnen.
-3. **FitRocket – Horizontal** oder **FitRocket – Vertikal** wählen und platzieren.
+**Einrichtung:** Android-Startbildschirm lange antippen → Widgets → FitRocket → **Kompakt 1×2**.
 
-Hinweis: Ein echtes 1×2-Widget bietet auf vielen Launchern nicht genug Breite für alle Werte. Die schmale Hochkantversion ist deshalb als 2×3 ausgelegt und kann bei unterstützten Launchern verkleinert werden.
+Die tatsächlichen Zellenmaße hängen vom Android-Launcher ab. Manche Launcher können Widgets anders anordnen oder eine größere Mindestgröße erzwingen.
 
-Bestehende FitRocket-Daten, APK-Signatur und Update-Funktion bleiben unverändert.
+Bestehende App-Daten, Widget-Versionen und Signatur bleiben erhalten.

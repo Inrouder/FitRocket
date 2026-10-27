@@ -1,5 +1,10 @@
 # FitRocket – Versionshinweise
 
+## 0.15.6 – Echtes 1×2-Homescreen-Widget
+- Neues Mini-Widget mit einer Spalte und zwei Reihen, zusätzlich zu den bestehenden horizontalen und vertikalen Widgets.
+- Restpunkte, getrunkene Liter, Wasserbalken und halbtransparente Rakete.
+- Automatische Tagesaktualisierung und Daten-Synchronisierung mit den anderen Widgets.
+
 ## 0.15.5 – Vertikales und horizontales Raketen-Widget
 - Eigenständiges Hochkant-Widget (2×3) zusätzlich zum breiten 4×2-Widget.
 - Beide Widgets im FitRocket-Weltraumdesign mit transparenter Rakete, weißer Punktzahl und Wasseranzeige.
