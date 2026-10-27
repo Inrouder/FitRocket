@@ -2453,7 +2453,7 @@ public class MainActivity extends Activity {
     if(request==EXPORT_REQUEST){
       try(OutputStream os=getContentResolver().openOutputStream(uri)){
         JSONObject payload=new JSONObject();
-        payload.put("schemaVersion",6);payload.put("budget",budget);payload.put("weekly",weekly);
+        payload.put("schemaVersion",7);payload.put("budget",budget);payload.put("weekly",weekly);
         payload.put("profileName",prefs.getString("profile_name",""));
         payload.put("appearance",prefs.getString(FitRocketTheme.KEY,FitRocketTheme.SYSTEM));
         payload.put("meals",new JSONArray(prefs.getString("meals","[]")));
@@ -2468,6 +2468,12 @@ public class MainActivity extends Activity {
         payload.put("scannedProducts",new JSONArray(prefs.getString("scannedProducts","[]")));
         payload.put("aiFoods",new JSONArray(prefs.getString("aiFoods","[]")));
         payload.put("savedAiRecipes",new JSONArray(prefs.getString("savedAiRecipes","[]")));
+        payload.put("favoriteMeals",favoriteItems());
+        payload.put("waterReminderEnabled",prefs.getBoolean("waterReminderEnabled",false));
+        payload.put("waterReminderStart",prefs.getInt("waterReminderStart",9));
+        payload.put("waterReminderEnd",prefs.getInt("waterReminderEnd",20));
+        payload.put("waterReminderInterval",prefs.getInt("waterReminderInterval",2));
+        payload.put("updateChecks",prefs.getBoolean("updateChecks",true));
         payload.put("aiPreferences",prefs.getString("aiPreferences",""));
         if(goalWeight()>0)payload.put("weightGoal",goalWeight());
         payload.put("activityShare",prefs.getInt("activityShare",0));
@@ -2486,8 +2492,9 @@ public class MainActivity extends Activity {
         ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;
         while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>5000000)throw new IOException("Backup zu groß");}
         JSONObject payload=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8));
+        String backupPreview=FitRocketBackupCheck.preview(payload);
         int schema=payload.optInt("schemaVersion",0);
-        if((schema!=1&&schema!=2&&schema!=3&&schema!=4&&schema!=5&&schema!=6)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
+        if((schema<1||schema>7)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
         JSONArray ma=payload.getJSONArray("meals"),we=payload.getJSONArray("weights");
         JSONArray ac=payload.optJSONArray("activities");if(ac==null)ac=new JSONArray();
         final JSONArray importedActivities=ac;
@@ -2523,6 +2530,20 @@ public class MainActivity extends Activity {
         if(recipeProducts==null)recipeProducts=new JSONArray();
         if(recipeProducts.length()>80)throw new IllegalArgumentException("Zu viele Rezepte");
         final JSONArray importedAiRecipes=recipeProducts;
+        JSONArray favoriteBackup=payload.optJSONArray("favoriteMeals");
+        if(favoriteBackup==null)favoriteBackup=new JSONArray();
+        final JSONArray importedFavorites=favoriteBackup;
+        boolean reminderEnabled=payload.optBoolean("waterReminderEnabled",false);
+        int reminderStart=payload.optInt("waterReminderStart",9);
+        int reminderEnd=payload.optInt("waterReminderEnd",20);
+        int reminderInterval=payload.optInt("waterReminderInterval",2);
+        if(reminderStart<0||reminderStart>22||reminderEnd<=reminderStart||
+          reminderEnd>23||reminderInterval<1||reminderInterval>6)
+          throw new IllegalArgumentException("Ungültige Erinnerungszeiten");
+        final boolean importedReminderEnabled=reminderEnabled;
+        final int importedReminderStart=reminderStart,importedReminderEnd=reminderEnd,
+          importedReminderInterval=reminderInterval;
+        final boolean importedUpdateChecks=payload.optBoolean("updateChecks",true);
         String preferencesBackup=payload.optString("aiPreferences","");
         if(preferencesBackup.length()>500)throw new IllegalArgumentException("Vorlieben zu lang");
         final String importedAiPreferences=preferencesBackup;
@@ -2548,7 +2569,9 @@ public class MainActivity extends Activity {
                 profile.getDouble("weight"),profile.getInt("metabolicProfile"));}
         final JSONObject importedProfile=profile;
         new AlertDialog.Builder(this).setTitle("Backup importieren?")
-          .setMessage("Gespeicherte Mahlzeiten, Gewichte, Aktivitäten und Schrittwerte werden durch das Backup ersetzt.")
+          .setMessage(backupPreview+"\n\nBeim Import werden vorhandene lokale Mahlzeiten, "
+            +"Gewichte, Aktivitäten und Favoriten ersetzt. API-Schlüssel werden nicht importiert. "
+            +"Möchtest du fortfahren?")
           .setPositiveButton("Importieren",(d,w)->{
             try{
               android.content.SharedPreferences.Editor e=prefs.edit();
@@ -2558,6 +2581,12 @@ public class MainActivity extends Activity {
                 .putString("scannedProducts",importedScanned.toString())
                 .putString("aiFoods",importedAiFoods.toString())
                 .putString("savedAiRecipes",importedAiRecipes.toString())
+                .putString("favoriteMeals",importedFavorites.toString())
+                .putBoolean("waterReminderEnabled",importedReminderEnabled)
+                .putInt("waterReminderStart",importedReminderStart)
+                .putInt("waterReminderEnd",importedReminderEnd)
+                .putInt("waterReminderInterval",importedReminderInterval)
+                .putBoolean("updateChecks",importedUpdateChecks)
                 .putString("aiPreferences",importedAiPreferences)
                 .putString("profile_name",restoredName)
                 .putString(FitRocketTheme.KEY,restoredAppearance)
@@ -2578,6 +2607,7 @@ public class MainActivity extends Activity {
               e.apply();budget=bb;weekly=importedWeekly;
               readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
               foods.clear();loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();
+              FitRocketWaterReminder.schedule(this);
               home();msg("Backup importiert.");
             }catch(Exception e){msg("Import konnte nicht abgeschlossen werden.");}
           }).setNegativeButton("Abbrechen",null).show();
