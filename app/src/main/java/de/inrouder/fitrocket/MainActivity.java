@@ -714,32 +714,35 @@ public class MainActivity extends Activity {
     final EditText name,grams,kcal,saturated,sugar,protein;
     final CheckBox useCatalog;
     final JSONObject matched;
+    final LinearLayout container;
 
     AiIngredientEditor(JSONObject source,boolean forcedManual,LinearLayout target){
       original=source;
       matched=forcedManual?null:FitRocketAiRules.matchCatalog(
           source.optString("food_id"),source.optString("name"),foods);
-      LinearLayout card=card(Color.WHITE);
-      name=edit("Zutat",source.optString("name"),1);card.addView(name);
+      container=card(Color.WHITE);
+      name=edit("Zutat",source.optString("name"),1);container.addView(name);
       grams=edit("Gramm",String.format(Locale.GERMAN,"%.0f",source.optDouble("grams",100)),8194);
-      card.addView(label("Menge (g / ml)",12));card.addView(grams);
+      container.addView(label("Menge (g / ml)",12));container.addView(grams);
+      if(forcedManual){grams.setText("100");grams.setEnabled(false);}
+
       if(matched!=null){
         useCatalog=new CheckBox(MainActivity.this);
         useCatalog.setText("FitRocket-Katalog verwenden: "+
             ("basic".equals(matched.optString("status"))?"0 Punkte":"bekannte Nährwerte"));
         useCatalog.setChecked(true);
-        card.addView(useCatalog);
-        card.addView(label("Bei abweichender Verarbeitung (z. B. Öl, Panade, Zucker) "
+        container.addView(useCatalog);
+        container.addView(label("Bei abweichender Verarbeitung (z. B. Öl, Panade, Zucker) "
             +"Häkchen entfernen und Nährwerte selbst prüfen.",12));
       }else useCatalog=null;
-      card.addView(label("Schätzungssicherheit: "+source.optString("confidence","niedrig")+
+      container.addView(label("Schätzungssicherheit: "+source.optString("confidence","niedrig")+
           " · "+source.optString("note",""),12));
       LinearLayout nutrition=new LinearLayout(MainActivity.this);nutrition.setOrientation(1);
       nutrition.addView(label("Angaben pro 100 g / 100 ml (bitte prüfen)",14));
-      kcal=edit("Kalorien",String.format(Locale.GERMAN,"%.1f",source.optDouble("kcal_100g",0)),8194);
-      saturated=edit("Gesättigte Fette",String.format(Locale.GERMAN,"%.1f",source.optDouble("saturated_fat_100g",0)),8194);
-      sugar=edit("Zucker",String.format(Locale.GERMAN,"%.1f",source.optDouble("sugar_100g",0)),8194);
-      protein=edit("Eiweiß",String.format(Locale.GERMAN,"%.1f",source.optDouble("protein_100g",0)),8194);
+      kcal=edit("Kalorien",source.optDouble("kcal_100g",0)<0?"":String.format(Locale.GERMAN,"%.1f",source.optDouble("kcal_100g",0)),8194);
+      saturated=edit("Gesättigte Fette",source.optDouble("saturated_fat_100g",0)<0?"":String.format(Locale.GERMAN,"%.1f",source.optDouble("saturated_fat_100g",0)),8194);
+      sugar=edit("Zucker",source.optDouble("sugar_100g",0)<0?"":String.format(Locale.GERMAN,"%.1f",source.optDouble("sugar_100g",0)),8194);
+      protein=edit("Eiweiß",source.optDouble("protein_100g",0)<0?"":String.format(Locale.GERMAN,"%.1f",source.optDouble("protein_100g",0)),8194);
       String[] keys={"Kilokalorien","Gesättigte Fettsäuren (g)","Zucker (g)","Eiweiß (g)"};
       EditText[] fields={kcal,saturated,sugar,protein};
       for(int i=0;i<fields.length;i++){
@@ -752,8 +755,8 @@ public class MainActivity extends Activity {
         nutrition.setVisibility(open?View.GONE:View.VISIBLE);
         expand.setText(open?"Nährwerte prüfen / bearbeiten":"Nährwerte ausblenden");
       });
-      card.addView(expand);card.addView(nutrition);
-      target.addView(card);
+      container.addView(expand);container.addView(nutrition);
+      target.addView(container);
     }
 
     JSONObject toJson(boolean forceNewName,String targetName) throws JSONException{
@@ -761,7 +764,7 @@ public class MainActivity extends Activity {
       JSONObject x=new JSONObject();
       x.put("name",newName);
       x.put("food_id",useCatalog!=null&&useCatalog.isChecked()?original.optString("food_id"):"");
-      x.put("grams",num(grams.getText().toString()));
+      x.put("grams",forceNewName?100:num(grams.getText().toString()));
       x.put("kcal_100g",num(kcal.getText().toString()));
       x.put("saturated_fat_100g",num(saturated.getText().toString()));
       x.put("sugar_100g",num(sugar.getText().toString()));
@@ -853,6 +856,37 @@ public class MainActivity extends Activity {
       for(EditText input:new EditText[]{field.name,field.grams,field.kcal,
           field.saturated,field.sugar,field.protein})input.addTextChangedListener(watcher);
       if(field.useCatalog!=null)field.useCatalog.setOnCheckedChangeListener((x,isChecked)->update.run());
+      if(!"food".equals(mode)){
+        action(field.container,"− Diese Zutat entfernen",()->{
+          editors.remove(field);
+          page.removeView(field.container);
+          update.run();
+        });
+      }
+    }
+    if(!"food".equals(mode)){
+      Button addIngredient=button("＋ Fehlende Zutat ergänzen");
+      addIngredient.setOnClickListener(v->{
+        if(editors.size()>=12){msg("Es sind höchstens 12 Zutaten pro Vorschlag möglich.");return;}
+        try{
+          JSONObject fresh=new JSONObject();
+          fresh.put("name","Neue Zutat");fresh.put("grams",100);fresh.put("food_id","");
+          fresh.put("kcal_100g",-1);fresh.put("saturated_fat_100g",-1);
+          fresh.put("sugar_100g",-1);fresh.put("protein_100g",-1);
+          fresh.put("confidence","niedrig");fresh.put("note","Manuell ergänzt; Nährwerte eingeben");
+          AiIngredientEditor field=new AiIngredientEditor(fresh,true,page);
+          editors.add(field);
+          page.removeView(field.container);
+          page.addView(field.container,page.indexOfChild(checkout));
+          for(EditText input:new EditText[]{field.name,field.grams,field.kcal,
+              field.saturated,field.sugar,field.protein})input.addTextChangedListener(watcher);
+          action(field.container,"− Diese Zutat entfernen",()->{
+            editors.remove(field);page.removeView(field.container);update.run();
+          });
+          update.run();
+        }catch(Exception e){msg("Zutat konnte nicht hinzugefügt werden.");}
+      });
+      page.addView(addIngredient);
     }
     update.run();
     checkout.addView(label("Alle Zutaten sind editierbar. Gespeichert wird erst nach deiner Bestätigung.",12));
