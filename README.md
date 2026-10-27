@@ -6,7 +6,20 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
-## FitRocket v0.14.1 – Lesbares Suchfeld und richtige Portionsangaben
+## FitRocket v0.14.2
+
+## FitRocket 0.14.2 – Wischlöschung und flexible Favoriten
+
+- Tagebuch: einen versehentlich gebuchten Eintrag nach links wischen, Sicherheitsabfrage bestätigen und Tages-/Wochenpunkte neu berechnen lassen.
+- Eigene Lebensmittel aus Barcode-Scanner oder KI: in der Lebensmittel-Suche nach links wischen und löschen. Die 358 mitgelieferten Lebensmittel, insbesondere die Basislebensmittel, sind geschützt.
+- Favoriten merken sich nun eine Referenzmenge, werden aber **bei jeder Buchung** mit frei wählbaren Gramm bzw. Millilitern neu berechnet.
+- Nährwertbasierte Lebensmittel werden aus ihren Kalorien, Zucker, gesättigten Fettsäuren und Eiweiß pro 100 g/ml neu bewertet, statt alte Punkte zu kopieren.
+- Für KI-Gerichte werden die Zutaten proportional skaliert, mit aktualisierter Zutatentabelle.
+- Ältere Favoriten ohne gespeicherte Grammzahl fragen einmal nach der ursprünglichen Menge.
+- Bestehende Tagebucheinträge und Backups bleiben erhalten; die neuen Referenzmengen werden mit den Favoriten exportiert.
+- Zusätzliche Unit-Tests für Teig-/Zutatenmengen, Getränkemengen und alte Favoriten.
+
+## Änderungen aus FitRocket v0.14.1 – Lesbares Suchfeld und richtige Portionsangaben
 
 - **Lebensmittelsuche:** Immer weißes Eingabefeld mit dunkler Schrift und gut erkennbarem Suchhinweis – sowohl im Hell- als auch im Dunkelmodus.
 - **Richtige Einheit:** Gekochte Nudeln, Reis und andere feste Lebensmittel werden mit **Gramm (g)** angezeigt, Getränke mit **Millilitern (ml)**. Die verwirrende allgemeine Angabe „100 g (beim Getränk 100 ml)“ entfällt aus der Nutzeroberfläche.

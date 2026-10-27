@@ -1,5 +1,13 @@
 # FitRocket – Versionshinweise
 
+## 0.14.2 – Wischen zum Löschen und variable Favoriten
+- Tagebucheinträge per Wisch nach links mit Sicherheitsabfrage löschen.
+- Eigene KI-/Barcode-Lebensmittel ebenfalls per Wisch nach links aus der persönlichen Liste entfernen; feste FitRocket-Katalogeinträge sind geschützt.
+- Favoriten erhalten eine gespeicherte Referenzmenge und frei wählbare Gramm-/Millilitermengen beim nächsten Hinzufügen.
+- Punkte aus Nährwerten oder bestätigten KI-Zutaten neu berechnen, statt eingefrorenen Favoriten-Punktwert wiederverwenden.
+- Rückwärtskompatibel: Bei alten Favoriten ohne Mengeninformation wird die ursprüngliche Menge einmal erfragt.
+- Mehrere Unit-Tests für Mengenskalierung und alte Einträge.
+
 ## 0.14.1 – Lebensmittelsuche mit gutem Kontrast und korrekten Portionen
 - Eingabefeld der Suche dauerhaft weiß mit dunkler Schrift und gut sichtbarem Hinweis.
 - Einheitendarstellung aus der Lebensmittelkategorie: feste Produkte in g, Getränke in ml.
