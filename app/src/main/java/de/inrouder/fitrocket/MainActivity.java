@@ -539,6 +539,39 @@ public class MainActivity extends Activity {
     page.addView(waterCard(diaryDate.toString()));
   }
 
+  private String selectedAiProvider(){
+    String p=prefs.getString("aiProvider",FitRocketAiSecrets.GEMINI);
+    return FitRocketAiSecrets.OPENAI.equals(p)?FitRocketAiSecrets.OPENAI:FitRocketAiSecrets.GEMINI;
+  }
+
+  private String selectedAiProviderName(){
+    return FitRocketAiSecrets.GEMINI.equals(selectedAiProvider())?"Google Gemini":"OpenAI";
+  }
+
+  private void selectAiProvider(){
+    String[] options={"Google Gemini (kostenloses Kontingent)","OpenAI (optional)"};
+    int current=FitRocketAiSecrets.GEMINI.equals(selectedAiProvider())?0:1;
+    new AlertDialog.Builder(this).setTitle("KI-Anbieter auswählen")
+      .setSingleChoiceItems(options,current,(d,index)->{
+        prefs.edit().putString("aiProvider",index==0
+            ?FitRocketAiSecrets.GEMINI:FitRocketAiSecrets.OPENAI).apply();
+        d.dismiss();aiHub();
+      }).setNegativeButton("Abbrechen",null).show();
+  }
+
+  private void selectGeminiModel(){
+    String[] choices={"Gemini 2.5 Flash-Lite · sparsam, Standard",
+        "Gemini 2.5 Flash · höhere Qualität"};
+    int current=FitRocketGeminiApi.MODEL_FLASH.equals(
+        prefs.getString("geminiModel",FitRocketGeminiApi.DEFAULT_MODEL))?1:0;
+    new AlertDialog.Builder(this).setTitle("Gemini-Modell")
+      .setSingleChoiceItems(choices,current,(d,which)->{
+        prefs.edit().putString("geminiModel",
+          which==1?FitRocketGeminiApi.MODEL_FLASH:FitRocketGeminiApi.MODEL_LITE).apply();
+        d.dismiss();aiHub();
+      }).setNegativeButton("Abbrechen",null).show();
+  }
+
   private void aiHub(){
     shell("KI-Assistent");
     LinearLayout intro=card(Color.rgb(247,241,255));
@@ -564,13 +597,26 @@ public class MainActivity extends Activity {
 
     LinearLayout connection=card(Color.WHITE);
     connection.addView(label("🔐 Verbindung & Datenschutz",17));
-    connection.addView(label(FitRocketAiSecrets.configured(this)
-        ?"Ein persönlich hinterlegter API-Schlüssel ist auf diesem Gerät verschlüsselt gespeichert."
-        :"Für Online-Rezepte und KI-Schätzungen benötigst du einen eigenen OpenAI-API-Schlüssel.",13));
-    connection.addView(label("Nur deine aktuelle Essensbeschreibung, Vorlieben und ausgewählte "
-        +"öffentliche Lebensmittelnamen werden für eine Anfrage übertragen – keine Gewichts-, "
-        +"Gesundheits- oder Tagebucheinträge. Jede Anfrage kann API-Kosten verursachen.",12));
-    action(connection,"API-Schlüssel einrichten / entfernen",()->aiKeyDialog());
+    String provider=selectedAiProvider();
+    connection.addView(label("Aktiver Anbieter: "+selectedAiProviderName(),16));
+    action(connection,"KI-Anbieter wechseln",()->selectAiProvider());
+    if(FitRocketAiSecrets.GEMINI.equals(provider)){
+      boolean flash=FitRocketGeminiApi.MODEL_FLASH.equals(
+        prefs.getString("geminiModel",FitRocketGeminiApi.DEFAULT_MODEL));
+      connection.addView(label("Modell: "+(flash?"Gemini 2.5 Flash":"Gemini 2.5 Flash-Lite")
+        +" · kostenlose Nutzung nur innerhalb der verfügbaren API-Limits",13));
+      action(connection,"Gemini-Modell auswählen",()->selectGeminiModel());
+      connection.addView(label("Hinweis: Google kann Eingaben der kostenlosen "
+        +"API-Stufe zur Verbesserung seiner Produkte verwenden. "
+        +"Bitte keine vertraulichen Gesundheitsinformationen eingeben.",12));
+    }
+    connection.addView(label(FitRocketAiSecrets.configured(this,provider)
+        ?"Ein persönlicher "+selectedAiProviderName()+"-API-Schlüssel ist verschlüsselt gespeichert."
+        :"Du benötigst noch einen eigenen "+selectedAiProviderName()+"-API-Schlüssel.",13));
+    connection.addView(label("Übertragen werden nur die aktuelle Essensbeschreibung, "
+        +"freiwillige Vorlieben und öffentliche Katalogeinträge; "
+        +"keine Gewichte, Health-Connect-Daten oder Tagebuchhistorie.",12));
+    action(connection,selectedAiProviderName()+"-Schlüssel einrichten / entfernen",()->aiKeyDialog());
     action(connection,"Ohne KI: Lebensmittel aus Nährwerten",()->aiManualFood());
     page.addView(connection);
   }
@@ -596,40 +642,58 @@ public class MainActivity extends Activity {
   }
 
   private void aiKeyDialog(){
+    String provider=selectedAiProvider();
+    boolean gemini=FitRocketAiSecrets.GEMINI.equals(provider);
     LinearLayout content=new LinearLayout(this);content.setOrientation(1);
     content.setPadding(dp(18),dp(10),dp(18),dp(10));
-    content.addView(label("Dein eigener OpenAI API-Schlüssel",17));
-    content.addView(label("Ein API-Schlüssel stammt von platform.openai.com/api-keys. "
-       +"Ein ChatGPT-Abonnement enthält kein automatisches API-Guthaben. "
-       +"Bei jeder KI-Anfrage können separate Kosten entstehen.",13));
-    content.addView(label("Der Schlüssel wird nicht im Repository hinterlegt, nicht im Backup exportiert "
-       +"und mittels Android Keystore verschlüsselt. Auf einem öffentlich verteilten mobilen Client "
-       +"ist ein Backend-Proxy trotzdem sicherer; diese Version ist für private Tests gedacht.",12));
-    EditText e=edit("sk-…", "",android.text.InputType.TYPE_CLASS_TEXT|
+    content.addView(label("Dein "+selectedAiProviderName()+"-API-Schlüssel",17));
+    if(gemini){
+      content.addView(label("Einen Gemini-Schlüssel kostenlos in Google AI Studio erzeugen: "
+          +"aistudio.google.com/apikey. Kostenlose API-Limits sind begrenzt "
+          +"und können sich ändern.",13));
+      Button link=button("🌐 Google AI Studio öffnen");
+      link.setOnClickListener(v->{
+        try{startActivity(new Intent(Intent.ACTION_VIEW,
+           Uri.parse("https://aistudio.google.com/apikey")));}
+        catch(Exception e){msg("Bitte https://aistudio.google.com/apikey im Browser öffnen.");}
+      });content.addView(link);
+      content.addView(label("Auf der kostenlosen API-Stufe können Inhalte von Google "
+          +"zur Verbesserung seiner Produkte verwendet werden.",12));
+    }else{
+      content.addView(label("OpenAI-Schlüssel unter platform.openai.com/api-keys. "
+         +"OpenAI-API-Nutzung wird unabhängig von ChatGPT abgerechnet.",13));
+    }
+    content.addView(label("Der Schlüssel wird im Android Keystore verschlüsselt und "
+       +"nie in GitHub oder in Backups gespeichert. "
+       +"Für öffentlich verteilte Apps wäre ein abgesicherter Server besser.",12));
+    EditText e=edit(gemini?"Gemini API-Key (häufig AIza…)":"sk-…", "",
+        android.text.InputType.TYPE_CLASS_TEXT |
         android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
     e.setSingleLine(true);e.setSelectAllOnFocus(false);content.addView(e);
-    content.addView(label(FitRocketAiSecrets.configured(this)
-      ?"Ein Schlüssel ist vorhanden. Mit einem neuen Eintrag kannst du ihn ersetzen."
-      :"Noch kein Schlüssel gespeichert.",13));
-    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("KI-Einstellungen")
-        .setView(content).setPositiveButton("Schlüssel speichern",null)
+    content.addView(label(FitRocketAiSecrets.configured(this,provider)
+      ?"Ein Schlüssel für diesen Anbieter ist vorhanden. Du kannst ihn ersetzen."
+      :"Noch kein Schlüssel für diesen Anbieter gespeichert.",13));
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle(selectedAiProviderName()+" einrichten")
+        .setView(content).setPositiveButton("Speichern",null)
         .setNeutralButton("Schlüssel löschen",null).setNegativeButton("Abbrechen",null).create();
     dialog.setOnShowListener(v->{
       dialog.getButton(-1).setOnClickListener(btn->{
         try{
-          FitRocketAiSecrets.set(this,e.getText().toString().trim());
-          e.setText("");dialog.dismiss();msg("API-Schlüssel gespeichert.");aiHub();
-        }catch(Exception error){msg("Speichern nicht möglich: "+error.getMessage());}
+          FitRocketAiSecrets.set(this,provider,e.getText().toString().trim());
+          e.setText("");dialog.dismiss();msg(selectedAiProviderName()+"-Schlüssel gespeichert.");
+          aiHub();
+        }catch(Exception error){msg("Speichern fehlgeschlagen: "+error.getMessage());}
       });
-      dialog.getButton(-3).setOnClickListener(btn->{
-        new AlertDialog.Builder(this).setTitle("API-Schlüssel entfernen?")
-           .setMessage("Der lokal verschlüsselte Schlüssel wird gelöscht. "
-             +"Gespeicherte Rezepte und Lebensmittel bleiben erhalten.")
-           .setPositiveButton("Entfernen",(d,w)->{
-              FitRocketAiSecrets.clear(this);e.setText("");dialog.dismiss();aiHub();
-           }).setNegativeButton("Abbrechen",null).show();
-      });
-    });dialog.show();
+      dialog.getButton(-3).setOnClickListener(btn->
+        new AlertDialog.Builder(this).setTitle("Schlüssel entfernen?")
+          .setMessage("Nur der "+(gemini?"Gemini":"OpenAI")+"-Schlüssel wird gelöscht. "
+             +"Rezepte, Vorlieben und Lebensmittel bleiben erhalten.")
+          .setPositiveButton("Entfernen",(d,w)->{
+            FitRocketAiSecrets.clear(this,provider);
+            e.setText("");dialog.dismiss();aiHub();
+          }).setNegativeButton("Abbrechen",null).show());
+    });
+    dialog.show();
   }
 
   private void aiCompose(String mode){
@@ -658,13 +722,16 @@ public class MainActivity extends Activity {
            :prefs.getString("aiPreferences","")),12));
       action(card,"Vorlieben bearbeiten",()->aiPreferencesDialog());
     }
+    card.addView(label("KI: "+selectedAiProviderName()
+      +" · Vorschläge und Nährwerte sind Schätzungen.",13));
     card.addView(label("Du prüfst alle geschätzten Mengen und Nährwerte, bevor etwas "
       +"in deinem Tagebuch oder Lebensmittelkatalog gespeichert wird.",12));
     action(card,"✨ Vorschlag mit KI erstellen",()->aiSubmit(mode,input.getText().toString()));
     page.addView(card);
-    if(!FitRocketAiSecrets.configured(this)){
+    if(!FitRocketAiSecrets.configured(this,selectedAiProvider())){
       LinearLayout key=card(LAV);key.addView(label("🔐 KI noch nicht verbunden",17));
-      key.addView(label("Für eine Anfrage benötigst du einen eigenen OpenAI-API-Schlüssel.",13));
+      key.addView(label("Für eine Anfrage benötigst du einen eigenen "
+           +selectedAiProviderName()+"-API-Schlüssel.",13));
       action(key,"API-Schlüssel einrichten",()->aiKeyDialog());page.addView(key);
     }
     if("food".equals(mode)){
@@ -675,9 +742,9 @@ public class MainActivity extends Activity {
   }
 
   private void aiSubmit(String mode,String prompt){
-    if(!FitRocketAiSecrets.configured(this)){
+    if(!FitRocketAiSecrets.configured(this,selectedAiProvider())){
       new AlertDialog.Builder(this).setTitle("KI-Schlüssel fehlt")
-        .setMessage("Für Online-KI benötigst du deinen eigenen OpenAI-API-Schlüssel. "
+        .setMessage("Für "+selectedAiProviderName()+" benötigst du einen eigenen API-Schlüssel. "
           +"Für Lebensmittel kannst du Nährwerte auch komplett offline eingeben.")
         .setPositiveButton("Einrichten",(d,w)->aiKeyDialog())
         .setNegativeButton("Abbrechen",null).show();return;
@@ -686,7 +753,7 @@ public class MainActivity extends Activity {
     if(prompt.trim().length()<5||prompt.length()>1400){
       msg("Bitte eine Beschreibung mit 5–1400 Zeichen eingeben.");return;
     }
-    AlertDialog loading=new AlertDialog.Builder(this).setTitle("✨ FitRocket denkt mit")
+    AlertDialog loading=new AlertDialog.Builder(this).setTitle("✨ "+selectedAiProviderName()+" erstellt Vorschlag")
        .setMessage("Rezept oder Lebensmittel werden vorgeschlagen. "
           +"Im nächsten Schritt prüfst du die Schätzung.")
        .setNegativeButton("Im Hintergrund abbrechen",(d,w)->{})
