@@ -6,7 +6,15 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
-## FitRocket v0.14.2
+## FitRocket v0.14.3 – Updates direkt aus der App
+
+In **Profil → In-App-Update prüfen** kannst du eine neue signierte FitRocket-Version direkt herunterladen. Ein Download im Browser und die Suche nach der heruntergeladenen Datei entfallen.
+
+Die App zeigt den Fortschritt, prüft Paket-ID, Versionscode und Signatur gegen die bereits installierte App und übergibt die geprüfte APK an Android. **Die Zustimmung im Android-Installationsdialog bleibt notwendig**, da FitRocket privat und nicht als privilegierter System-App-Store verteilt wird. Beim ersten Update musst du ggf. einmalig „Aus dieser Quelle zulassen“ aktivieren. Die App verwendet dafür keine Root-Rechte und keine Umgehung der Android-Sicherheit.
+
+**Deine Daten bleiben bei einem regulären Update erhalten**. Die APK wird nur bei ausdrücklicher Zustimmung heruntergeladen. Es findet keine heimliche Installation statt. Die automatische Updateprüfung kann dich wie bisher auf neue Versionen hinweisen.
+
+## Änderungen aus Version 0.14.2
 
 ## FitRocket 0.14.2 – Wischlöschung und flexible Favoriten
 

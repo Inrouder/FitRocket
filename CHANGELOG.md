@@ -1,5 +1,13 @@
 # FitRocket – Versionshinweise
 
+## 0.14.3 – Komfortable sichere In-App-Updates
+- Neue APK vom offiziellen GitHub Release direkt im FitRocket-App-Speicher herunterladen, mit Fortschrittsanzeige.
+- Nur fest definierte HTTPS-GitHub-Release-Adressen und vertrauenswürdige CDN-Weiterleitungen akzeptieren.
+- Paket-ID, höhere Versionsnummer und identisches Android-Signaturzertifikat vor Installation kontrollieren.
+- Über Androids FileProvider an den Systeminstaller übergeben; kein Browser und keine manuelle APK-Suche.
+- Bei Bedarf einmalig Berechtigung für Installation „Aus dieser Quelle“ anfordern; Android-Installation weiter nur nach Bestätigung.
+- Keine automatische Installation ohne Einwilligung oder privilegierte Berechtigungen.
+
 ## 0.14.2 – Wischen zum Löschen und variable Favoriten
 - Tagebucheinträge per Wisch nach links mit Sicherheitsabfrage löschen.
 - Eigene KI-/Barcode-Lebensmittel ebenfalls per Wisch nach links aus der persönlichen Liste entfernen; feste FitRocket-Katalogeinträge sind geschützt.
