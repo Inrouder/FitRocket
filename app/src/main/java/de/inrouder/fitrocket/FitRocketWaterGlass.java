@@ -25,7 +25,7 @@ public final class FitRocketWaterGlass extends View {
         float half=width/2f;
         RectF outer=new RectF(cx-half,top,cx+half,bottom);
         p.setShader(null);p.setStyle(Paint.Style.FILL);
-        p.setColor(Color.rgb(248,250,255));c.drawRoundRect(outer,dp(6),dp(6),p);
+        p.setColor(FitRocketTheme.isDark(getContext())?Color.rgb(38,47,60):Color.rgb(248,250,255));c.drawRoundRect(outer,dp(6),dp(6),p);
         if(full){
             RectF fluid=new RectF(outer.left+dp(2),top+dp(14),outer.right-dp(2),bottom-dp(2));
             p.setShader(new LinearGradient(fluid.left,fluid.top,fluid.right,fluid.bottom,
@@ -33,9 +33,9 @@ public final class FitRocketWaterGlass extends View {
             c.drawRoundRect(fluid,dp(4),dp(4),p);p.setShader(null);
         }
         p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(dp(2));
-        p.setColor(full?Color.rgb(96,166,209):Color.rgb(203,213,232));
+        p.setColor(full?Color.rgb(96,166,209):(FitRocketTheme.isDark(getContext())?Color.rgb(105,123,156):Color.rgb(203,213,232)));
         c.drawRoundRect(outer,dp(6),dp(6),p);
-        p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(91,105,136));
+        p.setStyle(Paint.Style.FILL);p.setColor(FitRocketTheme.secondary(getContext()));
         p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(10));
         c.drawText(full?"✓":"+",cx,top+(bottom-top)/2+dp(4),p);
         p.setColor(Color.rgb(139,150,170));p.setTextSize(dp(9));

@@ -400,7 +400,7 @@ public class MainActivity extends Activity {
     more.setOnClickListener(v->{setWaterMl(day,Math.min(10000,waterMl(day)+250));paintWaterCard(target,day);});
     target.addView(controls);
     TextView configure=label("⚙ Trinkziel anpassen",13);
-    configure.setTextColor(BLUE);target.addView(configure);
+    configure.setTextColor(FitRocketTheme.accent(this));target.addView(configure);
     configure.setOnClickListener(v->waterGoalDialog(target,day));
   }
   private void home(){
@@ -2124,7 +2124,9 @@ public class MainActivity extends Activity {
     if(request==EXPORT_REQUEST){
       try(OutputStream os=getContentResolver().openOutputStream(uri)){
         JSONObject payload=new JSONObject();
-        payload.put("schemaVersion",5);payload.put("budget",budget);payload.put("weekly",weekly);
+        payload.put("schemaVersion",6);payload.put("budget",budget);payload.put("weekly",weekly);
+        payload.put("profileName",prefs.getString("profile_name",""));
+        payload.put("appearance",prefs.getString(FitRocketTheme.KEY,FitRocketTheme.SYSTEM));
         payload.put("meals",new JSONArray(prefs.getString("meals","[]")));
         payload.put("weights",new JSONArray(prefs.getString("weights","[]")));
         payload.put("activities",new JSONArray(prefs.getString("activities","[]")));
@@ -2156,7 +2158,7 @@ public class MainActivity extends Activity {
         while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>5000000)throw new IOException("Backup zu groß");}
         JSONObject payload=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8));
         int schema=payload.optInt("schemaVersion",0);
-        if((schema!=1&&schema!=2&&schema!=3&&schema!=4&&schema!=5)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
+        if((schema!=1&&schema!=2&&schema!=3&&schema!=4&&schema!=5&&schema!=6)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
         JSONArray ma=payload.getJSONArray("meals"),we=payload.getJSONArray("weights");
         JSONArray ac=payload.optJSONArray("activities");if(ac==null)ac=new JSONArray();
         final JSONArray importedActivities=ac;
@@ -2195,6 +2197,11 @@ public class MainActivity extends Activity {
         String preferencesBackup=payload.optString("aiPreferences","");
         if(preferencesBackup.length()>500)throw new IllegalArgumentException("Vorlieben zu lang");
         final String importedAiPreferences=preferencesBackup;
+        String importedName=payload.optString("profileName",prefs.getString("profile_name",""));
+        if(importedName.length()>40)throw new IllegalArgumentException("Profilname zu lang");
+        final String restoredName=importedName;
+        final String restoredAppearance=FitRocketTheme.normalized(
+          payload.optString("appearance",prefs.getString(FitRocketTheme.KEY,FitRocketTheme.SYSTEM)));
         double weightTarget=payload.optDouble("weightGoal",0);
         if(!Double.isFinite(weightTarget)||weightTarget<0||weightTarget>400)throw new IllegalArgumentException();
         final double importedWeightGoal=weightTarget;
@@ -2223,6 +2230,8 @@ public class MainActivity extends Activity {
                 .putString("aiFoods",importedAiFoods.toString())
                 .putString("savedAiRecipes",importedAiRecipes.toString())
                 .putString("aiPreferences",importedAiPreferences)
+                .putString("profile_name",restoredName)
+                .putString(FitRocketTheme.KEY,restoredAppearance)
                 .putString("healthStepDays",healthSteps.toString())
                 .putString("healthIgnored",ignoredHealth.toString())
                 .putBoolean("healthStepsPreferred",payload.optBoolean("healthStepsPreferred",true))
@@ -2253,13 +2262,13 @@ public class MainActivity extends Activity {
       int n=used(today());float ratio=n/(float)Math.max(1,budget);
       float rad=Math.min(w*.34f,h*.62f);RectF arc=new RectF(cx-rad,cy-rad,cx+rad,cy+rad);
       p.setStyle(Paint.Style.STROKE);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeWidth(dp(19));
-      p.setColor(Color.rgb(250,235,231));c.drawArc(arc,190,160,false,p);
+      p.setColor(dark()?Color.rgb(57,58,72):Color.rgb(250,235,231));c.drawArc(arc,190,160,false,p);
       p.setShader(new SweepGradient(cx,cy,new int[]{Color.rgb(119,211,154),Color.rgb(173,222,98),Color.rgb(255,184,122),Color.rgb(247,115,119),Color.rgb(119,211,154)},new float[]{0f,.34f,.62f,.84f,1f}));
       c.drawArc(arc,190,160*Math.min(1f,Math.max(0f,ratio)),false,p);p.setShader(null);p.setStyle(Paint.Style.FILL);
-      p.setColor(NAVY);p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(28));
+      p.setColor(ink());p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(28));
       c.drawText(n+" / "+budget+" P",cx,cy-dp(25),p);
-      p.setTypeface(Typeface.DEFAULT);p.setTextSize(dp(13));p.setColor(Color.rgb(115,116,145));c.drawText("Heute genutzt",cx,cy-dp(4),p);
-      if(ratio>1){p.setTextSize(dp(12));p.setColor(Color.rgb(205,91,91));c.drawText("Etwas über deinem Ziel",cx,cy+dp(18),p);}
+      p.setTypeface(Typeface.DEFAULT);p.setTextSize(dp(13));p.setColor(muted());c.drawText("Heute genutzt",cx,cy-dp(4),p);
+      if(ratio>1){p.setTextSize(dp(12));p.setColor(dark()?Color.rgb(255,163,154):Color.rgb(205,91,91));c.drawText("Etwas über deinem Ziel",cx,cy+dp(18),p);}
     }
   }
 }

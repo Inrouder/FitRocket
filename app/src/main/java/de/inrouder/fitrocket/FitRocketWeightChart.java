@@ -15,12 +15,14 @@ public final class FitRocketWeightChart extends View {
     private final TreeMap<LocalDate,Double> data=new TreeMap<>();
     private final Double goal;
     private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final int navy=Color.rgb(37,46,76);
-    private final int lavender=Color.rgb(130,132,212);
+    private final int navy;
+    private final int lavender;
     private float density;
 
     public FitRocketWeightChart(Context context,List<JSONObject> weights,Double goal){
         super(context);
+        this.navy=FitRocketTheme.text(context);
+        this.lavender=FitRocketTheme.isDark(context)?Color.rgb(185,166,245):Color.rgb(130,132,212);
         this.goal=goal;
         this.density=getResources().getDisplayMetrics().density;
         for(JSONObject w:weights){
@@ -35,7 +37,7 @@ public final class FitRocketWeightChart extends View {
 
     private int dp(float value){return (int)(value*density+.5f);}
     private void paint(int color,float width){
-        p.reset();p.setAntiAlias(true);p.setColor(color);p.setStrokeWidth(dp(width));
+        p.reset();p.setAntiAlias(true);p.setColor(FitRocketTheme.map(getContext(),color));p.setStrokeWidth(dp(width));
         p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeJoin(Paint.Join.ROUND);
     }
 
