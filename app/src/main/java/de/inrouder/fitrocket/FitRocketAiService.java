@@ -66,7 +66,7 @@ public final class FitRocketAiService {
         return combined.toString();
     }
 
-    private static String catalogHints(List<JSONObject> foods,String prompt){
+    static String catalogHints(List<JSONObject> foods,String prompt){
         // Constrain zero-point claims to exact FitRocket IDs and names, not model guesses.
         String[] popular={
             "ZP007","ZP014","ZP019","ZP233","ZP193","ZP129","ZP111","ZP016",
@@ -113,7 +113,7 @@ public final class FitRocketAiService {
         return text.toString();
     }
 
-    private static String instructions(String mode) {
+    static String instructions(String mode) {
         String base="Du bist FitRocket, ein deutschsprachiger Küchen- und Ernährungsvorschlags-Assistent. "
             +"Du generierst nur Vorschläge, KEINE Punkte. FitRocket berechnet die Punkte lokal. "
             +"Antworte ausschließlich gemäß JSON-Schema. Alle Makros sind Werte pro 100 g oder pro 100 ml, "
@@ -180,6 +180,17 @@ public final class FitRocketAiService {
         if(preferences==null)preferences="";
         if(preferences.length()>500){
             callback.onFailure("Die Vorlieben dürfen höchstens 500 Zeichen enthalten.");return;
+        }
+        // Gemini is the default from v0.11.0; OpenAI remains available with its old key.
+        String provider=activity.getSharedPreferences("fitrocket",Activity.MODE_PRIVATE)
+            .getString("aiProvider",FitRocketAiSecrets.GEMINI);
+        if(FitRocketAiSecrets.GEMINI.equals(provider)){
+            FitRocketGeminiApi.request(activity,mode,prompt,preferences,
+                new ArrayList<>(foods),callback);
+            return;
+        }
+        if(!FitRocketAiSecrets.OPENAI.equals(provider)){
+            callback.onFailure("Unbekannter KI-Anbieter.");return;
         }
         final String finalPreferences=preferences;
         final List<JSONObject> snapshot=new ArrayList<>(foods);
