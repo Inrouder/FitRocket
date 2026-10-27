@@ -662,7 +662,19 @@ public class MainActivity extends Activity {
     shell("Lebensmittel");LinearLayout searchCard=card(Color.WHITE);
     TextView title=label("⌕ Lebensmittel suchen",18);title.setTypeface(null,1);searchCard.addView(title);
     EditText search=edit("Suche nach Lebensmitteln…","",1);
-    search.setSingleLine(true);search.setPadding(dp(14),dp(12),dp(14),dp(12));search.setBackground(shape(Color.rgb(248,243,253),20));searchCard.addView(search);
+    search.setSingleLine(true);
+    search.setPadding(dp(14),dp(12),dp(14),dp(12));
+    // Keep the search field white in both themes; mapping it to the dark
+    // pastel accent previously produced low-contrast placeholder text.
+    GradientDrawable searchField=new GradientDrawable();
+    searchField.setColor(Color.WHITE);
+    searchField.setCornerRadius(dp(20));
+    searchField.setStroke(dp(1),Color.rgb(213,218,228));
+    search.setBackground(searchField);
+    search.setTextColor(Color.rgb(28,34,47));
+    search.setHintTextColor(Color.rgb(103,112,129));
+    search.setHighlightColor(Color.rgb(212,195,240));
+    searchCard.addView(search);
     LinearLayout barcodeRow=new LinearLayout(this);barcodeRow.setOrientation(0);
     Button scanner=button("▥ Barcode scannen"),manualCode=button("123 Nummer eingeben");
     barcodeRow.addView(scanner,new LinearLayout.LayoutParams(0,dp(50),1));
@@ -689,9 +701,9 @@ public class MainActivity extends Activity {
         LinearLayout item=card(Color.WHITE);
         LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.HORIZONTAL);top.setGravity(Gravity.CENTER_VERTICAL);
         TextView name=label(f.optString("name"),16);name.setTypeface(null,1);top.addView(name,new LinearLayout.LayoutParams(0,-2,1));
-        String text="nutrition".equals(f.optString("status"))?"ca. "+f.optInt("estimatedPoints100")+" P / 100 g":(f.isNull("points")?"Punkte wählen":f.optInt("points")+" P");
+        String text=FitRocketFoodDisplay.pointsLabel(f);
         top.addView(chip(text, f.optInt("points")==0&&!f.isNull("points")?MINT:Color.rgb(255,227,208)));
-        item.addView(top);item.addView(label(f.optString("category")+" · "+f.optString("portion"),12));
+        item.addView(top);item.addView(label(f.optString("category")+" · "+FitRocketFoodDisplay.referencePortion(f),12));
         results.addView(item);item.setOnClickListener(v->foodDialog(f));if(count>=70)break;
       }
       if(count==0){LinearLayout empty=card(Color.WHITE);empty.addView(label("Keine Treffer – du kannst eine Mahlzeit manuell erfassen.",15));results.addView(empty);}
@@ -713,10 +725,10 @@ public class MainActivity extends Activity {
   private void nutritionDialog(JSONObject f) {
     LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(8),dp(20),dp(8));
     content.addView(label(f.optString("name")+" · ca. Punkte nach Nährwerten",16));
-    content.addView(label("Menge in Gramm bzw. Milliliter",13));
+    content.addView(label("Menge in "+(FitRocketFoodDisplay.isDrink(f)?"Milliliter (ml)":"Gramm (g)"),13));
     EditText amount=edit("Menge","100",8194);content.addView(amount);
     JSONObject n=f.optJSONObject("nutrition");if(n==null)return;
-    content.addView(label("Werte je 100 g/ml: "+n.optDouble("kcal")+" kcal · "+n.optDouble("sugar_g")+" g Zucker · "+n.optDouble("saturatedFat_g")+" g gesättigte Fette · "+n.optDouble("protein_g")+" g Protein",13));
+    content.addView(label("Werte je 100 "+FitRocketFoodDisplay.unit(f)+": "+n.optDouble("kcal")+" kcal · "+n.optDouble("sugar_g")+" g Zucker · "+n.optDouble("saturatedFat_g")+" g gesättigte Fette · "+n.optDouble("protein_g")+" g Protein",13));
     TextView estimate=label("ca. "+calcForGrams(f,100)+" Punkte",17);content.addView(estimate);
     amount.addTextChangedListener(new TextWatcher(){
       public void beforeTextChanged(CharSequence s,int a,int b,int c){}
@@ -730,7 +742,7 @@ public class MainActivity extends Activity {
     AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Portion berechnen").setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();
     dialog.setOnShowListener(x->dialog.getButton(-1).setOnClickListener(v->{
       try{double grams=num(amount.getText().toString());int pts=calcForGrams(f,grams);
-        addMeal(f.optString("name")+" ("+grams+" g/ml)",pts,f.optString("id"),"Nährwertschätzung",group.getSelectedItem().toString());
+        addMeal(f.optString("name")+" ("+FitRocketFoodDisplay.quantityLabel(f,grams)+")",pts,f.optString("id"),"Nährwertschätzung",group.getSelectedItem().toString());
         dialog.dismiss();afterMealAdded();
       }catch(Exception ex){msg("Bitte eine gültige Menge angeben.");}
     }));
