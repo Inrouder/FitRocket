@@ -1,5 +1,11 @@
 # FitRocket – Versionshinweise
 
+## 0.15.4 – Homescreen-Widget für Punkte und Trinkmenge
+- Android-App-Widget zeigt verbleibende und genutzte Tagespunkte sowie Trinkmenge mit Ziel-Fortschritt.
+- Aktualisierung nach neuen Mahlzeiten und Wasseränderungen, beim Öffnen der App und über Systemaktualisierungen.
+- Startet FitRocket direkt durch Tippen; lokal und ohne Netzwerk oder neue Berechtigungen.
+- Tests für Tageswechsel, Dezimalpunkte und Wasserziele.
+
 ## 0.15.3 – Wochenrückblick entschlackt
 - Runde Kennzahlen aus Fortschritt und Wochenrückblick entfernt.
 - Das Balkendiagramm und das Wochenpunktekonto bleiben erhalten; keine Änderung von Daten oder Punkten.

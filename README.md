@@ -6,6 +6,10 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
+## FitRocket v0.15.4 – Widget für den Android-Startbildschirm
+
+Jetzt kannst du ein echtes **FitRocket-Widget** auf deinem Smartphone-Startbildschirm platzieren. Es zeigt die noch verfügbaren Tagespunkte, verbrauchte Punkte und deine getrunkene Menge inklusive Wasser-Fortschritt. Durch Tippen öffnest du FitRocket. Unter **Android-Startbildschirm → Widgets → FitRocket** hinzufügen.
+
 ## FitRocket v0.15.3 – Schlichterer Wochenrückblick
 
 Die vier runden Statistik-Kennzahlen entfallen vollständig. Stattdessen zeigt die Fortschrittsseite weiterhin das übersichtliche Balkendiagramm mit Tagesbudget, die Wochenpunkte und die Gewichtsübersicht.
