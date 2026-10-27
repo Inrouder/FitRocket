@@ -1,4 +1,4 @@
-name: Build FitRocket APK & Release
+name: Build FitRocket APK & Signed Release
 
 on:
   push:
@@ -15,8 +15,10 @@ concurrency:
 
 jobs:
   build:
-    name: Validate, test, build and publish
+    name: Verify, test and build APK
     runs-on: ubuntu-latest
+    outputs:
+      signed: ${{ steps.signing.outputs.enabled }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,31 +42,97 @@ jobs:
       - name: Validate AI response schema
         run: python3 scripts/validate_ai_schema.py
 
-      - name: Android unit tests and build
+      - name: Android unit tests and build debug APK
         run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Save APK as Actions artifact
+      - name: Upload debug-only test APK
         uses: actions/upload-artifact@v4
         with:
-          name: FitRocket-v0.12.1-debug-apk
+          name: FitRocket-v0.13.0-UNSIGNED-RELEASE-TEST-DEBUG
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Check release signing configuration
+        id: signing
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          STORE_B64: ${{ secrets.FITROCKET_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.FITROCKET_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.FITROCKET_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.FITROCKET_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          for value in "$STORE_B64" "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD"; do
+            if [[ -n "$value" ]]; then count=$((count + 1)); fi
+          done
+          if [[ "$count" -eq 0 ]]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Release signing is not configured. Stable release publishing skipped."
+          elif [[ "$count" -eq 4 ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Incomplete release signing: configure all four FITROCKET_* secrets."
+            exit 1
+          fi
+
+      - name: Restore private signing keystore
+        if: steps.signing.outputs.enabled == 'true'
+        shell: bash
+        env:
+          FITROCKET_KEYSTORE_B64: ${{ secrets.FITROCKET_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$FITROCKET_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/fitrocket-release.jks"
+          test -s "$RUNNER_TEMP/fitrocket-release.jks"
+          echo "FITROCKET_KEYSTORE_PATH=$RUNNER_TEMP/fitrocket-release.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          FITROCKET_STORE_PASSWORD: ${{ secrets.FITROCKET_STORE_PASSWORD }}
+          FITROCKET_KEY_ALIAS: ${{ secrets.FITROCKET_KEY_ALIAS }}
+          FITROCKET_KEY_PASSWORD: ${{ secrets.FITROCKET_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle :app:assembleRelease --no-daemon --stacktrace
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK" > /dev/null
+          echo "Signed APK passed apksigner verification."
+
+      - name: Upload signed release APK
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: FitRocket-v0.13.0-signed-release
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
 
+      - name: Remove temporary private signing key
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/fitrocket-release.jks"
+
   publish:
-    name: Publish verified APK
+    name: Publish signed GitHub Release only
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.build.outputs.signed == 'true'
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: FitRocket-v0.12.1-debug-apk
+          name: FitRocket-v0.13.0-signed-release
           path: apk
-      - name: Publish or refresh stable GitHub Release
+      - name: Publish signed FitRocket.apk
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -73,13 +141,16 @@ jobs:
           VERSION=$(sed -nE 's/.*versionName = "([0-9]+\.[0-9]+\.[0-9]+)".*/\1/p' app/build.gradle.kts | head -n1)
           test -n "$VERSION"
           TAG="v$VERSION"
-          cp apk/app-debug.apk /tmp/FitRocket.apk
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            gh release upload "$TAG" /tmp/FitRocket.apk --clobber --repo "$GITHUB_REPOSITORY"
-            gh release edit "$TAG" --title "FitRocket $TAG" --notes-file docs/RELEASE_NOTES.md --latest --repo "$GITHUB_REPOSITORY"
-          else
-            gh release create "$TAG" /tmp/FitRocket.apk --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" --title "FitRocket $TAG" \
-              --notes-file docs/RELEASE_NOTES.md --latest
+          test -s apk/app-release.apk
+          cp apk/app-release.apk /tmp/FitRocket.apk
+          # Never silently replace an APK already installed by your family.
+          # Reuse a version only when manually resolving a failed release,
+          # never overwrite the signing identity for an existing tag.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists. Increment versionCode and versionName before publishing."
+            exit 1
           fi
-          echo "Published: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG"
+          gh release create "$TAG" /tmp/FitRocket.apk --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "FitRocket $TAG" \
+            --notes-file docs/RELEASE_NOTES.md --latest
+          echo "Signed release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG"
