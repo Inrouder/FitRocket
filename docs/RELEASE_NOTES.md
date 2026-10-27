@@ -1,16 +1,16 @@
-# FitRocket v0.15.6 – Echtes kompaktes 1×2-Raketenwidget
+# FitRocket v0.15.7 – Neues kompaktes 2×1-Widget
 
-Zusätzlich zu den Widgets Horizontal (4×2) und Vertikal (2×3) gibt es jetzt **FitRocket – Kompakt 1×2**.
+Zusätzlich zu den bestehenden Varianten (4×2, 2×3 und 1×2) gibt es jetzt ein **flaches 2×1-Widget**.
 
-- Für **eine Spalte und zwei Reihen** ausgelegt: Android-Widget-Metadaten `targetCellWidth=1`, `targetCellHeight=2`.
-- Übersicht auf engstem Raum: **verfügbare Tagespunkte**, **getrunkene Liter** und ein **miniaturisierter Wasser-Fortschrittsbalken**.
-- Dezente halbtransparente Rakete vor dem dunklen FitRocket-Hintergrund.
-- Extra kurze Beschriftungen, automatische Textgrößenanpassung und schmale Innenabstände.
-- Automatische Aktualisierung aller drei Widget-Varianten bei neuen Einträgen, Trinkmengenänderungen sowie Datum-/Zeitwechsel.
-- Durch Antippen startet FitRocket.
+- Links: Restpunkte des heutigen Tages in großer Schrift.
+- Rechts: aktuell getrunkene Liter.
+- Dunkler FitRocket-Hintergrund mit halbtransparenter Rakete.
+- Besonders kurze Beschriftungen und automatische Schriftgrößenanpassung.
+- Läuft über die bereits vorhandene Widget-Aktualisierung bei Mahlzeiten, Trinkmengenänderungen und Tageswechsel.
+- Antippen öffnet FitRocket; keine neue Berechtigung oder Cloud-Verbindung.
+- Das kompakte Format verzichtet aus Platzgründen auf den Wasserbalken und genutzte Punkte.
+- Auf Android kann die endgültige Größe je nach Homescreen-Launcher von 2×1 abweichen.
 
-**Einrichtung:** Android-Startbildschirm lange antippen → Widgets → FitRocket → **Kompakt 1×2**.
+**Hinzufügen:** Startbildschirm lange berühren → Widgets → FitRocket → **Kompakt 2×1**.
 
-Die tatsächlichen Zellenmaße hängen vom Android-Launcher ab. Manche Launcher können Widgets anders anordnen oder eine größere Mindestgröße erzwingen.
-
-Bestehende App-Daten, Widget-Versionen und Signatur bleiben erhalten.
+Die bisherige Signierung sowie gespeicherte Mahlzeiten, Wasser- und Kontostände bleiben erhalten.

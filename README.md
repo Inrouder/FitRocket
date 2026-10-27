@@ -6,6 +6,10 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
+## FitRocket v0.15.7 – Auch als 2×1-Widget
+
+Ab sofort gibt es neben den bestehenden Größen auch **FitRocket – Kompakt 2×1**. Das schmale Querformat zeigt die Restpunkte und die getrunkene Wassermenge über einer dezenten Rakete.
+
 ## FitRocket v0.15.6 – Kompaktes 1×2-Widget
 
 Unter **Android Widgets → FitRocket** findest du nun zusätzlich ein echtes **Kompakt 1×2-Widget** mit Tagesrestpunkten, Wasserstand und Raketenhintergrund. Die bisherigen Varianten bleiben erhalten.

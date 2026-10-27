@@ -29,6 +29,10 @@ public final class FitRocketWidget extends AppWidgetProvider {
         int[] small=manager.getAppWidgetIds(compact);
         if(small!=null && small.length>0)
             updateWidgets(context,manager,small,R.layout.fitrocket_widget_compact);
+        ComponentName mini=new ComponentName(context,FitRocketWidgetMiniHorizontal.class);
+        int[] miniIds=manager.getAppWidgetIds(mini);
+        if(miniIds!=null && miniIds.length>0)
+            updateWidgets(context,manager,miniIds,R.layout.fitrocket_widget_mini_horizontal);
         ComponentName slim=new ComponentName(context,FitRocketWidgetCompactHorizontal.class);
         int[] slimIds=manager.getAppWidgetIds(slim);
         if(slimIds!=null && slimIds.length>0)
@@ -47,12 +51,14 @@ public final class FitRocketWidget extends AppWidgetProvider {
             boolean isCompact=layoutId==R.layout.fitrocket_widget_compact ||
                 layoutId==R.layout.fitrocket_widget_compact_horizontal;
             views.setTextViewText(R.id.widget_points,
-                isCompact?data.remainingText()+" P":data.remainingText()+" P übrig");
-            views.setTextViewText(R.id.widget_used,
-                isCompact?"übrig":data.usedText()+" / "+data.budget+" P genutzt");
+                smallDisplay?data.remainingText()+" P":data.remainingText()+" P übrig");
+            if(!isMiniHorizontal)
+                views.setTextViewText(R.id.widget_used,
+                    isCompact?"übrig":data.usedText()+" / "+data.budget+" P genutzt");
             views.setTextViewText(R.id.widget_water,
-                isCompact?data.waterText()+" L":data.waterText()+" / "+data.waterGoalText()+" L");
-            views.setProgressBar(R.id.widget_water_bar,100,data.waterPercent(),false);
+                smallDisplay?data.waterText()+" L":data.waterText()+" / "+data.waterGoalText()+" L");
+            if(!isMiniHorizontal)
+                views.setProgressBar(R.id.widget_water_bar,100,data.waterPercent(),false);
 
             Intent open=new Intent(context,MainActivity.class);
             open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
