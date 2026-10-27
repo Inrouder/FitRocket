@@ -66,7 +66,7 @@ public class FitRocketGeminiApiTest {
             .put("candidates", new JSONArray().put(
                 new JSONObject().put("finishReason", "STOP")
                 .put("content", new JSONObject().put("parts", new JSONArray().put(
-                    new JSONObject().put("text", "{\\\"title\\\":\\\"Test\\\"}"))))));
+                    new JSONObject().put("text", new JSONObject().put("title", "Test").toString()))))));
 
         assertEquals("Test",
             new JSONObject(FitRocketGeminiApi.responseJson(result)).getString("title"));
