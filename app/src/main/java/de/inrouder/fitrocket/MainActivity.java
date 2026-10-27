@@ -708,6 +708,304 @@ public class MainActivity extends Activity {
       });
   }
 
+
+  private class AiIngredientEditor {
+    final JSONObject original;
+    final EditText name,grams,kcal,saturated,sugar,protein;
+    final CheckBox useCatalog;
+    final JSONObject matched;
+
+    AiIngredientEditor(JSONObject source,boolean forcedManual,LinearLayout target){
+      original=source;
+      matched=forcedManual?null:FitRocketAiRules.matchCatalog(
+          source.optString("food_id"),source.optString("name"),foods);
+      LinearLayout card=card(Color.WHITE);
+      name=edit("Zutat",source.optString("name"),1);card.addView(name);
+      grams=edit("Gramm",String.format(Locale.GERMAN,"%.0f",source.optDouble("grams",100)),8194);
+      card.addView(label("Menge (g / ml)",12));card.addView(grams);
+      if(matched!=null){
+        useCatalog=new CheckBox(MainActivity.this);
+        useCatalog.setText("FitRocket-Katalog verwenden: "+
+            ("basic".equals(matched.optString("status"))?"0 Punkte":"bekannte Nährwerte"));
+        useCatalog.setChecked(true);
+        card.addView(useCatalog);
+        card.addView(label("Bei abweichender Verarbeitung (z. B. Öl, Panade, Zucker) "
+            +"Häkchen entfernen und Nährwerte selbst prüfen.",12));
+      }else useCatalog=null;
+      card.addView(label("Schätzungssicherheit: "+source.optString("confidence","niedrig")+
+          " · "+source.optString("note",""),12));
+      LinearLayout nutrition=new LinearLayout(MainActivity.this);nutrition.setOrientation(1);
+      nutrition.addView(label("Angaben pro 100 g / 100 ml (bitte prüfen)",14));
+      kcal=edit("Kalorien",String.format(Locale.GERMAN,"%.1f",source.optDouble("kcal_100g",0)),8194);
+      saturated=edit("Gesättigte Fette",String.format(Locale.GERMAN,"%.1f",source.optDouble("saturated_fat_100g",0)),8194);
+      sugar=edit("Zucker",String.format(Locale.GERMAN,"%.1f",source.optDouble("sugar_100g",0)),8194);
+      protein=edit("Eiweiß",String.format(Locale.GERMAN,"%.1f",source.optDouble("protein_100g",0)),8194);
+      String[] keys={"Kilokalorien","Gesättigte Fettsäuren (g)","Zucker (g)","Eiweiß (g)"};
+      EditText[] fields={kcal,saturated,sugar,protein};
+      for(int i=0;i<fields.length;i++){
+        nutrition.addView(label(keys[i],12));nutrition.addView(fields[i]);
+      }
+      nutrition.setVisibility(forcedManual?View.VISIBLE:View.GONE);
+      Button expand=button("Nährwerte prüfen / bearbeiten");
+      expand.setOnClickListener(v->{
+        boolean open=nutrition.getVisibility()==View.VISIBLE;
+        nutrition.setVisibility(open?View.GONE:View.VISIBLE);
+        expand.setText(open?"Nährwerte prüfen / bearbeiten":"Nährwerte ausblenden");
+      });
+      card.addView(expand);card.addView(nutrition);
+      target.addView(card);
+    }
+
+    JSONObject toJson(boolean forceNewName,String targetName) throws JSONException{
+      String newName=forceNewName?targetName:name.getText().toString().trim();
+      JSONObject x=new JSONObject();
+      x.put("name",newName);
+      x.put("food_id",useCatalog!=null&&useCatalog.isChecked()?original.optString("food_id"):"");
+      x.put("grams",num(grams.getText().toString()));
+      x.put("kcal_100g",num(kcal.getText().toString()));
+      x.put("saturated_fat_100g",num(saturated.getText().toString()));
+      x.put("sugar_100g",num(sugar.getText().toString()));
+      x.put("protein_100g",num(protein.getText().toString()));
+      x.put("confidence",original.optString("confidence","niedrig"));
+      x.put("note",original.optString("note",""));
+      return x;
+    }
+  }
+
+  private JSONObject buildAiReview(String mode,JSONObject original,EditText title,
+          EditText servings,Spinner group,List<AiIngredientEditor> editors) throws JSONException {
+    JSONObject draft=new JSONObject();
+    draft.put("title",title.getText().toString().trim());
+    draft.put("summary",original.optString("summary"));
+    draft.put("instructions",original.optString("instructions"));
+    draft.put("minutes",original.optInt("minutes",20));
+    draft.put("group",group.getSelectedItem().toString());
+    draft.put("servings",("recipe".equals(mode)
+        ?Integer.parseInt(servings.getText().toString().trim()):1));
+    draft.put("confidence",original.optString("confidence","niedrig"));
+    draft.put("uncertainty",original.optString("uncertainty",""));
+    JSONArray items=new JSONArray();
+    for(AiIngredientEditor editor:editors){
+      items.put(editor.toJson("food".equals(mode),draft.optString("title")));
+    }
+    draft.put("ingredients",items);
+    return FitRocketAiRules.validateResponse(draft,mode);
+  }
+
+  private void aiReview(String mode,JSONObject output){
+    shell("KI-Vorschau");
+    LinearLayout hero=card(LAV);
+    hero.addView(label("✨ KI-Vorschlag – überprüfe alles",20));
+    hero.addView(label("FitRocket berechnet die Punkte selbst. Die Schätzung kann von "
+       +"tatsächlichen Mengen und Verpackungswerten deutlich abweichen.",13));
+    hero.addView(label("Sicherheit der KI-Einschätzung: "+output.optString("confidence","niedrig"),14));
+    if(!output.optString("uncertainty").isEmpty())
+      hero.addView(label("Unsicherheiten: "+output.optString("uncertainty"),13));
+    page.addView(hero);
+
+    LinearLayout setup=card(Color.WHITE);
+    setup.addView(label("Titel",14));
+    EditText title=edit("Titel",output.optString("title"),1);setup.addView(title);
+    setup.addView(label("Mahlzeitengruppe",14));
+    Spinner group=groupSpinner();String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
+    for(int i=0;i<groups.length;i++)if(groups[i].equals(output.optString("group")))group.setSelection(i);
+    setup.addView(group);
+    EditText servings=edit("Portionen",String.valueOf(output.optInt("servings",1)),2);
+    if("recipe".equals(mode)){
+      setup.addView(label("Wie viele Portionen ergeben alle Zutaten zusammen?",13));
+      setup.addView(servings);
+    }
+    page.addView(setup);
+
+    JSONArray list=output.optJSONArray("ingredients");
+    ArrayList<AiIngredientEditor> editors=new ArrayList<>();
+    heading("Zutaten und geschätzte Nährwerte");
+    for(int i=0;list!=null&&i<list.length();i++){
+      JSONObject item=list.optJSONObject(i);if(item==null)continue;
+      editors.add(new AiIngredientEditor(item,"food".equals(mode),page));
+    }
+    if("recipe".equals(mode) && !output.optString("instructions").isEmpty()){
+      LinearLayout prep=card(Color.WHITE);
+      prep.addView(label("👩‍🍳 Zubereitung · ca. "+output.optInt("minutes",20)+" Min.",17));
+      prep.addView(label(output.optString("instructions"),14));page.addView(prep);
+    }
+    final TextView points=label("FitRocket berechnet deine Punkte …",19);
+    points.setTypeface(null,1);
+    LinearLayout checkout=card(MINT);checkout.addView(points);
+    Runnable update=()->{
+      try{
+        JSONObject draft=buildAiReview(mode,output,title,servings,group,editors);
+        int pp=FitRocketAiRules.pointsPerServing(draft,foods);
+        points.setText(("recipe".equals(mode)?"Pro Portion: ca. ":"Geschätzt: ca. ")+pp+" FitRocket-Punkte");
+      }catch(Exception error){points.setText("Angaben prüfen – Punkte aktuell nicht berechenbar.");}
+    };
+    TextWatcher watcher=new TextWatcher(){
+      public void beforeTextChanged(CharSequence x,int a,int c,int f){}
+      public void onTextChanged(CharSequence x,int a,int b,int c){update.run();}
+      public void afterTextChanged(Editable x){}
+    };
+    title.addTextChangedListener(watcher);servings.addTextChangedListener(watcher);
+    group.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){
+      public void onItemSelected(android.widget.AdapterView<?> p,View v,int position,long id){update.run();}
+      public void onNothingSelected(android.widget.AdapterView<?> p){}
+    });
+    for(AiIngredientEditor field:editors){
+      for(EditText input:new EditText[]{field.name,field.grams,field.kcal,
+          field.saturated,field.sugar,field.protein})input.addTextChangedListener(watcher);
+      if(field.useCatalog!=null)field.useCatalog.setOnCheckedChangeListener((x,isChecked)->update.run());
+    }
+    update.run();
+    checkout.addView(label("Alle Zutaten sind editierbar. Gespeichert wird erst nach deiner Bestätigung.",12));
+    if("meal".equals(mode)||"recipe".equals(mode)){
+      action(checkout,"🍽 Als Mahlzeit eintragen",()->{
+        try{
+          JSONObject draft=buildAiReview(mode,output,title,servings,group,editors);
+          int score=FitRocketAiRules.pointsPerServing(draft,foods);
+          addMeal(draft.optString("title")+( "recipe".equals(mode)?" (1 Portion)":""),score,
+              "AI_MEAL","KI-Schätzung · überprüft",draft.optString("group"));
+          msg("Mahlzeit mit "+score+" geschätzten Punkten eingetragen.");
+          home();
+        }catch(Exception e){msg("Bitte Zutaten und Nährwerte prüfen: "+e.getMessage());}
+      });
+    }
+    if("recipe".equals(mode)){
+      action(checkout,"💾 Rezept dauerhaft speichern",()->{
+        try{
+          JSONObject draft=buildAiReview(mode,output,title,servings,group,editors);
+          int newCount=0;
+          JSONArray arr=draft.getJSONArray("ingredients");
+          for(int i=0;i<arr.length();i++){
+            JSONObject x=arr.getJSONObject(i);
+            if(FitRocketAiRules.matchCatalog(x.optString("food_id"),x.optString("name"),foods)==null)newCount++;
+          }
+          final int count=newCount;
+          new AlertDialog.Builder(this).setTitle("Rezept speichern?")
+            .setMessage("Das Rezept und "+count+" neue Zutaten werden in deiner lokalen FitRocket-Datenbank gespeichert. "
+              +"Schätzwerte können später von echten Produktdaten abweichen.")
+            .setPositiveButton("Speichern",(d,w)->{
+              try{saveAiRecipe(draft);recipeScreen();msg("Rezept gespeichert.");}
+              catch(Exception error){msg("Rezept konnte nicht gespeichert werden: "+error.getMessage());}
+            }).setNegativeButton("Abbrechen",null).show();
+        }catch(Exception e){msg("Bitte die Zutaten zuerst prüfen: "+e.getMessage());}
+      });
+    }
+    if("food".equals(mode)){
+      action(checkout,"💾 Als neues Lebensmittel speichern",()->{
+        try{
+          JSONObject draft=buildAiReview(mode,output,title,servings,group,editors);
+          JSONObject ingredient=draft.getJSONArray("ingredients").getJSONObject(0);
+          new AlertDialog.Builder(this).setTitle("Lebensmittel übernehmen?")
+            .setMessage("Die Nährwerte dieses Produkts sind KI-Schätzungen. "
+              +"Bei abgepackten Lebensmitteln ist das tatsächliche Etikett maßgeblich. "
+              +"Möchtest du es nach Prüfung in deine persönliche Lebensmittelliste aufnehmen?")
+            .setPositiveButton("Speichern",(d,w)->{
+              try{JSONObject food=FitRocketAiRules.newFood(ingredient,"AI");
+                saveAiFood(food);msg("Lebensmittel wurde hinzugefügt.");foodDialog(food);
+              }catch(Exception err){msg("Lebensmittel konnte nicht gespeichert werden.");}
+            }).setNegativeButton("Abbrechen",null).show();
+        }catch(Exception e){msg("Bitte die Nährwerte prüfen: "+e.getMessage());}
+      });
+    }
+    page.addView(checkout);
+  }
+
+  private void saveAiFood(JSONObject food) throws JSONException{
+    JSONArray old=new JSONArray(prefs.getString("aiFoods","[]"));
+    if(old.length()>=250)throw new IllegalStateException("Maximal 250 eigene KI-Lebensmittel");
+    JSONArray newer=new JSONArray();newer.put(food);
+    for(int i=0;i<old.length();i++)newer.put(old.getJSONObject(i));
+    if(!prefs.edit().putString("aiFoods",newer.toString()).commit())
+      throw new IllegalStateException("Speicherfehler");
+    foods.add(0,food);
+  }
+
+  private void saveAiRecipe(JSONObject edited) throws JSONException{
+    JSONArray ingredients=edited.getJSONArray("ingredients");
+    JSONArray priorFoods=new JSONArray(prefs.getString("aiFoods","[]"));
+    JSONArray priorRecipes=new JSONArray(prefs.getString("savedAiRecipes","[]"));
+    if(priorRecipes.length()>=80)throw new IllegalStateException("Maximal 80 eigene Rezepte");
+    JSONArray additions=new JSONArray(),links=new JSONArray();
+    for(int i=0;i<ingredients.length();i++){
+      JSONObject component=ingredients.getJSONObject(i);
+      JSONObject existing=FitRocketAiRules.matchCatalog(
+          component.optString("food_id"),component.optString("name"),foods);
+      JSONObject linked=existing==null?FitRocketAiRules.newFood(component,"AI"):existing;
+      if(existing==null)additions.put(linked);
+      JSONObject line=new JSONObject();
+      line.put("id",linked.getString("id"));
+      line.put("grams",component.getDouble("grams"));
+      links.put(line);
+    }
+    if(priorFoods.length()+additions.length()>250)
+      throw new IllegalStateException("Zu viele eigene Lebensmittel");
+    JSONObject recipe=new JSONObject();
+    recipe.put("id","AIRECIPE"+UUID.randomUUID().toString().replace("-",""));
+    recipe.put("name",edited.optString("title"));
+    recipe.put("group",edited.optString("group"));
+    recipe.put("emoji","✨");
+    recipe.put("minutes",Math.max(1,edited.optInt("minutes",20)));
+    recipe.put("servings",edited.optInt("servings",1));
+    recipe.put("instructions",edited.optString("instructions"));
+    recipe.put("ingredients",links);
+    recipe.put("notes","Mit KI vorgeschlagen; Nährwerte vor dem Kochen prüfen.");
+
+    JSONArray newFoods=new JSONArray();
+    for(int i=0;i<additions.length();i++)newFoods.put(additions.getJSONObject(i));
+    for(int i=0;i<priorFoods.length();i++)newFoods.put(priorFoods.getJSONObject(i));
+    JSONArray newRecipes=new JSONArray();newRecipes.put(recipe);
+    for(int i=0;i<priorRecipes.length();i++)newRecipes.put(priorRecipes.getJSONObject(i));
+    if(!prefs.edit().putString("aiFoods",newFoods.toString())
+      .putString("savedAiRecipes",newRecipes.toString()).commit())
+        throw new IllegalStateException("Rezept konnte nicht gespeichert werden.");
+    for(int i=0;i<additions.length();i++)foods.add(0,additions.getJSONObject(i));
+    recipes.add(0,recipe);
+  }
+
+  private void aiManualFood(){
+    shell("Eigenes Lebensmittel");
+    LinearLayout content=card(Color.WHITE);
+    content.addView(label("🍎 Lebensmittel nach Nährwertetikett erstellen",19));
+    content.addView(label("Dafür brauchst du weder Internet noch einen KI-Schlüssel. "
+        +"Gib die vier Angaben pro 100 g oder 100 ml vom Produkt ein.",13));
+    EditText name=edit("Produktname","",1);content.addView(name);
+    EditText kcal=edit("kcal je 100 g / ml","",8194);
+    EditText saturated=edit("gesättigte Fette g je 100 g / ml","",8194);
+    EditText sugar=edit("Zucker g je 100 g / ml","",8194);
+    EditText protein=edit("Eiweiß g je 100 g / ml","",8194);
+    for(EditText e:new EditText[]{kcal,saturated,sugar,protein})content.addView(e);
+    TextView points=label("Punkte pro 100 g: –",17);content.addView(points);
+    Runnable update=()->{
+      try{points.setText("FitRocket: "+FitRocketAiRules.points(100,
+        num(kcal.getText().toString()),num(saturated.getText().toString()),
+        num(sugar.getText().toString()),num(protein.getText().toString()))+" P pro 100 g");}
+      catch(Exception e){points.setText("Punkte pro 100 g: Bitte alle Werte eingeben.");}
+    };
+    TextWatcher watcher=new TextWatcher(){
+      public void beforeTextChanged(CharSequence x,int a,int b,int c){}
+      public void onTextChanged(CharSequence x,int a,int b,int c){update.run();}
+      public void afterTextChanged(Editable x){}
+    };
+    for(EditText e:new EditText[]{kcal,saturated,sugar,protein})e.addTextChangedListener(watcher);
+    action(content,"💾 Lebensmittel speichern",()->{
+      try{
+        JSONObject item=new JSONObject();
+        item.put("name",name.getText().toString().trim());
+        item.put("grams",100);item.put("food_id","");
+        item.put("kcal_100g",num(kcal.getText().toString()));
+        item.put("saturated_fat_100g",num(saturated.getText().toString()));
+        item.put("sugar_100g",num(sugar.getText().toString()));
+        item.put("protein_100g",num(protein.getText().toString()));
+        JSONObject food=FitRocketAiRules.newFood(item,"OWN");
+        food.put("source","Deine Nährwertangaben");
+        food.put("notes","Selbst eingetragene Nährwerte. Herstellerangaben prüfen.");
+        saveAiFood(food);
+        msg("Eigenes Lebensmittel gespeichert.");
+        foodDialog(food);
+      }catch(Exception error){msg("Bitte den Namen und alle vier Nährwerte korrekt eingeben.");}
+    });
+    page.addView(content);
+  }
+
   private void recipeScreen(){
     shell("Rezepte");
     LinearLayout intro=card(Color.rgb(255,249,239));
