@@ -819,15 +819,6 @@ public class MainActivity extends Activity {
       }).setNegativeButton("Abbrechen",null).show();
   }
 
-  private double referenceWeight(JSONObject food){
-    java.util.regex.Matcher match=java.util.regex.Pattern.compile(
-        "(\\d+(?:[.,]\\d+)?)\\s*(g|ml)\\b",
-        java.util.regex.Pattern.CASE_INSENSITIVE)
-        .matcher(food.optString("portion",""));
-    if(!match.find())return Double.NaN;
-    return Double.parseDouble(match.group(1).replace(',','.'));
-  }
-
   private TextWatcher valueWatcher(Runnable onChanged){
     return new TextWatcher(){
       public void beforeTextChanged(CharSequence s,int start,int count,int after){}
@@ -909,7 +900,7 @@ public class MainActivity extends Activity {
     content.setPadding(dp(20),dp(8),dp(20),dp(8));
     content.addView(label(f.optString("name"),18));
     final String unit=FitRocketFoodDisplay.unit(f);
-    final double reference=referenceWeight(f);
+    final double reference=FitRocketFoodDisplay.portionAmount(f);
     final int fixed=f.optInt("points",0);
     final boolean needsManual=f.isNull("points");
     String portion=f.optString("portion","");
@@ -1954,9 +1945,9 @@ public class MainActivity extends Activity {
       report.optInt("loggedDays")+" protokollierten Tagen",15));
     overall.addView(label(report.optInt("withinBudget")+
        " erfasste Tage innerhalb des Tagesbudgets",14));
-    overall.addView(label("Wochenkonto aktuell: "+availableWeek()+" P",16));
-    overall.addView(label(weekly+" Start + "+rolloversWeek()+" gespart + "+
-      activityCredit()+" Bewegung − "+spentWeek()+" Mehrverbrauch",13));
+    overall.addView(label("Wochenkonto aktuell: "+pt(availableWeek())+" P",16));
+    overall.addView(label(weekly+" Start + "+pt(rolloversWeek())+" gespart + "+
+      activityCredit()+" Bewegung − "+pt(spentWeek())+" Mehrverbrauch",13));
     page.addView(overall);
     LinearLayout water=card(Color.WHITE);
     water.addView(label("💧 Trinkbilanz",17));
@@ -2052,10 +2043,10 @@ public class MainActivity extends Activity {
   private void progressPage(){
     shell("Fortschritt");
     LinearLayout score=card(LAV);
-    TextView week=label("⭐ "+availableWeek()+" Wochenpunkte",21);week.setTypeface(null,1);
+    TextView week=label("⭐ "+pt(availableWeek())+" Wochenpunkte",21);week.setTypeface(null,1);
     score.addView(week);
-    score.addView(label(weekly+" Start · +"+rolloversWeek()+" gespart · +"+
-        activityCredit()+" Bewegung · −"+spentWeek()+" verbraucht",13));
+    score.addView(label(weekly+" Start · +"+pt(rolloversWeek())+" gespart · +"+
+        activityCredit()+" Bewegung · −"+pt(spentWeek())+" verbraucht",13));
     page.addView(score);
     LinearLayout recap=card(Color.WHITE);
     recap.addView(label("📊 Diese Woche im Überblick",18));
@@ -2068,7 +2059,7 @@ public class MainActivity extends Activity {
     recap.addView(label(stats.optInt("waterGoalDays")+" von "+stats.optInt("days")+
        " Tagen Trinkziel erreicht",13));
     recap.addView(label("Wochenstart: "+weekly+" P · Tagesüberträge +"+rolloversWeek()+
-       " P · Bewegung +"+activityCredit()+" P · verwendet −"+spentWeek()+" P",12));
+       " P · Bewegung +"+activityCredit()+" P · verwendet −"+pt(spentWeek())+" P",12));
     action(recap,"Vollständigen Wochenrückblick ansehen",()->weeklyReview());
     page.addView(recap);
 
@@ -2413,8 +2404,8 @@ public class MainActivity extends Activity {
     l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);
     l.addView(label("Wochenstart-Punkte (Standard 28)",14));l.addView(w);
     hint(l,"Montags startet das Wochenkonto neu; maximal 4 P Übertrag pro Tag.");new AlertDialog.Builder(this).setTitle("Budget").setView(l).setPositiveButton("Speichern",(d,n)->{try{int bb=Integer.parseInt(b.getText().toString()),ww=Integer.parseInt(w.getText().toString());if(bb<1||bb>200||ww<0||ww>500)throw new Exception();budget=bb;weekly=ww;prefs.edit().putInt("budget",bb).putInt("weekly",ww).apply();more();}catch(Exception e){msg("Ungültige Budgetwerte.");}}).setNegativeButton("Abbrechen",null).show();}
-  private void statistics(){shell("Statistiken");LocalDate now=LocalDate.now(),start=now.minusDays(now.getDayOfWeek().getValue()-1);page.addView(label("Diese Woche",20));double weeklyUsed=0;for(int i=0;i<7;i++){LocalDate date=start.plusDays(i);double n=used(date.toString());weeklyUsed+=n;page.addView(label(date.getDayOfWeek().toString().substring(0,2)+" "+pretty(date.toString())+": "+pt(n)+" Punkte",15));}page.addView(label("Gesamt: "+pt(weeklyUsed)+" Punkte; Ø "+String.format(Locale.GERMAN,"%.1f",weeklyUsed/7.0)+" pro Kalendertag",15));page.addView(label("Dieser Monat",20));LocalDate first=now.withDayOfMonth(1);double total=0;int tracked=0,days=now.getDayOfMonth();for(int i=0;i<days;i++){String day=first.plusDays(i).toString();total+=used(day);if(count(day)>0)tracked++;}page.addView(label("Erfasste Punkte: "+pt(total)+" · Tage mit Einträgen: "+tracked+" / "+days,16));page.addView(label("Wochenkonto: "+weekly+" Start + "+rolloversWeek()+" Tagesübertrag + "
-   +activityCredit()+" Bewegungsbonus − "+spentWeek()+" verbraucht = "+availableWeek()+" Punkte übrig",15));page.addView(label("Ø je dokumentiertem Tag: "+(tracked>0?String.format(Locale.GERMAN,"%.1f",total/(double)tracked):"–"),16));if(showHints())page.addView(label("Achtung: Fehlende Tage gelten nicht als Null-Punkte-Tage.",13));if(!weights.isEmpty()){page.addView(label("Gewichtseinträge: "+weights.size(),16));for(int i=weights.size()-1;i>=Math.max(0,weights.size()-8);i--)page.addView(label(pretty(weights.get(i).optString("date"))+" · "+weights.get(i).optString("kg")+" kg",14));}}
+  private void statistics(){shell("Statistiken");LocalDate now=LocalDate.now(),start=now.minusDays(now.getDayOfWeek().getValue()-1);page.addView(label("Diese Woche",20));double weeklyUsed=0;for(int i=0;i<7;i++){LocalDate date=start.plusDays(i);double n=used(date.toString());weeklyUsed+=n;page.addView(label(date.getDayOfWeek().toString().substring(0,2)+" "+pretty(date.toString())+": "+pt(n)+" Punkte",15));}page.addView(label("Gesamt: "+pt(weeklyUsed)+" Punkte; Ø "+String.format(Locale.GERMAN,"%.1f",weeklyUsed/7.0)+" pro Kalendertag",15));page.addView(label("Dieser Monat",20));LocalDate first=now.withDayOfMonth(1);double total=0;int tracked=0,days=now.getDayOfMonth();for(int i=0;i<days;i++){String day=first.plusDays(i).toString();total+=used(day);if(count(day)>0)tracked++;}page.addView(label("Erfasste Punkte: "+pt(total)+" · Tage mit Einträgen: "+tracked+" / "+days,16));page.addView(label("Wochenkonto: "+weekly+" Start + "+pt(rolloversWeek())+" Tagesübertrag + "
+   +activityCredit()+" Bewegungsbonus − "+pt(spentWeek())+" verbraucht = "+pt(availableWeek())+" Punkte übrig",15));page.addView(label("Ø je dokumentiertem Tag: "+(tracked>0?String.format(Locale.GERMAN,"%.1f",total/(double)tracked):"–"),16));if(showHints())page.addView(label("Achtung: Fehlende Tage gelten nicht als Null-Punkte-Tage.",13));if(!weights.isEmpty()){page.addView(label("Gewichtseinträge: "+weights.size(),16));for(int i=weights.size()-1;i>=Math.max(0,weights.size()-8);i--)page.addView(label(pretty(weights.get(i).optString("date"))+" · "+weights.get(i).optString("kg")+" kg",14));}}
   private double latestWeight(){
     double value=0;String lastDate="";
     for(JSONObject x:weights){
@@ -2687,8 +2678,8 @@ public class MainActivity extends Activity {
     overview.addView(label("Diese Woche: "+earnedWeek()+" Bewegungspunkte",20));
     overview.addView(label("Training: "+workoutPointsWeek()+" · Schritte: "+totalStepPointsWeek(),15));
     overview.addView(label("Zum Wochenbudget: +"+activityCredit()+" Punkte",16));
-    overview.addView(label("Wochenkonto: "+weekly+" Start + "+rolloversWeek()+" Übertrag + "
-        +activityCredit()+" Bewegung − "+spentWeek()+" verbraucht = "+availableWeek()+" übrig",14));
+    overview.addView(label("Wochenkonto: "+weekly+" Start + "+pt(rolloversWeek())+" Übertrag + "
+        +activityCredit()+" Bewegung − "+pt(spentWeek())+" verbraucht = "+pt(availableWeek())+" übrig",14));
     overview.addView(label("Täglich höchstens 4 ungenutzte Punkte, Gutschrift erst am Folgetag. Jeden Montag beginnt das Konto neu.",12));
     overview.addView(label("Tagesbudget bleibt: "+budget+" Punkte",13));page.addView(overview);
     LinearLayout transfers=card(Color.WHITE);
