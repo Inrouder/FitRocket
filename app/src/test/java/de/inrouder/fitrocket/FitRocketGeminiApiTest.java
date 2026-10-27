@@ -17,10 +17,27 @@ import static org.junit.Assert.*;
 public class FitRocketGeminiApiTest {
 
     @Test public void defaultIsFreeTierFlashLite() {
-        assertEquals("gemini-2.5-flash-lite", FitRocketGeminiApi.DEFAULT_MODEL);
+        assertEquals("gemini-3.5-flash-lite", FitRocketGeminiApi.DEFAULT_MODEL);
         assertEquals(FitRocketGeminiApi.MODEL_LITE, FitRocketGeminiApi.safeModel("random-model"));
+        assertEquals("gemini-3.8-flash", FitRocketGeminiApi.MODEL_FLASH);
         assertEquals(FitRocketGeminiApi.MODEL_FLASH,
             FitRocketGeminiApi.safeModel(FitRocketGeminiApi.MODEL_FLASH));
+    }
+
+    @Test public void legacySelectionFromPreviousReleaseIsMigratedAutomatically() {
+        assertEquals(FitRocketGeminiApi.MODEL_LITE,
+            FitRocketGeminiApi.safeModel("gemini-2.5-flash-lite"));
+        assertEquals(FitRocketGeminiApi.MODEL_FLASH,
+            FitRocketGeminiApi.safeModel("gemini-2.5-flash"));
+        assertEquals(FitRocketGeminiApi.MODEL_LITE,
+            FitRocketGeminiApi.safeModel(null));
+    }
+
+    @Test public void outdatedModel404ExplainsProjectAccessAndNewChoices() {
+        String message = FitRocketGeminiApi.errorMessage(404, "");
+        assertTrue(message.contains("404"));
+        assertTrue(message.contains("3.5 Flash-Lite"));
+        assertTrue(message.contains("3.8 Flash"));
     }
 
     @Test public void requestCarriesSystemPromptAndSchemaButNoPrivateCatalog() throws Exception {
