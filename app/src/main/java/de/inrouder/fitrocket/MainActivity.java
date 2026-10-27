@@ -121,6 +121,7 @@ public class MainActivity extends Activity {
     weekly=prefs.getInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS);
     loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
     FitRocketWaterReminder.schedule(this);
+    FitRocketWidget.refresh(this);
     maybeCheckUpdatesOnLaunch();
     if(saved!=null){
       String selectedDate=saved.getString("fitrocketDiaryDate",today());
@@ -138,7 +139,7 @@ public class MainActivity extends Activity {
     super.onSaveInstanceState(out);
   }
   private void readArray(String key,ArrayList<JSONObject> into){into.clear();try{JSONArray arr=new JSONArray(prefs.getString(key,"[]"));for(int i=0;i<arr.length();i++)into.add(arr.getJSONObject(i));}catch(Exception ignored){}}
-  private void persist(String key,ArrayList<JSONObject> items){JSONArray a=new JSONArray();for(JSONObject x:items)a.put(x);prefs.edit().putString(key,a.toString()).apply();}
+  private void persist(String key,ArrayList<JSONObject> items){JSONArray a=new JSONArray();for(JSONObject x:items)a.put(x);prefs.edit().putString(key,a.toString()).apply();if("meals".equals(key))FitRocketWidget.refresh(this);}
   private void loadFoods(){try(InputStream in=getAssets().open("foods.json")){ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);JSONArray a=new JSONArray(new String(o.toByteArray(),StandardCharsets.UTF_8));for(int i=0;i<a.length();i++)foods.add(a.getJSONObject(i));}catch(Exception e){msg("Lebensmitteldatenbank konnte nicht geladen werden.");}}
   private void loadRecipes(){
     recipes.clear();
@@ -378,6 +379,7 @@ public class MainActivity extends Activity {
       if(ml<0||ml>10000)throw new IllegalArgumentException();
       JSONObject map=waterDays();map.put(day,ml);
       prefs.edit().putString("waterDays",map.toString()).apply();
+      FitRocketWidget.refresh(this);
     }catch(Exception e){msg("Trinkmenge konnte nicht gespeichert werden.");}
   }
   private int waterGoal(){return prefs.getInt("waterGoal",1500);}
@@ -391,6 +393,7 @@ public class MainActivity extends Activity {
           int goal=Integer.parseInt(amount.getText().toString().trim());
           if(goal<250||goal>6000||goal%250!=0)throw new Exception();
           prefs.edit().putInt("waterGoal",goal).apply();
+          FitRocketWidget.refresh(this);
           paintWaterCard(target,day);
         }catch(Exception e){msg("Bitte 250 bis 6000 ml in 250-ml-Schritten eingeben.");}
       }).setNegativeButton("Abbrechen",null).show();
@@ -2690,6 +2693,7 @@ public class MainActivity extends Activity {
   }
   @Override protected void onResume(){
     super.onResume();
+    FitRocketWidget.refresh(this);
     if(waitingForUpdatePermission && FitRocketInAppUpdate.hasInstallerPermission(this)){
       waitingForUpdatePermission=false;
       java.io.File apk=FitRocketInAppUpdate.updateFile(this);
