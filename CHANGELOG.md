@@ -1,5 +1,14 @@
 # FitRocket – Versionshinweise
 
+## 0.13.0 – Raketen-Icon und eigenes Signaturzertifikat
+- Eigenes adaptives Android-App-Icon mit Rakete und gesundem Food-Akzent.
+- Dauerhafte Release-Signatur mit privatem Keystore aus vier GitHub-Actions-Secrets vorbereitet.
+- Offizielle GitHub Releases werden ab dieser Version ausschließlich nach erfolgreichem signiertem Build veröffentlicht.
+- GitHub-Runner prüft die APK-Signatur mittels Android apksigner vor Veröffentlichung.
+- Fehlende Secrets: Debug-Artefakt nur für Entwicklung, kein stabiles Release. Unvollständige Secrets: CI-Fehler statt unsicherer Veröffentlichung.
+- Signierdateien und Kennwort-Dateien in .gitignore aufgenommen.
+- Ausführliche Windows-PowerShell-Anleitung und Migrationshinweis für bereits installierte Debug-Versionen.
+
 ## 0.12.1 – Systemnavigation und KI-Gerichte
 - Navigation auf Android 15/Edge-to-Edge und Drei-Tasten-Geräten mit getrennten Window Insets für Kopf- und Fußbereich korrigiert.
 - KI-Erfassung nach Frühstück/Mittagessen/Abendessen/Snack/Getränke analysiert jetzt vollständige Gerichte mit mehreren Zutaten.

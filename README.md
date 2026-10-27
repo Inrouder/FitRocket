@@ -6,7 +6,19 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
-## FitRocket v0.12.1
+## FitRocket v0.13.0 – Raketen-Icon und dauerhaftes Update-Zertifikat
+
+**Neues App-Icon:** FitRocket hat ein adaptives Raketen-Icon mit dunklem Nachthimmel, orangem Antrieb und einem grünen Blatt. Es wird vom Android-Launcher in passender Form dargestellt.
+
+**Dauerhafte Android-Updates:** GitHub Actions kann jetzt eine mit deinem **privaten, dauerhaft gültigen Signaturzertifikat** signierte Release-APK erstellen. Der Keystore wird ausschließlich aus GitHub Actions Secrets beim Build eingelesen. Solange keine vier Secrets hinterlegt sind, gibt es **nur Test-Builds**, aber keine neuen stabilen Veröffentlichungen.
+
+**Einmalige Einrichtung:** [Schritt-für-Schritt-Anleitung: Zertifikat unter Windows erstellen und GitHub-Secrets eintragen](docs/SIGNING.md).
+
+**Achtung beim Signaturwechsel:** Die bisher über CI verteilte Debug-App v0.12.1 hat höchstwahrscheinlich einen anderen Schlüssel. Beim ersten Wechsel auf die neue Release-Signatur musst du daher die alten Daten exportieren, die Debug-App deinstallieren, die neue signierte App installieren und das Backup importieren. Danach funktionieren Folgeupdates mit demselben Keystore.
+
+**Bis der Signaturschlüssel eingerichtet ist, ist die offizielle stabile Version weiterhin v0.12.1**. Das ist Absicht, damit kein unsignierter oder anders signierter Build als stabiles Update bereitgestellt wird.
+
+## Änderungen aus FitRocket v0.12.1
 
 **Neu:** Korrigierte untere Navigation oberhalb der Android-Systemtasten und ganze Gerichte per KI berechnen. Beim Hinzufügen zu Frühstück, Mittagessen, Abendessen, Snack oder Getränke findest du jetzt **„Ganzes Gericht mit KI berechnen“**. Das Gericht wird in geschätzte Zutaten und Mengen zerlegt; die eigene FitRocket-Punkteformel berechnet den Gesamtwert. Ein bestätigtes Gericht wird als ein Tagebucheintrag mit später sichtbarer Zutatenliste gespeichert.
 

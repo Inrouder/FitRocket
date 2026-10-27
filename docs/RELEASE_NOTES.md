@@ -1,23 +1,15 @@
-# FitRocket v0.12.1 – Bessere Navigation und KI-Gerichte
+# FitRocket v0.13.0 – Dauerhafte Updates und Raketen-Icon
 
-## Android-Navigationsleiste
-- Die FitRocket-Menüleiste berücksichtigt auf Android 11+ eigene Window Insets für die Systemgesten- und Navigationsleiste.
-- Auch Android 15 mit Edge-to-Edge-Layout und Geräte mit den drei Android-Tasten werden berücksichtigt.
-- Zusätzlicher unterer Sicherheitsabstand und bessere Bedienbarkeit im Dunkelmodus.
+### Adaptive Rakete
+FitRocket besitzt ein neues, eigenständiges Android-App-Icon mit Rakete, Raketenantrieb und einem dezenten Ernährungsakzent.
 
-## Ganze Gerichte per KI erfassen
-- Beim Hinzufügen zu **Frühstück, Mittagessen, Abendessen, Snack oder Getränke** gibt es jetzt die Option **„Ganzes Gericht mit KI berechnen“**.
-- Auch auf der Lebensmittel-Suchseite verfügbar. Die Erfassung eines **einzelnen Produkts** bleibt separat möglich.
-- Die KI zerlegt eine Beschreibung wie „Eierpfannkuchen mit Milch, Mehl, Eiern, Butter und Marmelade“ in Zutaten und schätzt die jeweiligen Mengen und Nährwerte.
-- FitRocket addiert die Punkte der Zutaten selbst anhand seiner bestehenden Formel, statt einem von der KI genannten Gesamtwert zu vertrauen.
-- Alle Zutaten und Portionsgrößen können vor der Buchung überprüft, geändert, entfernt oder ergänzt werden.
-- Beim Speichern wird **ein** Gericht als Mahlzeit für den gewählten Tag und die gewählte Mahlzeitengruppe eingetragen.
-- Die bestätigte Zutatenliste bleibt mit dem Tagebucheintrag gespeichert und kann später über **„Zutaten & Berechnung ansehen“** aufgerufen werden.
-- Die bisherigen Basislebensmittel mit null Punkten behalten ihre Sonderbehandlung nur bei exakter Katalogübereinstimmung.
+### Langfristige Updatefähigkeit
+FitRocket v0.13.0 ist die erste Version, die **ausschließlich signiert mit einem eigenen dauerhaften Keystore** als offizielles GitHub Release veröffentlicht wird. Die Buildpipeline testet zunächst die App, erstellt danach bei vorhandenen Secrets die signierte Release-APK und prüft sie vor dem Upload. Ohne Signaturschlüssel gibt es nur einen Debug-Test-Build.
 
-## Qualität
-- Automatisierte Berechnungstests umfassen nun auch gemischte Gerichte und Portionsskalierung.
-- Ein tatsächlicher KI-Aufruf erfordert weiterhin einen persönlich hinterlegten API-Schlüssel.
-- Schätzwerte können stark von tatsächlichen Zutaten abweichen. Insbesondere Öl, Butter und Soßen überprüfen.
+### Einmaliger Übergang für bestehende Installationen
+Ältere GitHub-APK-Veröffentlichungen nutzten Debug-Signaturen. Android akzeptiert Updates nur mit demselben Zertifikat. Deshalb sind beim Wechsel auf v0.13.0 ggf. ein Backup, die Deinstallation der alten App und danach Import des Backups notwendig. Ab dann gelten der neue Schlüssel und die feste Signatur für alle Updates.
 
-Die App-Daten bleiben bei normalem Update erhalten. Vor der Installation empfehlen wir ein JSON-Backup.
+### Einrichtung
+Die Erstellung des privaten Keystores und die GitHub-Secrets sind ausführlich unter `docs/SIGNING.md` beschrieben. Halte den Key privat und sichere ihn mehrfach.
+
+Die Funktionen aus v0.12.1 bleiben unverändert: Mahlzeiten, KI-Gerichte, Wasser, Gewicht, Fortschritt, Hell-/Dunkelmodus, Updates und Backup.
