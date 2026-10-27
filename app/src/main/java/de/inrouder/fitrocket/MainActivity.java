@@ -743,12 +743,30 @@ public class MainActivity extends Activity {
     dialog.setOnShowListener(x->dialog.getButton(-1).setOnClickListener(v->{
       try{double grams=num(amount.getText().toString());int pts=calcForGrams(f,grams);
         addMeal(f.optString("name")+" ("+FitRocketFoodDisplay.quantityLabel(f,grams)+")",pts,f.optString("id"),"Nährwertschätzung",group.getSelectedItem().toString());
+        if(!meals.isEmpty()) {
+          try { JSONObject saved=meals.get(meals.size()-1);
+            saved.put("quantity",grams);saved.put("quantityUnit",FitRocketFoodDisplay.unit(f));
+            saved.put("baseName",f.optString("name"));
+            persist("meals",meals);
+          } catch(JSONException ignored){}
+        }
         dialog.dismiss();afterMealAdded();
       }catch(Exception ex){msg("Bitte eine gültige Menge angeben.");}
     }));
     dialog.show();
   }
-  private void foodDialog(JSONObject f){if("nutrition".equals(f.optString("status"))){nutritionDialog(f);return;}LinearLayout content=new LinearLayout(this);content.setPadding(22,8,22,8);content.setOrientation(1);content.addView(label(f.optString("category")+"\n"+kind(f)+"\nPortion: "+f.optString("portion")+"\n"+f.optString("notes"),14));EditText mult=edit("Portionsfaktor","1",8194),points=edit("Punkte pro Portion",f.isNull("points")?"":String.valueOf(f.optInt("points")),2);content.addView(label("Portionsfaktor: bei 150 g Referenzportion z. B. 0,5 für 75 g",13));content.addView(mult);content.addView(points);Spinner group=groupSpinner();content.addView(group);AlertDialog d=new AlertDialog.Builder(this).setTitle(f.optString("name")).setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Buchen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{double factor=Double.parseDouble(mult.getText().toString().replace(',','.'));int pointsPer=Integer.parseInt(points.getText().toString());if(!Double.isFinite(factor)||factor<=0||factor>100||pointsPer<0||pointsPer>2000)throw new Exception();int total=(int)Math.round(pointsPer*factor);if(total>2000)throw new Exception();addMeal(f.optString("name")+" × "+factor,total,f.optString("id"),kind(f),group.getSelectedItem().toString());d.dismiss();afterMealAdded();}catch(Exception ex){msg("Bitte gültige Portion und Punkte eingeben.");}}));d.show();}
+  private void foodDialog(JSONObject f){if("nutrition".equals(f.optString("status"))){nutritionDialog(f);return;}LinearLayout content=new LinearLayout(this);content.setPadding(22,8,22,8);content.setOrientation(1);content.addView(label(f.optString("category")+"\n"+kind(f)+"\nPortion: "+f.optString("portion")+"\n"+f.optString("notes"),14));EditText mult=edit("Portionsfaktor","1",8194),points=edit("Punkte pro Portion",f.isNull("points")?"":String.valueOf(f.optInt("points")),2);content.addView(label("Portionsfaktor: bei 150 g Referenzportion z. B. 0,5 für 75 g",13));content.addView(mult);content.addView(points);Spinner group=groupSpinner();content.addView(group);AlertDialog d=new AlertDialog.Builder(this).setTitle(f.optString("name")).setView(content).setNegativeButton("Abbrechen",null).setPositiveButton("Buchen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{double factor=Double.parseDouble(mult.getText().toString().replace(',','.'));int pointsPer=Integer.parseInt(points.getText().toString());if(!Double.isFinite(factor)||factor<=0||factor>100||pointsPer<0||pointsPer>2000)throw new Exception();int total=(int)Math.round(pointsPer*factor);if(total>2000)throw new Exception();addMeal(f.optString("name")+" × "+factor,total,f.optString("id"),kind(f),group.getSelectedItem().toString());
+      if(!meals.isEmpty()){
+        JSONObject saved=meals.get(meals.size()-1);
+        saved.put("baseName",f.optString("name"));
+        java.util.regex.Matcher qty=java.util.regex.Pattern.compile("(\\d+(?:[.,]\\d+)?)\\s*(g|ml)").matcher(f.optString("portion",""));
+        if(qty.find()){
+          double amount=Double.parseDouble(qty.group(1).replace(',','.'))*factor;
+          saved.put("quantity",amount);saved.put("quantityUnit",qty.group(2).toLowerCase(Locale.ROOT));
+        }
+        persist("meals",meals);
+      }
+      d.dismiss();afterMealAdded();}catch(Exception ex){msg("Bitte gültige Portion und Punkte eingeben.");}}));d.show();}
   private Spinner groupSpinner(){
     Spinner s=new Spinner(this);
     String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
