@@ -283,13 +283,14 @@ public class MainActivity extends Activity {
     lastRenderedDate=today();
     LinearLayout frame=new LinearLayout(this);frame.setOrientation(1);
     frame.setBackgroundColor(FitRocketTheme.background(this));
-    // Android 15+ enforces edge-to-edge content for recent target SDKs.
-    // Respect both status/navigation insets instead of rendering beneath system icons.
-    if(Build.VERSION.SDK_INT>=35){
+    // Android 15+ draws content edge-to-edge. Give the header the top inset
+    // and the bottom navigation its own bottom inset (never overlap 3-button
+    // controls or the gesture handle). Return unconsumed insets to children.
+    if(Build.VERSION.SDK_INT>=30){
       frame.setOnApplyWindowInsetsListener((view,insets)->{
         android.graphics.Insets bars=insets.getInsets(
-          WindowInsets.Type.statusBars()|WindowInsets.Type.navigationBars());
-        view.setPadding(0,bars.top,0,bars.bottom);
+          WindowInsets.Type.statusBars()|WindowInsets.Type.displayCutout());
+        view.setPadding(bars.left,bars.top,bars.right,0);
         return insets;
       });
     }
@@ -313,7 +314,21 @@ public class MainActivity extends Activity {
     }
 
     LinearLayout nav=new LinearLayout(this);nav.setOrientation(0);
-    nav.setPadding(dp(5),dp(7),dp(5),dp(9));
+    final int navLeft=dp(5),navTop=dp(7),navRight=dp(5),navBottom=dp(12);
+    nav.setPadding(navLeft,navTop,navRight,navBottom);
+    if(Build.VERSION.SDK_INT>=30){
+      nav.setOnApplyWindowInsetsListener((view,insets)->{
+        android.graphics.Insets bars=insets.getInsets(
+          WindowInsets.Type.navigationBars()|WindowInsets.Type.systemGestures());
+        // Some 3-button OEM implementations report no nav inset until after layout.
+        int bottom=Math.max(bars.bottom,dp(22));
+        view.setPadding(navLeft,navTop,navRight,navBottom+bottom);
+        return insets;
+      });
+    }else{
+      // Legacy fitsSystemWindows keeps the OS button area outside the app.
+      frame.setFitsSystemWindows(true);
+    }
     nav.setBackground(shape(surface(),17));
     String[] labels={"⌂\nHeute","⌕\nSuche","▣\nTagebuch","▤\nFortschritt","◉\nProfil"};
     int active="FitRocket".equals(heading)?0:
@@ -342,6 +357,10 @@ public class MainActivity extends Activity {
       });
     }
     frame.addView(nav);
+    if(Build.VERSION.SDK_INT>=30){
+      frame.requestApplyInsets();
+      nav.requestApplyInsets();
+    }
   }
   private int used(String date){int total=0;for(JSONObject x:meals)if(date.equals(x.optString("date")))total+=x.optInt("points");return total;}
   private int count(String date){int n=0;for(JSONObject x:meals)if(date.equals(x.optString("date")))n++;return n;}
@@ -568,7 +587,7 @@ public class MainActivity extends Activity {
       if(count==0)section.addView(label("Noch nichts eingetragen · Tippe auf ＋",13));
       else{
         for(JSONObject m:meals){
-          if(date.equals(m.optString("date"))&&group.equals(m.optString("group")))
+          if(date.equals(m.optString("date"))&&group.equals(mealGroup(m)))
             mealRow(m,section);
         }
       }
@@ -604,7 +623,16 @@ public class MainActivity extends Activity {
     barcodeRow.addView(manualCode,new LinearLayout.LayoutParams(0,dp(50),1));
     scanner.setOnClickListener(v->scanBarcode());manualCode.setOnClickListener(v->barcodeManualDialog());
     searchCard.addView(barcodeRow);
-    action(searchCard,"✨ Lebensmittel per KI einschätzen",()->aiCompose("food"));
+    if(bookingGroup!=null){
+      LinearLayout mealHint=card(MINT);
+      mealHint.addView(label("🍽 Für "+bookingGroup+" · "+pretty(bookingDate==null?today():bookingDate),15));
+      mealHint.addView(label("Beschreibe ein ganzes Gericht. Die KI erkennt die Zutaten, schätzt die Mengen und summiert die Punkte.",13));
+      action(mealHint,"✨ Ganzes Gericht mit KI berechnen",()->aiCompose("meal"));
+      searchCard.addView(mealHint);
+    }else{
+      action(searchCard,"✨ Ganzes Gericht mit KI berechnen",()->aiCompose("meal"));
+    }
+    action(searchCard,"🍎 Einzelnes Lebensmittel mit KI hinzufügen",()->aiCompose("food"));
     page.addView(searchCard);
     heading("Deine Lebensmittelauswahl");
     LinearLayout results=new LinearLayout(this);results.setOrientation(1);page.addView(results);
@@ -752,7 +780,7 @@ public class MainActivity extends Activity {
     LinearLayout tasks=card(Color.WHITE);tasks.addView(label("Was möchtest du machen?",17));
     action(tasks,"🍲 Rezept nach meinen Vorlieben",()->aiCompose("recipe"));
     action(tasks,"🍽 Gegessene Mahlzeit einschätzen",()->aiCompose("meal"));
-    action(tasks,"🍎 Neues Lebensmittel einschätzen",()->aiCompose("food"));
+    action(tasks,"🍎 Einzelnes Produkt einschätzen",()->aiCompose("food"));
     page.addView(tasks);
 
     LinearLayout taste=card(MINT);
@@ -873,13 +901,13 @@ public class MainActivity extends Activity {
 
   private void aiCompose(String mode){
     String title="recipe".equals(mode)?"Rezeptidee erstellen":
-      "meal".equals(mode)?"Mahlzeit beschreiben":"Lebensmittel einschätzen";
+      "meal".equals(mode)?"Ganzes Gericht beschreiben":"Lebensmittel einschätzen";
     shell("KI-Assistent");
     LinearLayout card=card(Color.WHITE);card.addView(label("✨ "+title,20));
     String example="recipe".equals(mode)
        ?"Was möchtest du essen? Zum Beispiel: proteinreich, vegetarisch, wenig Aufwand, mit Paprika und Reis."
        :"meal".equals(mode)
-          ?"Beispiel: Ich hatte eine Schüssel Reis mit Hähnchen, Paprikasoße und etwas Öl."
+          ?"Beispiel: Zwei Eierpfannkuchen mit Mehl, Milch, etwas Butter und Marmelade. Schätze alle Zutaten zusammen."
           :"Beispiel: Ein Schoko-Protein-Pudding, etwa 200 g, ungesüßt.";
     card.addView(label(example,14));
     EditText input=new EditText(this);
@@ -1061,7 +1089,11 @@ public class MainActivity extends Activity {
       setup.addView(servings);
     }
     page.addView(setup);
-
+    if(bookingGroup!=null && "meal".equals(mode)){
+      for(int i=0;i<groups.length;i++)if(groups[i].equals(bookingGroup))group.setSelection(i);
+      setup.addView(label("Eintrag für "+bookingGroup+" am "+pretty(
+          bookingDate==null?today():bookingDate),13));
+    }
     JSONArray list=output.optJSONArray("ingredients");
     ArrayList<AiIngredientEditor> editors=new ArrayList<>();
     heading("Zutaten und geschätzte Nährwerte");
@@ -1139,8 +1171,16 @@ public class MainActivity extends Activity {
           int score=FitRocketAiRules.pointsPerServing(draft,foods);
           addMeal(draft.optString("title")+( "recipe".equals(mode)?" (1 Portion)":""),score,
               "AI_MEAL","KI-Schätzung · überprüft",draft.optString("group"));
-          msg("Mahlzeit mit "+score+" geschätzten Punkten eingetragen.");
-          home();
+          // Preserve the reviewed composition for later inspection in the diary.
+          if(!meals.isEmpty()){
+            JSONObject saved=meals.get(meals.size()-1);
+            saved.put("aiIngredients",draft.getJSONArray("ingredients"));
+            saved.put("aiUncertainty",draft.optString("uncertainty",""));
+            saved.put("aiEstimated",true);
+            persist("meals",meals);
+          }
+          msg("Gericht mit "+score+" geschätzten Punkten eingetragen.");
+          afterMealAdded();
         }catch(Exception e){msg("Bitte Zutaten und Nährwerte prüfen: "+e.getMessage());}
       });
     }
