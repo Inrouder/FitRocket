@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Orbit arcs keep the symbol recognizable at launcher sizes. -->
+    <path android:fillColor="#00000000"
+        android:strokeColor="#B391FF" android:strokeAlpha="0.96"
+        android:strokeWidth="4" android:strokeLineCap="round"
+        android:pathData="M25,44 C30,25 53,18 73,27"/>
+    <path android:fillColor="#00000000"
+        android:strokeColor="#FFB892" android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M80,48 C84,67 68,85 46,86"/>
+    <!-- Two green leaves visually tie the rocket to healthy food. -->
+    <path android:fillColor="#8FDB9B"
+        android:pathData="M23,46 C16,39 19,28 30,29 C37,37 31,45 23,46 Z"/>
+    <path android:fillColor="#60C48B"
+        android:pathData="M28,50 C27,39 39,36 44,39 C43,49 36,53 28,50 Z"/>
+    <path android:fillColor="#4B9D72"
+        android:strokeColor="#C6F9CB" android:strokeWidth="1"
+        android:pathData="M24,44 L34,42"/>
+    <!-- Orange exhaust with bright center. -->
+    <path android:fillColor="#FF6A45"
+        android:pathData="M41,68 C32,71 22,82 19,92 C31,89 42,81 48,73 Z"/>
+    <path android:fillColor="#FFCE69"
+        android:pathData="M42,69 C33,77 31,83 27,87 C36,84 42,79 46,72 Z"/>
+    <!-- Rocket left fin, main fuselage and right fin. -->
+    <path android:fillColor="#EE595A"
+        android:pathData="M47,60 L32,67 C33,58 36,52 44,49 L53,49 Z"/>
+    <path android:fillColor="#DE4856"
+        android:pathData="M51,63 L60,58 C64,66 60,73 53,79 L48,69 Z"/>
+    <path android:fillColor="#F9FAFF"
+        android:pathData="M40,66 C40,52 54,35 75,24 C78,41 65,60 50,72 Z"/>
+    <path android:fillColor="#D8DDEF"
+        android:pathData="M50,72 C64,61 77,44 75,24 C73,46 58,60 43,68 Z"/>
+    <!-- Coral nose cap and window. -->
+    <path android:fillColor="#FF6B62"
+        android:pathData="M64,31 C69,28 72,26 75,24 C77,29 77,35 74,41 L64,39 Z"/>
+    <path android:fillColor="#293551"
+        android:pathData="M57,46 C57,40 61,36 66,36 C72,36 75,40 75,46 C75,52 71,56 65,56 C60,56 57,52 57,46 Z"/>
+    <path android:fillColor="#FFB58B"
+        android:pathData="M60,46 C60,42 63,39 66,39 C70,39 72,42 72,46 C72,50 69,53 65,53 C62,53 60,50 60,46 Z"/>
+    <path android:fillColor="#674B76"
+        android:pathData="M62,46 C62,43 64,41 66,41 C69,41 70,43 70,46 C70,49 68,51 65,51 C63,51 62,49 62,46 Z"/>
+    <!-- Launch streak -->
+    <path android:fillColor="#00000000"
+        android:strokeColor="#FFA57C"
+        android:strokeWidth="2" android:strokeLineCap="round"
+        android:pathData="M26,75 L20,81"/>
+</vector>
