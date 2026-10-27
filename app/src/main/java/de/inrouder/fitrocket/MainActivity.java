@@ -282,7 +282,18 @@ public class MainActivity extends Activity {
     currentScreen=heading;
     lastRenderedDate=today();
     LinearLayout frame=new LinearLayout(this);frame.setOrientation(1);
-    frame.setBackgroundColor(FitRocketTheme.background(this));setContentView(frame);
+    frame.setBackgroundColor(FitRocketTheme.background(this));
+    // Android 15+ enforces edge-to-edge content for recent target SDKs.
+    // Respect both status/navigation insets instead of rendering beneath system icons.
+    if(Build.VERSION.SDK_INT>=35){
+      frame.setOnApplyWindowInsetsListener((view,insets)->{
+        android.graphics.Insets bars=insets.getInsets(
+          WindowInsets.Type.statusBars()|WindowInsets.Type.navigationBars());
+        view.setPadding(0,bars.top,0,bars.bottom);
+        return insets;
+      });
+    }
+    setContentView(frame);
     ScrollView scroll=new ScrollView(this);scroll.setFillViewport(false);
     scroll.setVerticalScrollBarEnabled(false);
     page=new LinearLayout(this);page.setOrientation(1);
