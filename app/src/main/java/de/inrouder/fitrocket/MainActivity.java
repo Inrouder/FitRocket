@@ -205,7 +205,7 @@ public class MainActivity extends Activity {
     for(JSONObject food:foods){
       if(code.equals(food.optString("barcode"))){
         new AlertDialog.Builder(this).setTitle("Gespeicherter Artikel")
-          .setMessage(food.optString("name")+"\\nMöchtest du ihn direkt auswählen oder online aktualisieren?")
+          .setMessage(food.optString("name")+"\nMöchtest du ihn direkt auswählen oder online aktualisieren?")
           .setPositiveButton("Auswählen",(d,w)->foodDialog(food))
           .setNeutralButton("Online prüfen",(d,w)->fetchBarcodeOnline(code))
           .setNegativeButton("Abbrechen",null).show();
@@ -226,9 +226,9 @@ public class MainActivity extends Activity {
             JSONObject food=product.toFood();saveScannedFood(food);
             new AlertDialog.Builder(MainActivity.this).setTitle("Produkt gefunden")
               .setMessage(product.name+(product.brand.isEmpty()?"":" · "+product.brand)
-                +"\\n"+String.format(Locale.GERMAN,"%.0f kcal / 100 g",product.kcal)
-                +"\\nFitRocket: ca. "+product.points(100)+" P / 100 g"
-                +"\\nBitte Nährwertetikett mit den Angaben vergleichen.")
+                +"\n"+String.format(Locale.GERMAN,"%.0f kcal / 100 g",product.kcal)
+                +"\nFitRocket: ca. "+product.points(100)+" P / 100 g"
+                +"\nBitte Nährwertetikett mit den Angaben vergleichen.")
               .setPositiveButton("Portion auswählen",(d,w)->foodDialog(food))
               .setNeutralButton("Nährwerte korrigieren",(d,w)->editBarcodeProduct(product))
               .setNegativeButton("Schließen",null).show();
@@ -238,7 +238,7 @@ public class MainActivity extends Activity {
       @Override public void onError(String error){
         loading.dismiss();
         new AlertDialog.Builder(MainActivity.this).setTitle("Produkt nicht verfügbar")
-          .setMessage(error+"\\nDu kannst den Barcode und die Nährwerte selbst hinzufügen.")
+          .setMessage(error+"\nDu kannst den Barcode und die Nährwerte selbst hinzufügen.")
           .setPositiveButton("Selbst erfassen",(d,w)->editBarcodeProduct(
               new FitRocketProductLookup.Product(code,"","", "",null,null,null,null)))
           .setNegativeButton("Abbrechen",null).show();
@@ -304,7 +304,7 @@ public class MainActivity extends Activity {
     LinearLayout nav=new LinearLayout(this);nav.setOrientation(0);
     nav.setPadding(dp(5),dp(7),dp(5),dp(9));
     nav.setBackground(shape(surface(),17));
-    String[] labels={"⌂\\nHeute","⌕\\nSuche","▣\\nTagebuch","▤\\nFortschritt","◉\\nProfil"};
+    String[] labels={"⌂\nHeute","⌕\nSuche","▣\nTagebuch","▤\nFortschritt","◉\nProfil"};
     int active="FitRocket".equals(heading)?0:
       ("Lebensmittel".equals(heading)||"Rezepte".equals(heading)||"KI-Assistent".equals(heading)||"KI-Vorschau".equals(heading))?1:
       "Tagebuch".equals(heading)?2:
