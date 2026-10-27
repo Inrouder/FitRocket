@@ -6,6 +6,10 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
+## FitRocket v0.15.3 – Schlichterer Wochenrückblick
+
+Die vier runden Statistik-Kennzahlen entfallen vollständig. Stattdessen zeigt die Fortschrittsseite weiterhin das übersichtliche Balkendiagramm mit Tagesbudget, die Wochenpunkte und die Gewichtsübersicht.
+
 ## FitRocket v0.15.2 – Designverbesserungen
 
 - Im Dunkelmodus ist der Gewichtspunkt jetzt weiß mit lila Kontur.

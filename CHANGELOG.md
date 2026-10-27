@@ -1,5 +1,9 @@
 # FitRocket – Versionshinweise
 
+## 0.15.3 – Wochenrückblick entschlackt
+- Runde Kennzahlen aus Fortschritt und Wochenrückblick entfernt.
+- Das Balkendiagramm und das Wochenpunktekonto bleiben erhalten; keine Änderung von Daten oder Punkten.
+
 ## 0.15.2 – Größere Navigation, lesbares Gewichtsdiagramm, grafischer Wochenrückblick
 - Der neueste Gewichtspunkt ist im Dunkelmodus weiß mit lila Kontur.
 - Untere Navigationsschaltflächen etwa 50 % größer: Höhe 55→83 dp, Text 11→16 sp.

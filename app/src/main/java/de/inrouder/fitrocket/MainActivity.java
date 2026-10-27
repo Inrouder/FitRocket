@@ -1879,43 +1879,6 @@ public class MainActivity extends Activity {
     }
   }
 
-  private LinearLayout weekSummaryBubbles(JSONObject stats){
-    LinearLayout row=new LinearLayout(this);row.setOrientation(0);
-    String[] numbers={
-      String.valueOf(stats.optInt("loggedDays")),
-      stats.optInt("withinBudget")+"/"+stats.optInt("loggedDays"),
-      stats.optInt("waterGoalDays")+"/"+stats.optInt("days"),
-      pt(stats.optDouble("totalPoints"))
-    };
-    String[] titles={"Erfasst","Im Ziel","Wasser","Gegessen"};
-    int[] lightColors={
-      Color.rgb(234,226,255),Color.rgb(214,244,225),
-      Color.rgb(215,237,252),Color.rgb(255,227,211)
-    };
-    int[] darkColors={
-      Color.rgb(72,57,99),Color.rgb(39,79,62),
-      Color.rgb(42,70,91),Color.rgb(94,63,54)
-    };
-    for(int i=0;i<numbers.length;i++){
-      LinearLayout cell=new LinearLayout(this);cell.setOrientation(1);
-      cell.setGravity(Gravity.CENTER);cell.setPadding(dp(1),dp(8),dp(1),dp(8));
-      TextView bubble=label(numbers[i],numbers[i].length()>5?12:16);
-      bubble.setTypeface(null,1);bubble.setGravity(Gravity.CENTER);
-      bubble.setTextColor(dark()?Color.WHITE:Color.rgb(34,43,64));
-      GradientDrawable circle=new GradientDrawable();
-      circle.setShape(GradientDrawable.OVAL);
-      circle.setColor(dark()?darkColors[i]:lightColors[i]);
-      bubble.setBackground(circle);
-      LinearLayout.LayoutParams b=new LinearLayout.LayoutParams(dp(62),dp(62));
-      cell.addView(bubble,b);
-      TextView caption=label(titles[i],11);caption.setTextColor(muted());
-      caption.setGravity(Gravity.CENTER);caption.setPadding(0,dp(5),0,0);
-      cell.addView(caption);
-      row.addView(cell,new LinearLayout.LayoutParams(0,-2,1));
-    }
-    return row;
-  }
-
   private void weeklyReview(){
     shell("Wochenrückblick");
     JSONObject report=FitRocketInsights.week(LocalDate.now(),budget,waterGoal(),
@@ -1925,7 +1888,6 @@ public class MainActivity extends Activity {
     headline.setTypeface(null,1);overall.addView(headline);
     overall.addView(label(pretty(report.optString("from"))+" bis "+
       pretty(report.optString("through")),13));
-    overall.addView(weekSummaryBubbles(report));
     page.addView(overall);
 
     LinearLayout graph=card(Color.WHITE);
@@ -2049,7 +2011,6 @@ public class MainActivity extends Activity {
     recap.addView(label("📊 Diese Woche im Überblick",18));
     JSONObject stats=FitRocketInsights.week(LocalDate.now(),budget,waterGoal(),
        safeArray("meals"),waterDays());
-    recap.addView(weekSummaryBubbles(stats));
     recap.addView(new FitRocketWeekChart(this,stats.optJSONArray("daysDetail"),budget),
        new LinearLayout.LayoutParams(-1,dp(190)));
     TextView hint=label("Balken: gegessene Punkte · Strichlinie: Tagesziel",12);
