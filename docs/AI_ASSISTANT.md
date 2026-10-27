@@ -1,4 +1,4 @@
-# FitRocket-KI-Assistent v0.10.0
+# FitRocket-KI-Assistent v0.11.0
 
 ## Ziele
 FitRocket soll unabhängig von externen Diätprogrammen bleiben. Die KI erstellt Vorschläge und Schätzungen, während **FitRocket die Punkte ausschließlich lokal anhand der FitRocketMath-Formel berechnet**.
@@ -10,15 +10,45 @@ FitRocket soll unabhängig von externen Diätprogrammen bleiben. Die KI erstellt
 
 Zusätzlich können Lebensmittel komplett **offline** aus eigenen Nährwertangaben neu angelegt werden.
 
-## Einrichtung in Android
-**Mehr → KI-Assistent → API-Schlüssel einrichten**. Verwende einen persönlichen OpenAI-API-Schlüssel aus https://platform.openai.com/api-keys. Die OpenAI-API ist separat kostenpflichtig und nicht in ChatGPT Plus enthalten. Der verwendete Modellname wird in `FitRocketAiService.MODEL` konfiguriert (aktuell `gpt-5-mini`).
+
+## Standardanbieter: Google Gemini
+
+Ab v0.11.0 verwendet FitRocket standardmäßig **Google Gemini**. Das empfohlene Standardmodell ist `gemini-2.5-flash-lite` (kostenlose Nutzung innerhalb der aktuellen Freigrenzen). Alternativ ist `gemini-2.5-flash` auswählbar. Beide Modelle sind nur verfügbar, sofern Googles API-Kontingent sie zulässt.
+
+### Einrichtung
+1. In https://aistudio.google.com/apikey einen persönlichen **Gemini API Key** erstellen.
+2. In der App **Mehr → KI-Assistent** öffnen.
+3. **Google Gemini** als Anbieter belassen, bei Bedarf zwischen Flash-Lite und Flash wählen.
+4. **Google Gemini-Schlüssel einrichten** öffnen und den Schlüssel speichern.
+5. Rezept, Mahlzeit oder Lebensmittel beschreiben und die vorgeschlagenen Zutaten/Nährwerte prüfen, bevor gespeichert wird.
+
+**Wichtig:** Die kostenlose API-Stufe ist begrenzt, verfügbare Modelle/Kontingente können sich ändern. Die Google-Gemini-App-Anmeldung allein berechtigt nicht zur API-Nutzung. Google darf Inhalte aus kostenlosen API-Anfragen unter Umständen zur Verbesserung seiner Produkte verwenden. Vertrauliche Gesundheitsdetails sollten daher nicht in Freitext-Anfragen eingegeben werden. Ein privater Testzugang mit verschlüsseltem, selbst eingegebenem API-Schlüssel ist kein vollwertiger Ersatz für einen Backend-Proxy bei öffentlicher Distribution.
+
+### API-Protokoll und Fehler
+- URL: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
+- Authentifizierung: `x-goog-api-key` ausschließlich zur Laufzeit aus Android Keystore, niemals als Quelltextkonstante.
+- Antwort: `generationConfig.responseMimeType = application/json` mit `responseJsonSchema`. Anschließend prüft `FitRocketAiRules` die vollständigen Angaben und berechnet die Punkte lokal.
+- HTTP 401/403: Schlüssel ungültig/nicht autorisiert; 404: Modell nicht verfügbar; 429: Kontingent oder Anfragerate erreicht; 5xx: vorübergehender Dienstfehler.
+- Keine automatische kostenpflichtige Wiederholung; kein stiller Providerwechsel.
+
+### OpenAI als Option
+In **Mehr → KI-Assistent → KI-Anbieter wechseln** ist weiterhin OpenAI wählbar. Der alte OpenAI-Key bleibt beim Update erhalten. Beide Schlüssel werden verschlüsselt und getrennt gespeichert. Das Backup enthält **keinen** API-Schlüssel.
+
+Quellen:
+- https://ai.google.dev/api/generate-content
+- https://ai.google.dev/gemini-api/docs/pricing
+- https://ai.google.dev/gemini-api/docs/api-key
+
+## Vorherige OpenAI-Konfiguration (optional)
+Bei Auswahl von **OpenAI**: **Mehr → KI-Assistent → API-Schlüssel einrichten**. Verwende einen persönlichen OpenAI-API-Schlüssel aus https://platform.openai.com/api-keys. Die OpenAI-API ist separat kostenpflichtig und nicht in ChatGPT Plus enthalten. Der optionale OpenAI-Modellname wird in `FitRocketAiService.MODEL` konfiguriert (aktuell `gpt-5-mini`).
 
 **Keine produktseitigen Anmeldeinformationen liegen im Git-Repository**, werden fest im APK gespeichert oder in Backups exportiert. Das vom Benutzer selbst eingegebene Geheimnis wird in Android Keystore mit AES-GCM verschlüsselt und in privaten App-Einstellungen gespeichert. Das ist für einen privaten Client-Prototyp gedacht. Bei öffentlicher Distribution sollte ein eigener, abgesicherter Backend-Proxy mit benutzerbasierter Authentifizierung, serverseitigem Schlüsselmanagement und Kostenlimits eingesetzt werden. OpenAI empfiehlt, API-Schlüssel nicht direkt in mobilen Apps bereitzustellen: https://developers.openai.com/api/reference/overview
 
 ## API und Daten
-- Endpunkt: https://api.openai.com/v1/responses, HTTPS, feste Domain.
+- Für Gemini: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent (default).
+- Für optionales OpenAI: https://api.openai.com/v1/responses, HTTPS, feste Domain.
 - Format: `text.format.type=json_schema` (strict), definiert in `app/src/main/assets/ai_result_schema.json`.
-- Eigene Essensbeschreibung, eigene Vorlieben und eine Auswahl von Produktnamen und IDs aus der **lokalen öffentlichen Lebensmittelliste** werden an OpenAI übertragen.
+- Eigene Essensbeschreibung, eigene Vorlieben und eine Auswahl von Produktnamen und IDs aus der **lokalen öffentlichen Lebensmittelliste** werden an den ausgewählten Anbieter (Gemini bzw. OpenAI) übertragen.
 - **Nicht** automatisch gesendet: Gewichtsverlauf, persönliche Körperdaten, Health-Connect-Daten, gesamte Tagebuchhistorie oder gespeicherte API-Schlüssel.
 - `store=false` im Responses-Request fordert an, den Antwortzustand nicht im API-Responses-Store vorzuhalten; hiervon unabhängig können anbieterbezogene technische Aufbewahrungsregeln gelten.
 - Netzwerk läuft außerhalb des UI-Threads. Timeouts, Fehlerbehandlung sowie Eingabe- und Antwortgrößenlimits sind implementiert.

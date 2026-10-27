@@ -1,5 +1,16 @@
 # FitRocket – Versionshinweise
 
+## 0.11.0 – Google Gemini, kostenlose API und Anbieterwahl
+- Gemini 2.5 Flash-Lite als sparsame Voreinstellung für Rezeptgenerator, Mahlzeiten-Einschätzung und neue Lebensmittel.
+- Gemini 2.5 Flash als optionales Qualitätsmodell auswählbar.
+- OpenAI bleibt als bisheriger, getrennt konfigurierbarer Anbieter verfügbar.
+- Android-Keystore-Schlüsselspeicher erweitert: Gemini-Schlüssel separat; zuvor gespeicherter OpenAI-Schlüssel bleibt erhalten.
+- Gemini REST v1beta generateContent mit JSON-Schema-Ausgabe und lokaler FitRocket-Validierung.
+- Verständliche Fehlerbehandlung für fehlende Berechtigung, falschen API-Schlüssel, ausgelastetes Kontingent, Modellverfügbarkeit und Dienstfehler.
+- KI-Anbieter und Gemini-Modell über **Mehr → KI-Assistent** auswählbar.
+- Keine KI-Zugangsgeheimnisse in GitHub/Backups; kein automatischer Wechsel auf kostenpflichtige Dienste.
+- Zusätzliche Unit-Tests für Anfrageformat, Antwortparser und Datenschutz der Kataloghinweise.
+
 ## 0.10.0 – KI-Küchenassistent, Rezepte und Lebensmittelschätzung
 - Online-KI für persönliche Rezepte, Beschreibungen von Mahlzeiten und Nährwert-Schätzung neuer Produkte.
 - Eigene, auf dem Gerät geschützte API-Schlüssel-Eingabe (Android Keystore, AES-GCM), ohne Hardcoding und ohne Schlüssel in Backups.
