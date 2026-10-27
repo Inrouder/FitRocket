@@ -119,6 +119,12 @@ public class MainActivity extends Activity {
         .putBoolean("weekly28MigrationDone",true).apply();
     }
     weekly=prefs.getInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS);
+    // Existing installs: activate immediate activity credit once. The user can still
+    // explicitly select 0% or 50% afterwards in activity settings.
+    if(!prefs.getBoolean("immediateActivityCreditMigrationDone",false)){
+      prefs.edit().putInt("activityShare",100)
+        .putBoolean("immediateActivityCreditMigrationDone",true).apply();
+    }
     loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
     FitRocketWaterReminder.schedule(this);
     FitRocketWidget.refresh(this);
@@ -2616,7 +2622,7 @@ public class MainActivity extends Activity {
   private double rolloversWeek(){
     return FitRocketPointLedger.weekRollovers(LocalDate.now(),budget,d->used(d.toString()));
   }
-  private int activityCredit(){return FitRocketMath.credit(earnedWeek(),prefs.getInt("activityShare",0));}
+  private int activityCredit(){return FitRocketMath.credit(earnedWeek(),prefs.getInt("activityShare",100));}
   private double availableWeek(){
     return FitRocketPointLedger.weeklyAvailable(weekly,rolloversWeek(),activityCredit(),spentWeek());
   }
@@ -2638,7 +2644,7 @@ public class MainActivity extends Activity {
     overview.addView(label("Zum Wochenbudget: +"+activityCredit()+" Punkte",16));
     overview.addView(label("Wochenkonto: "+weekly+" Start + "+pt(rolloversWeek())+" Übertrag + "
         +activityCredit()+" Bewegung − "+pt(spentWeek())+" verbraucht = "+pt(availableWeek())+" übrig",14));
-    overview.addView(label("Täglich höchstens 4 ungenutzte Punkte, Gutschrift erst am Folgetag. Jeden Montag beginnt das Konto neu.",12));
+    overview.addView(label("Täglich höchstens 4 ungenutzte Punkte, Tagesüberträge erst am Folgetag; Bewegungspunkte zählen sofort. Jeden Montag beginnt das Konto neu.",12));
     overview.addView(label("Tagesbudget bleibt: "+budget+" Punkte",13));page.addView(overview);
     LinearLayout transfers=card(Color.WHITE);
     transfers.addView(label("🌟 Tagesüberträge dieser Woche",17));
@@ -2665,7 +2671,8 @@ public class MainActivity extends Activity {
     settings.addView(label("Verrechnung deiner Bewegung",17));
     Spinner share=new Spinner(this);share.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,
         new String[]{"0 % · nur sammeln","50 % · teilweise verwenden","100 % · alles verwenden"}));
-    int chosen=prefs.getInt("activityShare",0);share.setSelection(chosen==100?2:chosen==50?1:0);
+    int chosen=prefs.getInt("activityShare",100);share.setSelection(chosen==100?2:chosen==50?1:0);
+    settings.addView(label("Training und Schritte werden am selben Tag dem Wochenkonto gutgeschrieben (bei 100 %).",12));
     settings.addView(share);
     action(settings,"Auswahl speichern",()->{prefs.edit().putInt("activityShare",share.getSelectedItemPosition()*50).apply();activityPage();});
     action(settings,"Punkte-Regeln anpassen",()->activityRulesDialog());
@@ -2990,7 +2997,7 @@ public class MainActivity extends Activity {
         payload.put("showHints",showHints());
         payload.put("aiPreferences",prefs.getString("aiPreferences",""));
         if(goalWeight()>0)payload.put("weightGoal",goalWeight());
-        payload.put("activityShare",prefs.getInt("activityShare",0));
+        payload.put("activityShare",prefs.getInt("activityShare",100));
         payload.put("stepBaseline",prefs.getInt("stepBaseline",3000));
         payload.put("kcalPerPoint",prefs.getInt("kcalPerPoint",65));
         if(profileReady()){
@@ -3016,7 +3023,7 @@ public class MainActivity extends Activity {
         int bb=payload.optInt("budget",23),ww=payload.optInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS);
         if(schema<=3 && ww==0)ww=FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS;
         final int importedWeekly=ww;
-        int share=payload.optInt("activityShare",0),baseline=payload.optInt("stepBaseline",3000),kpp=payload.optInt("kcalPerPoint",65);
+        int share=payload.optInt("activityShare",100),baseline=payload.optInt("stepBaseline",3000),kpp=payload.optInt("kcalPerPoint",65);
         if(bb<1||bb>200||ww<0||ww>500||!(share==0||share==50||share==100)||
           baseline<0||baseline>20000||kpp<30||kpp>150)throw new IllegalArgumentException();
         JSONObject steps=payload.optJSONObject("steps");if(steps==null)steps=new JSONObject();
