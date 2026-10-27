@@ -52,6 +52,9 @@ public final class FitRocketAiRules {
         if(root==null)throw new IllegalArgumentException("Leere KI-Antwort");
         String title=root.optString("title","").trim();
         if(title.length()<2||title.length()>140)throw new IllegalArgumentException("Der Name ist ungültig.");
+        int minutes=root.optInt("minutes",-1);
+        if(minutes<0||minutes>240||("recipe".equals(mode)&&minutes<1))
+            throw new IllegalArgumentException("Unplausible Zubereitungszeit.");
         int servings=root.optInt("servings",0);
         if(servings<1||servings>12)throw new IllegalArgumentException("Ungültige Anzahl Portionen.");
         if("meal".equals(mode)||"food".equals(mode))servings=1;
