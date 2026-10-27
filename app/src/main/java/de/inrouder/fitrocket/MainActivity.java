@@ -1509,8 +1509,9 @@ public class MainActivity extends Activity {
         new AlertDialog.Builder(MainActivity.this)
           .setTitle("Update "+release.version+" verfügbar")
           .setMessage("Installiert: v"+installedVersion()+
-            "\n\n"+notes+"\n\nDie APK wird nur auf deinen Wunsch geöffnet bzw. heruntergeladen. "
-            +"Android fragt vor einer Installation nach.")
+            "\n\n"+notes+"\n\nWichtig: Bitte zuerst unter Profil ein Backup exportieren. "
+            +"Bei unterschiedlich signierten Debug-APKs kann Android die Aktualisierung ablehnen. "
+            +"Die APK wird nur auf deinen Wunsch im Browser geöffnet; Android fragt vor einer Installation nach.")
           .setPositiveButton("APK herunterladen",(d,w)->
             openSafeUrl(release.apkUrl.isEmpty()?release.pageUrl:release.apkUrl))
           .setNeutralButton("Release ansehen",(d,w)->openSafeUrl(release.pageUrl))
