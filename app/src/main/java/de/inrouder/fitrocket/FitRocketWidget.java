@@ -19,17 +19,23 @@ public final class FitRocketWidget extends AppWidgetProvider {
         AppWidgetManager manager=AppWidgetManager.getInstance(context);
         ComponentName component=new ComponentName(context,FitRocketWidget.class);
         int[] ids=manager.getAppWidgetIds(component);
-        if(ids!=null && ids.length>0)update(context,manager,ids);
+        if(ids!=null && ids.length>0)
+            updateWidgets(context,manager,ids,R.layout.fitrocket_widget);
+        ComponentName vertical=new ComponentName(context,FitRocketWidgetVertical.class);
+        int[] narrow=manager.getAppWidgetIds(vertical);
+        if(narrow!=null && narrow.length>0)
+            updateWidgets(context,manager,narrow,R.layout.fitrocket_widget_vertical);
     }
 
-    private static void update(Context context,AppWidgetManager manager,int[] ids){
+    public static void updateWidgets(Context context,AppWidgetManager manager,int[] ids,
+                                     int layoutId){
         SharedPreferences p=context.getSharedPreferences(PREF,Context.MODE_PRIVATE);
         FitRocketWidgetData data=FitRocketWidgetData.fromJson(
             LocalDate.now().toString(),p.getInt("budget",23),
             p.getString("meals","[]"),p.getString("waterDays","{}"),
             p.getInt("waterGoal",1500));
         for(int id:ids){
-            RemoteViews views=new RemoteViews(context.getPackageName(),R.layout.fitrocket_widget);
+            RemoteViews views=new RemoteViews(context.getPackageName(),layoutId);
             views.setTextViewText(R.id.widget_points,
                 data.remainingText()+" P übrig");
             views.setTextViewText(R.id.widget_used,
@@ -48,7 +54,7 @@ public final class FitRocketWidget extends AppWidgetProvider {
     }
 
     @Override public void onUpdate(Context context,AppWidgetManager manager,int[] ids){
-        update(context,manager,ids);
+        updateWidgets(context,manager,ids,R.layout.fitrocket_widget);
     }
 
     @Override public void onReceive(Context context,Intent intent){

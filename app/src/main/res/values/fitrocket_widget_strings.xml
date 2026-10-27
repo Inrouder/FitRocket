@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="fitrocket_widget_description">FitRocket Tagespunkte und Trinkmenge auf dem Startbildschirm</string>
-    <string name="fitrocket_widget_label">FitRocket – Punkte &amp; Wasser</string>
+    <string name="fitrocket_widget_description">FitRocket Tagespunkte und Wasser, breit</string>
+    <string name="fitrocket_widget_label">FitRocket – Horizontal</string>
+    <string name="fitrocket_widget_vertical_description">FitRocket Tagespunkte und Trinkmenge, hochkant</string>
+    <string name="fitrocket_widget_vertical_label">FitRocket – Vertikal</string>
 </resources>

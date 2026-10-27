@@ -1,65 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="16dp"
-    android:orientation="vertical"
-    android:gravity="center_vertical"
+    android:layout_width="match_parent" android:layout_height="match_parent"
     android:background="@drawable/fitrocket_widget_background">
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="🚀 FitRocket · Heute"
-        android:textColor="#DBC8FF"
-        android:textSize="13sp"
-        android:textStyle="bold" />
-    <TextView
-        android:id="@+id/widget_points"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="23 P übrig"
-        android:textColor="#FFFFFF"
-        android:textSize="25sp"
-        android:textStyle="bold" />
-    <TextView
-        android:id="@+id/widget_used"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="0 / 23 P genutzt"
-        android:textColor="#D1D7E6"
-        android:textSize="12sp" />
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="💧 Getrunken"
-            android:textColor="#C5EAFD"
-            android:textSize="13sp" />
-        <TextView
-            android:id="@+id/widget_water"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0,00 / 1,50 L"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:textSize="13sp" />
+    <ImageView android:layout_width="154dp" android:layout_height="match_parent"
+        android:layout_gravity="right|center_vertical"
+        android:src="@drawable/fitrocket_widget_rocket"
+        android:contentDescription="@null"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="vertical" android:padding="14dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="🚀 FitRocket · Heute" android:textSize="13sp"
+            android:textColor="#CBC2FF" android:textStyle="bold"/>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
+            android:layout_weight="1" android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical">
+                <TextView android:id="@+id/widget_points"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="23 P übrig" android:textSize="23sp"
+                    android:textColor="#FFFFFF" android:textStyle="bold"
+                    android:maxLines="1" android:ellipsize="end"/>
+                <TextView android:id="@+id/widget_used"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="0 / 23 P genutzt" android:textSize="12sp"
+                    android:textColor="#C6C7DD"/>
+            </LinearLayout>
+            <LinearLayout android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:orientation="vertical"
+                android:paddingLeft="7dp">
+                <TextView android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💧 Wasser" android:textSize="12sp"
+                    android:textColor="#B9E6FF"/>
+                <TextView android:id="@+id/widget_water"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0,00 / 1,50 L"
+                    android:textColor="#FFFFFF" android:textSize="14sp"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+        </LinearLayout>
+        <ProgressBar android:id="@+id/widget_water_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent" android:layout_height="7dp"
+            android:progress="0" android:max="100"
+            android:progressTint="#7FBFFF" android:progressBackgroundTint="#3A4058"/>
     </LinearLayout>
-    <ProgressBar
-        android:id="@+id/widget_water_bar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="7dp"
-        android:layout_marginTop="7dp"
-        android:max="100"
-        android:progress="0"
-        android:progressTint="#94D8F4"
-        android:progressBackgroundTint="#465169" />
-</LinearLayout>
+</FrameLayout>
