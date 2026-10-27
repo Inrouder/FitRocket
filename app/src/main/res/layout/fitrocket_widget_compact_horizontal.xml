@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/widget_root" android:layout_width="match_parent"
+ android:layout_height="match_parent"
+ android:background="@drawable/fitrocket_widget_background">
+ <ImageView android:layout_width="90dp" android:layout_height="match_parent"
+  android:layout_gravity="right|center_vertical"
+  android:src="@drawable/fitrocket_widget_rocket"
+  android:scaleType="centerInside" android:alpha="0.25"
+  android:contentDescription="@null"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+  android:paddingLeft="10dp" android:paddingRight="10dp"
+  android:paddingTop="5dp" android:paddingBottom="5dp"
+  android:orientation="horizontal" android:gravity="center_vertical">
+  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+   android:layout_weight="1" android:orientation="vertical">
+   <TextView android:id="@+id/widget_points" android:layout_width="match_parent"
+    android:layout_height="wrap_content" android:text="23 P" android:textColor="#FFFFFF"
+    android:textStyle="bold" android:textSize="20sp" android:maxLines="1"
+    android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp"
+    android:autoSizeMaxTextSize="20sp"/>
+   <TextView android:id="@+id/widget_used" android:layout_width="match_parent"
+    android:layout_height="wrap_content" android:text="übrig"
+    android:textColor="#D9C8FF" android:textSize="10sp" android:maxLines="1"/>
+  </LinearLayout>
+  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+   android:layout_weight="1" android:orientation="vertical"
+   android:paddingLeft="6dp">
+   <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:text="💧 Wasser" android:textColor="#BDE8FF"
+    android:textSize="10sp" android:maxLines="1"/>
+   <TextView android:id="@+id/widget_water" android:layout_width="match_parent"
+    android:layout_height="wrap_content" android:text="0,75 L"
+    android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="13sp"
+    android:maxLines="1" android:autoSizeTextType="uniform"
+    android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="13sp"/>
+   <ProgressBar android:id="@+id/widget_water_bar"
+    style="?android:attr/progressBarStyleHorizontal"
+    android:layout_width="match_parent" android:layout_height="4dp"
+    android:layout_marginTop="3dp" android:max="100" android:progress="0"
+    android:progressTint="#94D8F4"
+    android:progressBackgroundTint="#465169"/>
+  </LinearLayout>
+ </LinearLayout>
+</FrameLayout>

@@ -29,6 +29,10 @@ public final class FitRocketWidget extends AppWidgetProvider {
         int[] small=manager.getAppWidgetIds(compact);
         if(small!=null && small.length>0)
             updateWidgets(context,manager,small,R.layout.fitrocket_widget_compact);
+        ComponentName slim=new ComponentName(context,FitRocketWidgetCompactHorizontal.class);
+        int[] slimIds=manager.getAppWidgetIds(slim);
+        if(slimIds!=null && slimIds.length>0)
+            updateWidgets(context,manager,slimIds,R.layout.fitrocket_widget_compact_horizontal);
     }
 
     public static void updateWidgets(Context context,AppWidgetManager manager,int[] ids,
@@ -40,7 +44,8 @@ public final class FitRocketWidget extends AppWidgetProvider {
             p.getInt("waterGoal",1500));
         for(int id:ids){
             RemoteViews views=new RemoteViews(context.getPackageName(),layoutId);
-            boolean isCompact=layoutId==R.layout.fitrocket_widget_compact;
+            boolean isCompact=layoutId==R.layout.fitrocket_widget_compact ||
+                layoutId==R.layout.fitrocket_widget_compact_horizontal;
             views.setTextViewText(R.id.widget_points,
                 isCompact?data.remainingText()+" P":data.remainingText()+" P übrig");
             views.setTextViewText(R.id.widget_used,

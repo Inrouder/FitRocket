@@ -6,4 +6,6 @@
     <string name="fitrocket_widget_vertical_label">FitRocket – Vertikal</string>
     <string name="fitrocket_widget_compact_label">FitRocket – Kompakt 1×2</string>
     <string name="fitrocket_widget_compact_description">Schmales Widget für Restpunkte und Trinkmenge</string>
+    <string name="fitrocket_widget_compact_horizontal_label">FitRocket – Kompakt 2×1</string>
+    <string name="fitrocket_widget_compact_horizontal_description">Flaches Widget für Tagespunkte und Trinkmenge</string>
 </resources>
