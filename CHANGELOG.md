@@ -1,5 +1,12 @@
 # FitRocket – Versionshinweise
 
+## 0.11.1 – Korrektur der Gemini-Key-Eingabe
+- Eingabefehler bei neueren Google-Gemini-Authentifizierungsschlüsseln behoben, inklusive Punkt im Schlüsselformat.
+- Keine unzuverlässige Präfix- oder Zeichenformatprüfung mehr, die gültige Google-Schlüssel aussperrt; tatsächliche Authentifizierung wird über die Google-API geprüft.
+- Weiterhin Schutz vor Leerzeichen und Steuerzeichen im HTTP-Header.
+- Explizite Passwortmaskierung des Schlüsselfeldes gegen Offenlegung auf Screenshots.
+- Acht JUnit-Tests für ältere und neuere Schlüsseltypen, Copy/Paste und ungültige Eingaben.
+
 ## 0.11.0 – Google Gemini, kostenlose API und Anbieterwahl
 - Gemini 2.5 Flash-Lite als sparsame Voreinstellung für Rezeptgenerator, Mahlzeiten-Einschätzung und neue Lebensmittel.
 - Gemini 2.5 Flash als optionales Qualitätsmodell auswählbar.

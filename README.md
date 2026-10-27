@@ -2,17 +2,26 @@
 
 FitRocket ist ein eigenständiges Android-Ernährungs- und Bewegungstagebuch mit einem eigenen FitRocket-Punktesystem. Die Daten bleiben auf deinem Gerät. Die App bietet warme Pastellfarben, übersichtliche Tageskarten und ein flexibel nutzbares Wochenkonto.
 
-## FitRocket v0.11.0 herunterladen
+## FitRocket v0.11.1 herunterladen
 
 1. Den [Android-APK-Workflow](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml) aufrufen.
 2. Den aktuellsten erfolgreichen GitHub-Actions-Lauf auswählen.
-3. Unter **Artifacts** das Paket `FitRocket-v0.11.0-debug-apk` herunterladen.
+3. Unter **Artifacts** das Paket `FitRocket-v0.11.1-debug-apk` herunterladen.
 4. ZIP entpacken und `app-debug.apk` installieren.
 
 Bei regulären Updates derselben Debug-Signatur bleiben gespeicherte Daten erhalten. Vor Neuinstallation oder Telefonwechsel immer **Mehr → Backup exportieren** verwenden. Eine Deinstallation ohne Backup löscht die lokalen FitRocket-Daten.
 
 
-## Neu in FitRocket v0.11.0 – Google Gemini als Standard-KI
+## Fehlerbehebung v0.11.1 – Neue Gemini-Autorisierungsschlüssel
+
+- Google AI Studio erzeugt seit Mai 2026 neue Gemini-**Autorisierungsschlüssel**, die einen Punkt im Schlüssel enthalten können.
+- Die bisherige lokale Eingabeprüfung lehnte diese Schlüssel fälschlich ab. Jetzt akzeptiert FitRocket auch die neueren Schlüsseltypen, ohne ein festes Präfix zu verlangen.
+- Die Prüfung verhindert weiterhin unzulässige Leerzeichen/Zeilenumbrüche, aber Googles API entscheidet erst bei der Anfrage über die tatsächliche Gültigkeit.
+- Das Schlüssel-Eingabefeld wird nach dem Android-Layoutwechsel explizit als Passwort maskiert, damit der Schlüssel nicht auf Screenshots im Klartext sichtbar ist.
+- Acht zusätzliche automatisierte Schlüssel-Tests schützen das neue Verhalten. Die vorhandenen OpenAI-Schlüssel bleiben erhalten.
+- **Sicherheit:** Wenn ein echter API-Schlüssel in einem Screenshot gezeigt wurde, bitte diesen Schlüssel im AI Studio widerrufen und einen neuen erzeugen.
+
+## Funktionen aus FitRocket v0.11.0 – Google Gemini als Standard-KI
 
 **FitRocket verwendet ab sofort Google Gemini** für personalisierte Rezepte, beschriebene Mahlzeiten und neue Lebensmittel. Die bestehende FitRocket-Punkteformel und 280 Basislebensmittel mit 0 Punkten bleiben unverändert.
 

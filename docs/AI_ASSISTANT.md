@@ -1,4 +1,4 @@
-# FitRocket-KI-Assistent v0.11.0
+# FitRocket-KI-Assistent v0.11.1
 
 ## Ziele
 FitRocket soll unabhängig von externen Diätprogrammen bleiben. Die KI erstellt Vorschläge und Schätzungen, während **FitRocket die Punkte ausschließlich lokal anhand der FitRocketMath-Formel berechnet**.
@@ -10,6 +10,14 @@ FitRocket soll unabhängig von externen Diätprogrammen bleiben. Die KI erstellt
 
 Zusätzlich können Lebensmittel komplett **offline** aus eigenen Nährwertangaben neu angelegt werden.
 
+
+## v0.11.1: Unterstützte Gemini-Schlüsselformate
+
+Google AI Studio stellt seit Mai 2026 Autorisierungsschlüssel aus, deren Format anders als bei früheren API-Schlüsseln aussehen kann (einschließlich eines Punktes). FitRocket v0.11.0 hatte eine zu strenge Zeichenprüfung und verhinderte das lokale Speichern. In v0.11.1 akzeptiert FitRocket auch neue Autorisierungsschlüssel, prüft nur noch Länge/ungültige Leer- bzw. Steuerzeichen und überlässt die tatsächliche Authentifizierung der Google API. Der Schlüssel wird im Eingabefeld explizit verdeckt dargestellt.
+
+**Wenn ein Schlüssel versehentlich in einem Screenshot sichtbar war, muss er in Google AI Studio widerrufen und ersetzt werden.** Den neuen Schlüssel niemals in GitHub, Nachrichten oder Screenshots veröffentlichen.
+
+Offizielle Hinweise: https://ai.google.dev/gemini-api/docs/api-key
 
 ## Standardanbieter: Google Gemini
 
