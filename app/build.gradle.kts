@@ -33,6 +33,15 @@ android {
  testOptions { unitTests.isReturnDefaultValues = true }
 }
 
+// Align legacy transitive Kotlin JDK compatibility modules with Kotlin 1.8.22
+// (older barcode scanner dependencies still request 1.6.21).
+configurations.all {
+ resolutionStrategy.force(
+  "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22",
+  "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"
+ )
+}
+
 dependencies {
  implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
  implementation("androidx.core:core:1.13.1")
