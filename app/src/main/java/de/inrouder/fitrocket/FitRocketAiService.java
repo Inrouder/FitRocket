@@ -121,7 +121,7 @@ public final class FitRocketAiService {
             +"Liefer alle vier Nährwerte für JEDE Zutat als nichtnegative realistische Zahlen. "
             +"Fehlende Daten dürfen ausdrücklich als Schätzung eingesetzt werden, aber kennzeichne geringe Sicherheit "
             +"mit confidence=niedrig und note/uncertainty. Erfinde keine offiziell geprüften Marken-Nährwerte. "
-            +"Für Gemüse, Fleisch, Eier usw. verwende nur dann den exakt geschriebenen catalog_id aus der mitgegebenen "
+            +"Für Gemüse, Fleisch, Eier usw. verwende nur dann die exakt geschriebene food_id aus der mitgegebenen "
             +"FitRocket-Liste, wenn die Zutat exakt dem Katalogeintrag entspricht (name muss identisch sein); "
             +"sonst food_id als leere Zeichenkette. Verarbeitetes, paniertes oder mit Öl zubereitetes Essen darf "
             +"nicht allein als 0-Punkte-Grundzutat klassifiziert werden; Öl, Dressing, Soße, Käse und Zucker "
