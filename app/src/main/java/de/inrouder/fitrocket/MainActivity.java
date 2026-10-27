@@ -335,14 +335,14 @@ public class MainActivity extends Activity {
     int active=FitRocketNavigation.selectedTab(heading);
     for(int i=0;i<labels.length;i++){
       final int index=i;
-      TextView tab=label(labels[i],11);tab.setGravity(Gravity.CENTER);
+      TextView tab=label(labels[i],16);tab.setGravity(Gravity.CENTER);
       tab.setSingleLine(false);tab.setMinLines(2);
-      tab.setPadding(dp(1),dp(3),dp(1),dp(3));
+      tab.setPadding(dp(1),dp(7),dp(1),dp(7));
       if(i==active){
         tab.setTypeface(null,1);
         tab.setBackground(shape(dark()?Color.rgb(69,53,72):Color.rgb(248,228,220),13));
       }else tab.setTextColor(muted());
-      nav.addView(tab,new LinearLayout.LayoutParams(0,dp(55),1));
+      nav.addView(tab,new LinearLayout.LayoutParams(0,dp(83),1));
       tab.setOnClickListener(v->{
         bookingDate=null;bookingGroup=null;bookingReturn=null;
         switch(index){
@@ -609,9 +609,12 @@ public class MainActivity extends Activity {
     searchField.setCornerRadius(dp(20));
     searchField.setStroke(dp(1),Color.rgb(213,218,228));
     search.setBackground(searchField);
+    // edit() installs a purple tint; clear it AFTER replacing the background.
+    // Otherwise some Android/OEM themes recolor this white drawable pink.
+    search.setBackgroundTintList(null);
     search.setTextColor(Color.rgb(28,34,47));
     search.setHintTextColor(Color.rgb(103,112,129));
-    search.setHighlightColor(Color.rgb(212,195,240));
+    search.setHighlightColor(Color.rgb(211,219,234));
     searchCard.addView(search);
     LinearLayout barcodeRow=new LinearLayout(this);barcodeRow.setOrientation(0);
     Button scanner=button("▥ Barcode scannen"),manualCode=button("123 Nummer eingeben");
@@ -1876,39 +1879,91 @@ public class MainActivity extends Activity {
     }
   }
 
+  private LinearLayout weekSummaryBubbles(JSONObject stats){
+    LinearLayout row=new LinearLayout(this);row.setOrientation(0);
+    String[] numbers={
+      String.valueOf(stats.optInt("loggedDays")),
+      stats.optInt("withinBudget")+"/"+stats.optInt("loggedDays"),
+      stats.optInt("waterGoalDays")+"/"+stats.optInt("days"),
+      pt(stats.optDouble("totalPoints"))
+    };
+    String[] titles={"Erfasst","Im Ziel","Wasser","Gegessen"};
+    int[] lightColors={
+      Color.rgb(234,226,255),Color.rgb(214,244,225),
+      Color.rgb(215,237,252),Color.rgb(255,227,211)
+    };
+    int[] darkColors={
+      Color.rgb(72,57,99),Color.rgb(39,79,62),
+      Color.rgb(42,70,91),Color.rgb(94,63,54)
+    };
+    for(int i=0;i<numbers.length;i++){
+      LinearLayout cell=new LinearLayout(this);cell.setOrientation(1);
+      cell.setGravity(Gravity.CENTER);cell.setPadding(dp(1),dp(8),dp(1),dp(8));
+      TextView bubble=label(numbers[i],numbers[i].length()>5?12:16);
+      bubble.setTypeface(null,1);bubble.setGravity(Gravity.CENTER);
+      bubble.setTextColor(dark()?Color.WHITE:Color.rgb(34,43,64));
+      GradientDrawable circle=new GradientDrawable();
+      circle.setShape(GradientDrawable.OVAL);
+      circle.setColor(dark()?darkColors[i]:lightColors[i]);
+      bubble.setBackground(circle);
+      LinearLayout.LayoutParams b=new LinearLayout.LayoutParams(dp(62),dp(62));
+      cell.addView(bubble,b);
+      TextView caption=label(titles[i],11);caption.setTextColor(muted());
+      caption.setGravity(Gravity.CENTER);caption.setPadding(0,dp(5),0,0);
+      cell.addView(caption);
+      row.addView(cell,new LinearLayout.LayoutParams(0,-2,1));
+    }
+    return row;
+  }
+
   private void weeklyReview(){
     shell("Wochenrückblick");
     JSONObject report=FitRocketInsights.week(LocalDate.now(),budget,waterGoal(),
       safeArray("meals"),waterDays());
     LinearLayout overall=card(LAV);
-    overall.addView(label("📊 Wochenrückblick",21));
-    overall.addView(label(pretty(report.optString("from"))+" bis "+pretty(report.optString("through")),14));
-    overall.addView(label(pt(report.optDouble("totalPoints"))+" verzehrte Punkte an "+
-      report.optInt("loggedDays")+" protokollierten Tagen",15));
-    overall.addView(label(report.optInt("withinBudget")+
-       " erfasste Tage innerhalb des Tagesbudgets",14));
-    overall.addView(label("Wochenkonto aktuell: "+pt(availableWeek())+" P",16));
-    overall.addView(label(weekly+" Start + "+pt(rolloversWeek())+" gespart + "+
-      activityCredit()+" Bewegung − "+pt(spentWeek())+" Mehrverbrauch",13));
+    TextView headline=label("📊 Dein Wochenrückblick",21);
+    headline.setTypeface(null,1);overall.addView(headline);
+    overall.addView(label(pretty(report.optString("from"))+" bis "+
+      pretty(report.optString("through")),13));
+    overall.addView(weekSummaryBubbles(report));
     page.addView(overall);
+
+    LinearLayout graph=card(Color.WHITE);
+    TextView graphTitle=label("Punkte pro Tag",17);
+    graphTitle.setTypeface(null,1);graph.addView(graphTitle);
+    graph.addView(new FitRocketWeekChart(this,report.optJSONArray("daysDetail"),budget),
+      new LinearLayout.LayoutParams(-1,dp(207)));
+    TextView graphCaption=label("Die Linie zeigt dein Tagesbudget. Tage ohne Eintrag "+
+        "werden nicht als Null-Punkte-Tage bewertet.",12);
+    graphCaption.setTextColor(muted());graph.addView(graphCaption);
+    page.addView(graph);
+
+    LinearLayout totals=card(Color.WHITE);
+    totals.addView(label("⭐ Dein Wochenkonto",17));
+    totals.addView(label(pt(availableWeek())+" P verfügbar",22));
+    totals.addView(label(weekly+" P Start   +"+pt(rolloversWeek())+
+      " P Übertrag   +"+activityCredit()+" P Bewegung",13));
+    totals.addView(label("−"+pt(spentWeek())+" P verwendet",13));
+    page.addView(totals);
+
     LinearLayout water=card(Color.WHITE);
-    water.addView(label("💧 Trinkbilanz",17));
-    water.addView(label(report.optInt("waterGoalDays")+" Tage mit erreichtem Trinkziel",15));
-    water.addView(label(String.format(Locale.GERMAN,"Insgesamt %.2f Liter erfasst",
-      report.optInt("waterTotal")/1000.0),14));
+    water.addView(label("💧 Trinken",17));
+    water.addView(label(report.optInt("waterGoalDays")+" von "+report.optInt("days")+
+      " erfassten Kalendertagen mit erreichtem Trinkziel",14));
+    water.addView(label(String.format(Locale.GERMAN,"%.2f Liter insgesamt",
+      report.optInt("waterTotal")/1000.0),13));
     page.addView(water);
-    heading("Tagesübersicht");
+
+    heading("Die einzelnen Tage");
     JSONArray rows=report.optJSONArray("daysDetail");
     for(int i=0;rows!=null&&i<rows.length();i++){
       JSONObject day=rows.optJSONObject(i);if(day==null)continue;
-      LinearLayout row=card(Color.WHITE);
-      row.addView(label(pretty(day.optString("date"))+
-        " · "+(day.optBoolean("logged")?pt(day.optDouble("points"))+" P":"Keine Mahlzeiten")+
-        " · "+String.format(Locale.GERMAN,"%.2f L",day.optInt("waterMl")/1000.0),14));
-      page.addView(row);
+      LinearLayout item=card(Color.WHITE);
+      item.addView(label(pretty(day.optString("date"))+" · "+
+        (day.optBoolean("logged")?pt(day.optDouble("points"))+" P gegessen":"Kein Mahlzeiteneintrag")+
+        " · "+String.format(Locale.GERMAN,"%.2f L",day.optInt("waterMl")/1000.0),13));
+      page.addView(item);
     }
-    page.addView(label("Tage ohne Einträge werden nicht als eingehaltene Tage gewertet. "
-      +"Dies ist eine sachliche Auswertung deines Tagebuchs, keine Ernährungsbewertung.",12));
   }
 
   private void waterReminderSettings(){
@@ -1994,14 +2049,11 @@ public class MainActivity extends Activity {
     recap.addView(label("📊 Diese Woche im Überblick",18));
     JSONObject stats=FitRocketInsights.week(LocalDate.now(),budget,waterGoal(),
        safeArray("meals"),waterDays());
-    recap.addView(label(stats.optInt("loggedDays")+" Tage mit Mahlzeiten · "+
-       pt(stats.optDouble("totalPoints"))+" P gegessen",15));
-    recap.addView(label(stats.optInt("withinBudget")+" von "+stats.optInt("loggedDays")+
-       " erfassten Tagen im Tagesbudget",13));
-    recap.addView(label(stats.optInt("waterGoalDays")+" von "+stats.optInt("days")+
-       " Tagen Trinkziel erreicht",13));
-    recap.addView(label("Wochenstart: "+weekly+" P · Tagesüberträge +"+pt(rolloversWeek())+
-       " P · Bewegung +"+activityCredit()+" P · verwendet −"+pt(spentWeek())+" P",12));
+    recap.addView(weekSummaryBubbles(stats));
+    recap.addView(new FitRocketWeekChart(this,stats.optJSONArray("daysDetail"),budget),
+       new LinearLayout.LayoutParams(-1,dp(190)));
+    TextView hint=label("Balken: gegessene Punkte · Strichlinie: Tagesziel",12);
+    hint.setTextColor(muted());recap.addView(hint);
     action(recap,"Vollständigen Wochenrückblick ansehen",()->weeklyReview());
     page.addView(recap);
 
