@@ -1479,84 +1479,221 @@ public class MainActivity extends Activity {
     try{return new JSONArray(prefs.getString("favoriteMeals","[]"));}
     catch(Exception e){return new JSONArray();}
   }
-  private void saveFavorite(JSONObject meal){
+  private JSONObject findFoodById(String id){
+    if(id==null||id.isEmpty())return null;
+    for(JSONObject food:foods)if(id.equals(food.optString("id")))return food;
+    return null;
+  }
+
+  private String favoriteUnit(JSONObject favorite,JSONObject food){
+    String stored=favorite.optString("quantityUnit","");
+    if("ml".equals(stored)||"g".equals(stored))return stored;
+    if(food!=null)return FitRocketFoodDisplay.unit(food);
+    return "Getränke".equals(favorite.optString("group"))?"ml":"g";
+  }
+
+  private void actuallySaveFavorite(JSONObject meal,double reference,String unit){
     try{
-      JSONArray all=favoriteItems();String name=meal.optString("name");
+      FitRocketFavoriteMath.positive(reference);
+      JSONArray all=favoriteItems();
+      if(all.length()>=300){msg("Maximal 300 Favoriten möglich.");return;}
+      String id=meal.optString("foodId","");
+      String title=meal.optString("baseName",
+          FitRocketFavoriteMath.cleanName(meal.optString("name")));
       for(int i=0;i<all.length();i++){
-        JSONObject x=all.optJSONObject(i);
-        if(x!=null&&name.equalsIgnoreCase(x.optString("name"))&&
-           x.optInt("points")==meal.optInt("points")){
-          msg("Diese Mahlzeit ist bereits als Favorit gespeichert.");return;
+        JSONObject fav=all.optJSONObject(i);
+        if(fav!=null&&id.equals(fav.optString("foodId"))&&
+            title.equalsIgnoreCase(fav.optString("name"))&&
+            fav.optInt("points")==meal.optInt("points")&&
+            Math.abs(fav.optDouble("referenceQuantity",-1)-reference)<0.01){
+          msg("Dieser Favorit ist bereits gespeichert.");return;
         }
       }
-      if(all.length()>=300){msg("Maximal 300 Favoriten möglich.");return;}
       JSONObject favorite=new JSONObject();
-      favorite.put("name",name);
+      favorite.put("favoriteId",UUID.randomUUID().toString());
+      favorite.put("name",title);
       favorite.put("points",meal.optInt("points"));
       favorite.put("group",meal.optString("group","Snack"));
-      favorite.put("foodId",meal.optString("foodId",""));
+      favorite.put("foodId",id);
       favorite.put("quality",meal.optString("quality",""));
+      favorite.put("referenceQuantity",reference);
+      favorite.put("quantityUnit",unit);
       if(meal.has("aiIngredients"))favorite.put("aiIngredients",
         new JSONArray(meal.getJSONArray("aiIngredients").toString()));
-      if(meal.has("aiUncertainty"))favorite.put("aiUncertainty",meal.optString("aiUncertainty"));
+      if(meal.has("aiUncertainty"))favorite.put("aiUncertainty",
+        meal.optString("aiUncertainty"));
       all.put(favorite);
-      prefs.edit().putString("favoriteMeals",all.toString()).apply();
-      msg("★ Mahlzeit als Favorit gespeichert.");
+      if(!prefs.edit().putString("favoriteMeals",all.toString()).commit())
+        throw new IllegalStateException("Speichern fehlgeschlagen");
+      msg("★ Favorit gespeichert. Die Menge ist beim nächsten Mal frei wählbar.");
     }catch(Exception e){msg("Favorit konnte nicht gespeichert werden.");}
   }
 
-  private void bookFavorite(JSONObject favorite,String group){
+  private void saveFavorite(JSONObject meal){
+    JSONObject food=findFoodById(meal.optString("foodId"));
+    double reference=FitRocketFavoriteMath.referenceQuantity(meal,food);
+    String unit=favoriteUnit(meal,food);
+    if(Double.isFinite(reference)&&reference>0){
+      actuallySaveFavorite(meal,reference,unit);return;
+    }
+    // Old diary entries without quantity must never silently become "100 g".
+    LinearLayout box=new LinearLayout(this);box.setOrientation(1);
+    box.setPadding(dp(20),dp(10),dp(20),dp(10));
+    box.addView(label("Welche Menge hatte dieser Eintrag ursprünglich?",15));
+    box.addView(label("Diese Referenzmenge wird zusammen mit den "+
+      meal.optInt("points")+" Punkten gespeichert. Bei der nächsten Verwendung "+
+      "kannst du die Menge frei wählen.",13));
+    EditText quantity=edit("Ursprüngliche Menge in "+unit,"",8194);
+    box.addView(quantity);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Favorit mit variabler Menge")
+      .setView(box).setPositiveButton("Speichern",null)
+      .setNegativeButton("Abbrechen",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        double amount=FitRocketFavoriteMath.positive(num(quantity.getText().toString()));
+        actuallySaveFavorite(meal,amount,unit);dialog.dismiss();
+      }catch(Exception e){msg("Bitte eine gültige ursprüngliche Menge eingeben.");}
+    }));
+    dialog.show();
+  }
+
+  private void removeFavorite(JSONObject favorite){
+    JSONArray all=favoriteItems(),next=new JSONArray();
+    for(int i=0;i<all.length();i++){
+      JSONObject item=all.optJSONObject(i);
+      if(item==null)continue;
+      boolean same=!favorite.optString("favoriteId").isEmpty()
+         ?favorite.optString("favoriteId").equals(item.optString("favoriteId"))
+         :item.toString().equals(favorite.toString());
+      if(!same)next.put(item);
+    }
+    prefs.edit().putString("favoriteMeals",next.toString()).apply();
+    favoritesScreen();
+  }
+
+  private void bookFavorite(JSONObject favorite,String group,double reference,double quantity){
     try{
-      JSONObject entry=new JSONObject(favorite.toString());
-      entry.put("date",bookingDate==null?today():bookingDate);
+      int points=FitRocketFavoriteMath.scaledPoints(
+        favorite,findFoodById(favorite.optString("foodId")),
+        reference,quantity,foods);
+      JSONObject entry=new JSONObject();
+      String name=favorite.optString("name");
+      String unit=favoriteUnit(favorite,findFoodById(favorite.optString("foodId")));
+      entry.put("name",name+" ("+String.format(Locale.GERMAN,"%.1f",quantity)+" "+unit+")");
+      entry.put("points",points);
       entry.put("group",group);
+      entry.put("date",bookingDate==null?today():bookingDate);
+      entry.put("quality",favorite.optString("quality","Favorit"));
+      entry.put("foodId",favorite.optString("foodId",""));
+      entry.put("baseName",name);
+      entry.put("quantity",quantity);
+      entry.put("quantityUnit",unit);
+      JSONArray ingredients=FitRocketFavoriteMath.scaledIngredients(favorite,reference,quantity);
+      if(ingredients!=null){
+        entry.put("aiIngredients",ingredients);
+        entry.put("aiUncertainty",favorite.optString("aiUncertainty",""));
+      }
       meals.add(entry);persist("meals",meals);
-      msg("Mahlzeit erneut eingetragen.");
+      msg("Favorit mit "+points+" Punkten eingetragen.");
       afterMealAdded();
-    }catch(Exception e){msg("Favorit konnte nicht eingetragen werden.");}
+    }catch(Exception e){msg("Menge oder Nährwerte prüfen: "+e.getMessage());}
+  }
+
+  private void bookFavoriteDialog(JSONObject fav){
+    final String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
+    JSONObject food=findFoodById(fav.optString("foodId"));
+    final String unit=favoriteUnit(fav,food);
+    double known=FitRocketFavoriteMath.referenceQuantity(fav,food);
+    boolean missing=!(Double.isFinite(known)&&known>0);
+    LinearLayout form=new LinearLayout(this);form.setOrientation(1);
+    form.setPadding(dp(20),dp(10),dp(20),dp(10));
+    form.addView(label(fav.optString("name"),18));
+    if(missing)form.addView(label("Alter Favorit ohne gespeicherte Menge: "+
+      "Bitte einmal angeben, auf wie viel "+unit+" sich die "+
+      fav.optInt("points")+" Punkte ursprünglich bezogen.",13));
+    EditText base=edit("Referenzmenge "+unit,
+      missing?"":String.format(Locale.GERMAN,"%.1f",known),8194);
+    if(missing){form.addView(label("Ursprüngliche Menge ("+unit+")",13));form.addView(base);}
+    form.addView(label("Wie viel möchtest du heute eintragen ("+unit+")?",14));
+    EditText amount=edit("Menge "+unit,
+      missing?"":String.format(Locale.GERMAN,"%.1f",known),8194);
+    form.addView(amount);
+    Spinner group=groupSpinner();
+    for(int j=0;j<groups.length;j++)
+      if(groups[j].equals(fav.optString("group","Snack")))group.setSelection(j);
+    form.addView(label("Mahlzeit",13));form.addView(group);
+    TextView preview=label("Punkte werden zur neuen Menge berechnet.",16);
+    form.addView(preview);
+    Runnable update=()->{
+      try{
+        double ref=missing?num(base.getText().toString()):
+          FitRocketFavoriteMath.referenceQuantity(fav,food);
+        double qty=num(amount.getText().toString());
+        int points=FitRocketFavoriteMath.scaledPoints(fav,food,ref,qty,foods);
+        preview.setText(qty+" "+unit+" → "+points+" P");
+      }catch(Exception e){preview.setText("Bitte gültige Mengen eingeben.");}
+    };
+    TextWatcher watcher=new TextWatcher(){
+      public void beforeTextChanged(CharSequence s,int a,int b,int c){}
+      public void onTextChanged(CharSequence s,int a,int b,int c){update.run();}
+      public void afterTextChanged(Editable s){}
+    };
+    amount.addTextChangedListener(watcher);
+    if(missing)base.addTextChangedListener(watcher);
+    update.run();
+    ScrollView scroll=new ScrollView(this);scroll.addView(form);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Favorit hinzufügen")
+       .setView(scroll).setPositiveButton("Eintragen",null)
+       .setNegativeButton("Abbrechen",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        double ref=missing?FitRocketFavoriteMath.positive(num(base.getText().toString()))
+          :FitRocketFavoriteMath.referenceQuantity(fav,food);
+        double qty=FitRocketFavoriteMath.positive(num(amount.getText().toString()));
+        FitRocketFavoriteMath.scaledPoints(fav,food,ref,qty,foods);
+        if(missing){
+          fav.put("referenceQuantity",ref);fav.put("quantityUnit",unit);
+          if(!prefs.edit().putString("favoriteMeals",favoriteItems().toString()).commit())
+            throw new IllegalStateException("Referenzmenge nicht gespeichert");
+        }
+        dialog.dismiss();
+        bookFavorite(fav,group.getSelectedItem().toString(),ref,qty);
+      }catch(Exception ex){msg("Bitte beide Mengen korrekt eingeben.");}
+    }));
+    dialog.show();
   }
 
   private void favoritesScreen(){
     shell("Favoriten");
     LinearLayout intro=card(LAV);
     intro.addView(label("★ Deine gespeicherten Mahlzeiten",19));
-    intro.addView(label("Eine ganze Mahlzeit mit ihren bestätigten Punkten erneut eintragen. "
-       +"Die Zutatenliste von KI-Gerichten bleibt erhalten.",13));
+    intro.addView(label("Wähle bei jedem Eintrag erneut die Menge in Gramm oder "+
+      "Millilitern. Die Punkte werden automatisch angepasst.",13));
     page.addView(intro);
     JSONArray list=favoriteItems();
     if(list.length()==0){
       LinearLayout empty=card(Color.WHITE);
       empty.addView(label("Noch keine Favoriten vorhanden.",15));
-      empty.addView(label("Tippe im Tagebuch auf eine eingetragene Mahlzeit "
-          +"und wähle „Als Favorit speichern“.",13));
+      empty.addView(label("Tippe im Tagebuch auf eine Mahlzeit und wähle "+
+          "„Als Favorit speichern“.",13));
       page.addView(empty);return;
     }
     for(int i=0;i<list.length();i++){
       JSONObject fav=list.optJSONObject(i);if(fav==null)continue;
+      JSONObject food=findFoodById(fav.optString("foodId"));
+      double ref=FitRocketFavoriteMath.referenceQuantity(fav,food);
+      String unit=favoriteUnit(fav,food);
       LinearLayout box=card(Color.WHITE);
-      box.addView(label("★ "+fav.optString("name")+" · "+fav.optInt("points")+" P",16));
-      box.addView(label(fav.optString("group","Snack"),12));
-      action(box,"Für eine Mahlzeit eintragen",()->{
-        final String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
-        final String defaultGroup=fav.optString("group","Snack");
-        int current=3;for(int j=0;j<groups.length;j++)if(groups[j].equals(defaultGroup))current=j;
-        new AlertDialog.Builder(this).setTitle("Zu welcher Mahlzeit?")
-          .setSingleChoiceItems(groups,current,(dialog,index)->{
-            dialog.dismiss();bookFavorite(fav,groups[index]);
-          }).setNegativeButton("Abbrechen",null).show();
-      });
+      box.addView(label("★ "+fav.optString("name"),16));
+      box.addView(label(fav.optString("group","Snack")+
+        (Double.isFinite(ref)?" · bisher "+String.format(Locale.GERMAN,"%.0f",ref)+
+          " "+unit+" / "+fav.optInt("points")+" P":" · Referenzmenge einmal festlegen"),12));
+      action(box,"Menge wählen und eintragen",()->bookFavoriteDialog(fav));
       action(box,"Aus Favoriten entfernen",()->new AlertDialog.Builder(this)
         .setTitle("Favorit entfernen?")
-        .setMessage("Deine bisherigen Tagebucheinträge bleiben erhalten.")
-        .setPositiveButton("Entfernen",(d,w)->{
-          JSONArray old=favoriteItems(),items=new JSONArray();
-          for(int k=0;k<old.length();k++){
-            JSONObject x=old.optJSONObject(k);
-            if(x!=null&&!x.toString().equals(fav.toString()))items.put(x);
-          }
-          prefs.edit().putString("favoriteMeals",items.toString()).apply();
-          favoritesScreen();
-        }).setNegativeButton("Abbrechen",null).show());
+        .setMessage("Bisherige Tagebucheinträge bleiben erhalten.")
+        .setPositiveButton("Entfernen",(d,w)->removeFavorite(fav))
+        .setNegativeButton("Abbrechen",null).show());
       page.addView(box);
     }
   }
