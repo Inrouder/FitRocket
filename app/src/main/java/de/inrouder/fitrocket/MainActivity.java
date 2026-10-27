@@ -666,10 +666,16 @@ public class MainActivity extends Activity {
     content.addView(label("Der Schlüssel wird im Android Keystore verschlüsselt und "
        +"nie in GitHub oder in Backups gespeichert. "
        +"Für öffentlich verteilte Apps wäre ein abgesicherter Server besser.",12));
-    EditText e=edit(gemini?"Gemini API-Key (häufig AIza…)":"sk-…", "",
+    EditText e=edit(gemini?"Gemini API-Key (auch neue Auth-Schlüssel)":"sk-…", "",
         android.text.InputType.TYPE_CLASS_TEXT |
         android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-    e.setSingleLine(true);e.setSelectAllOnFocus(false);content.addView(e);
+    e.setSingleLine(true);
+    // The generic edit helper / single-line mode may reset Android's password
+    // transformation. Enforce it last to prevent readable keys in screenshots.
+    e.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
+    e.setSelectAllOnFocus(false);
+    e.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+    content.addView(e);
     content.addView(label(FitRocketAiSecrets.configured(this,provider)
       ?"Ein Schlüssel für diesen Anbieter ist vorhanden. Du kannst ihn ersetzen."
       :"Noch kein Schlüssel für diesen Anbieter gespeichert.",13));
