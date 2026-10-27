@@ -1942,7 +1942,7 @@ public class MainActivity extends Activity {
     LinearLayout overall=card(LAV);
     overall.addView(label("📊 Wochenrückblick",21));
     overall.addView(label(pretty(report.optString("from"))+" bis "+pretty(report.optString("through")),14));
-    overall.addView(label(report.optInt("totalPoints")+" verzehrte Punkte an "+
+    overall.addView(label(pt(report.optDouble("totalPoints"))+" verzehrte Punkte an "+
       report.optInt("loggedDays")+" protokollierten Tagen",15));
     overall.addView(label(report.optInt("withinBudget")+
        " erfasste Tage innerhalb des Tagesbudgets",14));
@@ -1962,7 +1962,7 @@ public class MainActivity extends Activity {
       JSONObject day=rows.optJSONObject(i);if(day==null)continue;
       LinearLayout row=card(Color.WHITE);
       row.addView(label(pretty(day.optString("date"))+
-        " · "+(day.optBoolean("logged")?day.optInt("points")+" P":"Keine Mahlzeiten")+
+        " · "+(day.optBoolean("logged")?pt(day.optDouble("points"))+" P":"Keine Mahlzeiten")+
         " · "+String.format(Locale.GERMAN,"%.2f L",day.optInt("waterMl")/1000.0),14));
       page.addView(row);
     }
@@ -2054,12 +2054,12 @@ public class MainActivity extends Activity {
     JSONObject stats=FitRocketInsights.week(LocalDate.now(),budget,waterGoal(),
        safeArray("meals"),waterDays());
     recap.addView(label(stats.optInt("loggedDays")+" Tage mit Mahlzeiten · "+
-       stats.optInt("totalPoints")+" P gegessen",15));
+       pt(stats.optDouble("totalPoints"))+" P gegessen",15));
     recap.addView(label(stats.optInt("withinBudget")+" von "+stats.optInt("loggedDays")+
        " erfassten Tagen im Tagesbudget",13));
     recap.addView(label(stats.optInt("waterGoalDays")+" von "+stats.optInt("days")+
        " Tagen Trinkziel erreicht",13));
-    recap.addView(label("Wochenstart: "+weekly+" P · Tagesüberträge +"+rolloversWeek()+
+    recap.addView(label("Wochenstart: "+weekly+" P · Tagesüberträge +"+pt(rolloversWeek())+
        " P · Bewegung +"+activityCredit()+" P · verwendet −"+pt(spentWeek())+" P",12));
     action(recap,"Vollständigen Wochenrückblick ansehen",()->weeklyReview());
     page.addView(recap);
@@ -2690,7 +2690,7 @@ public class MainActivity extends Activity {
     for(LocalDate day=startDay;day.isBefore(currentDay);day=day.plusDays(1)){
       daysFinished=true;
       double saved=FitRocketPointLedger.dailyTransfer(budget,used(day.toString()));
-      transfers.addView(label(pretty(day.toString())+" · +"+saved+" / 4 P",14));
+      transfers.addView(label(pretty(day.toString())+" · +"+pt(saved)+" / 4 P",14));
     }
     if(!daysFinished)transfers.addView(label("Der erste Tagesübertrag wird nach Tagesabschluss gutgeschrieben.",13));
     page.addView(transfers);
