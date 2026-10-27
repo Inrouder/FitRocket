@@ -1,5 +1,17 @@
 # FitRocket – Versionshinweise
 
+## 0.12.0 – Neue App-Navigation, Hell/Dunkel, Profil, Releases und Updates
+- Fünf Hauptbereiche: Heute, Suche, Tagebuch, Fortschritt und Profil.
+- Heute-Seite verschlankt: kompakte Punktestatusanzeige, schnelle Erfassung, Mahlzeitenübersicht, Wasser und Fortschrittslinks.
+- Fortschritt bündelt Gewicht, Statistik, Aktivitäten und Wasserbilanz.
+- Profil erhält Name, Körperdaten, Ziele, Darstellung, KI- und Smartwatch-Einstellungen, Backups, Versionsangabe und Updateprüfung.
+- Hell-/Dunkelmodus inkl. Systemeinstellung; Karten, Navigation und Diagramme dunkeltauglich.
+- Release-Checker mit Versionsvergleich, geprüften GitHub-Links und explizitem APK-Download statt stiller Installation.
+- GitHub Actions erstellt dauerhaftes stabiles Release mit FitRocket.apk nach erfolgreichen Tests.
+- Neue GitHub-Pages-Website mit dynamischem Download der aktuellen Release-APK.
+- Backup-Schema 6 um Profilnamen und Darstellungswahl erweitert, bisherige Backups weiterhin lesbar.
+- Unit-Tests für Versionsvergleich, gültige APK-URLs und Release-Metadaten.
+
 ## 0.11.2 – Neue Gemini-Modelle für neue API-Projekte
 - Behoben: HTTP 404 bei neuen Gemini-Projekten durch die bisherige Standardauswahl von Gemini 2.5 Flash-Lite.
 - Gemäß Googles Modellübersicht aktualisiert: Gemini 3.5 Flash-Lite als Standard und Gemini 3.8 Flash als Qualitätsoption.

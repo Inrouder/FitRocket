@@ -8,6 +8,7 @@
 - **0.11.0:** Google Gemini (Flash-Lite/Flash) als Standard, OpenAI als Option, providergetrennte verschlüsselte API-Schlüssel und strukturierte Antwortprüfung.
 - **0.11.1:** Akzeptanz aktueller Google-Autorisierungsschlüssel einschließlich Punktzeichen.
 - **0.11.2:** Gemini 3.5 Flash-Lite / 3.8 Flash statt der für neue Projekte gesperrten 2.5-Modelle; automatische Migration und bessere 404-Diagnose.
-- **0.12.x:** Eigene Lebensmittel/Rezepte auch nach dem Speichern bearbeiten, Rezeptsammlungen und Favoriten, übersichtlichere Portionsdarstellung und kürzere API-Anfragen.
+- **0.12.0:** Fünf-Bereich-Navigation, klares Profil und Fortschritt, Hell/Dunkel/System, Release-Updateprüfung und GitHub-Pages-Startseite.
+- **0.13.x:** Eigene Lebensmittel/Rezepte auch nach dem Speichern bearbeiten, Rezeptsammlungen und Favoriten, übersichtlichere Portionsdarstellung und kürzere API-Anfragen.
 - **1.0.0:** Instrumentierte Praxistests auf Geräten, zentraler Proxy für einen öffentlichen KI-Dienst, Barrierefreiheit, Release-Signierung und robustes Versions-/Datenmigrationssystem.
 - **Später:** Opt-in Erinnerungen, optionale Einkaufszettel, Health-Connect-Verbesserungen und Rezeptplaner.
