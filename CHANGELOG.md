@@ -1,5 +1,17 @@
 # FitRocket – Versionshinweise
 
+## 0.15.1 – Tagebuch ersetzt Heute als Hauptseite
+- Separaten Heute-Bildschirm vollständig entfernt. FitRocket öffnet direkt das Tagebuch.
+- Vier statt fünf Hauptreiter: Tagebuch, Suche, Fortschritt und Profil.
+- Punktekreis für den gewählten Kalendertag direkt über den Mahlzeiten; Tagesverbrauch und Tagesrest sichtbar.
+- Verfügbare Wochenpunkte auf der heutigen Tagebuchseite; bei vergangenen Tagen stattdessen das Tagesziel zur Vermeidung irreführender Kontostände.
+- Datum über Pfeile und Kalender wählbar; Punktebogen und Mahlzeiten aktualisieren sich gemeinsam.
+- Direkte Schnellzugriffe auf Lebensmittelsuche und Favoriten im Tagebuch.
+- Alle Buchungs-, Lösch-, Import- und Synchronisierungsrücksprünge führen auf die neue Tagebuch-Hauptseite.
+- Ausgewähltes Datum über Bildschirmdrehung beibehalten; bei Mitternacht wird der neue Tag angezeigt, sofern zuvor der aktuelle Tag gewählt war.
+- Bestehende Lebensmittel, Favoriten, Punktestände, Profile und Backups bleiben unverändert.
+- Automatisierte Tests für neue Startseite und Vier-Reiter-Navigation.
+
 ## 0.15.0 – Portionen, Zehntelpunkte und FAQ
 - Portion oder Gramm/Milliliter als auswählbare Erfassungsart für alle bekannten Lebensmittel.
 - Geprüfte Referenzmengen in g/ml und frei einstellbare Portionsfaktoren.

@@ -12,3 +12,5 @@
 - **0.13.x:** Eigene Lebensmittel/Rezepte auch nach dem Speichern bearbeiten, Rezeptsammlungen und Favoriten, übersichtlichere Portionsdarstellung und kürzere API-Anfragen.
 - **1.0.0:** Instrumentierte Praxistests auf Geräten, zentraler Proxy für einen öffentlichen KI-Dienst, Barrierefreiheit, Release-Signierung und robustes Versions-/Datenmigrationssystem.
 - **Später:** Opt-in Erinnerungen, optionale Einkaufszettel, Health-Connect-Verbesserungen und Rezeptplaner.
+
+- **0.15.1:** Tagebuch als Startseite mit integrierter Punkteanzeige; separater Heute-Reiter entfällt.

@@ -6,6 +6,14 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
+## FitRocket v0.15.1 – Tagebuch als Hauptseite
+
+**Weniger Reiter, mehr Überblick:** Statt einer separaten Heute-Ansicht startet FitRocket jetzt unmittelbar im Tagebuch. Dort findest du den grafischen Punktebogen (Tagesverbrauch und Restpunkte), deine Wochenpunkte für heute, die Datumsnavigation, die fünf Mahlzeitengruppen und die Wasser-Challenge. Lebensmittelsuche und Favoriten sind direkt erreichbar.
+
+**Neue Navigation:** **Tagebuch · Suche · Fortschritt · Profil**. Alle alten Daten und die integrierte Updatefunktion bleiben erhalten.
+
+[Alle Änderungen in v0.15.1](docs/RELEASE_NOTES.md)
+
 ## FitRocket v0.15.0 – Variable Portionen, Gramm & FAQ
 
 - **Portionen oder Gramm:** Schnell 1 Handvoll/Portion/Stück buchen oder eine genaue Menge in g/ml eingeben.
