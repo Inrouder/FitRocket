@@ -8,4 +8,5 @@
     <string name="fitrocket_widget_compact_description">Schmales Widget für Restpunkte und Trinkmenge</string>
     <string name="fitrocket_widget_compact_horizontal_label">FitRocket – Kompakt 2×1</string>
     <string name="fitrocket_widget_compact_horizontal_description">Flaches Widget für Tagespunkte und Trinkmenge</string>
+    <string name="fitrocket_widget_mini_horizontal_description">Alternative horizontale Widget-Vorlage</string>
 </resources>
