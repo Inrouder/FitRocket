@@ -902,6 +902,7 @@ public class MainActivity extends Activity {
     final String unit=FitRocketFoodDisplay.unit(f);
     final double reference=FitRocketFoodDisplay.portionAmount(f);
     final int fixed=f.optInt("points",0);
+    final boolean isBaseZero="basic".equals(f.optString("status"))&&fixed==0;
     final boolean needsManual=f.isNull("points");
     String portion=f.optString("portion","");
     content.addView(label("Referenz: "+portion,14));
@@ -927,15 +928,15 @@ public class MainActivity extends Activity {
     Spinner group=groupSpinner();content.addView(group);
     Runnable refresh=()->{
       boolean exact=mode.getSelectedItemPosition()==1;
-      missingWeight.setVisibility(exact&&!Double.isFinite(reference)?View.VISIBLE:View.GONE);
+      missingWeight.setVisibility(exact&&!Double.isFinite(reference)&&!isBaseZero?View.VISIBLE:View.GONE);
       amount.setHint(exact?"Menge in "+unit:"Anzahl Portionen");
       try{
         double quantity=FitRocketFavoriteMath.positive(num(amount.getText().toString()));
         double value=needsManual?FitRocketPointLedger.validPoints(num(per.getText().toString())):fixed;
         double weight=Double.isFinite(reference)?reference:
-           (exact?FitRocketFavoriteMath.positive(num(portionWeight.getText().toString())):Double.NaN);
-        double points=exact?FitRocketPointLedger.scaled(value,weight,quantity):
-          FitRocketPointLedger.validPoints(value*quantity);
+           (exact&&!isBaseZero?FitRocketFavoriteMath.positive(num(portionWeight.getText().toString())):Double.NaN);
+        double points=isBaseZero?0:(exact?FitRocketPointLedger.scaled(value,weight,quantity):
+          FitRocketPointLedger.validPoints(value*quantity));
         String desc=exact?FitRocketFoodDisplay.quantityLabel(f,quantity):
           (pt(quantity)+" Portion(en)");
         preview.setText(pt(points)+" P · "+desc);
@@ -962,9 +963,9 @@ public class MainActivity extends Activity {
         double quantity=FitRocketFavoriteMath.positive(num(amount.getText().toString()));
         double value=needsManual?FitRocketPointLedger.validPoints(num(per.getText().toString())):fixed;
         double weight=Double.isFinite(reference)?reference:
-          (exact?FitRocketFavoriteMath.positive(num(portionWeight.getText().toString())):Double.NaN);
-        double points=exact?FitRocketPointLedger.scaled(value,weight,quantity):
-          FitRocketPointLedger.validPoints(value*quantity);
+          (exact&&!isBaseZero?FitRocketFavoriteMath.positive(num(portionWeight.getText().toString())):Double.NaN);
+        double points=isBaseZero?0:(exact?FitRocketPointLedger.scaled(value,weight,quantity):
+          FitRocketPointLedger.validPoints(value*quantity));
         double effectiveWeight=exact?quantity:(Double.isFinite(reference)?reference*quantity:Double.NaN);
         String title=f.optString("name")+(Double.isFinite(effectiveWeight)?
           " ("+FitRocketFoodDisplay.quantityLabel(f,effectiveWeight)+")":
