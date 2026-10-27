@@ -79,6 +79,30 @@ public class FitRocketAiRulesTest {
             FitRocketAiRules.pointsPerServing(x,Collections.emptyList()));
     }
 
+    @Test public void fullPancakeDishSumsAllIngredientsRatherThanJustOne()throws Exception{
+        JSONObject egg=food("ZP071","Eier","basic",150);
+        JSONObject pancake=proposal(1,
+            item("Eier","ZP071",110,150),
+            item("Mehl","",80,360),
+            item("Milch","",120,65),
+            item("Butter","",10,750));
+        FitRocketAiRules.validateResponse(pancake,"meal");
+        int sum=FitRocketAiRules.points(80,360,0,0,0)
+               +FitRocketAiRules.points(120,65,0,0,0)
+               +FitRocketAiRules.points(10,750,0,0,0);
+        assertEquals(sum,FitRocketAiRules.pointsPerServing(pancake,Arrays.asList(egg)));
+        assertTrue(sum>FitRocketAiRules.points(80,360,0,0,0));
+    }
+
+    @Test public void portionsScaleTotalRecipeButMealsRemainSingleServing()throws Exception{
+        JSONObject recipe=proposal(2,item("Teig","",400,250),item("Öl","",20,900));
+        int recipeTotal=FitRocketAiRules.pointsPerServing(
+            FitRocketAiRules.validateResponse(recipe,"recipe"),Collections.emptyList());
+        int expected=FitRocketAiRules.points(200,250,0,0,0)
+               +FitRocketAiRules.points(10,900,0,0,0);
+        assertEquals(expected,recipeTotal);
+    }
+
     @Test public void newProductHasComputedNotModelPoints()throws Exception{
         JSONObject x=item("Erdnussmus","",100,650);
         JSONObject food=FitRocketAiRules.newFood(x,"AI");
