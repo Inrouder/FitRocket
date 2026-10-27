@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/widget_root" android:layout_width="match_parent"
+ android:layout_height="match_parent"
+ android:background="@drawable/fitrocket_widget_background">
+ <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+  android:layout_gravity="center" android:src="@drawable/fitrocket_widget_rocket"
+  android:scaleType="centerCrop" android:alpha="0.32"
+  android:contentDescription="@null"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+  android:orientation="vertical" android:gravity="center"
+  android:paddingLeft="4dp" android:paddingRight="4dp"
+  android:paddingTop="5dp" android:paddingBottom="5dp">
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:gravity="center" android:text="🚀" android:textSize="15sp"
+    android:textColor="#DBC8FF"/>
+  <TextView android:id="@+id/widget_points" android:layout_width="match_parent"
+    android:layout_height="wrap_content" android:gravity="center"
+    android:text="23 P" android:textColor="#FFFFFF" android:textStyle="bold"
+    android:textSize="19sp" android:maxLines="1" android:autoSizeTextType="uniform"
+    android:autoSizeMinTextSize="12sp" android:autoSizeMaxTextSize="19sp"/>
+  <TextView android:id="@+id/widget_used" android:layout_width="match_parent"
+    android:layout_height="wrap_content" android:gravity="center"
+    android:text="übrig" android:textColor="#D7C9FF" android:textSize="10sp"
+    android:maxLines="1"/>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
+    android:layout_weight="1" android:orientation="vertical"
+    android:gravity="bottom|center_horizontal">
+   <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:gravity="center" android:text="💧" android:textSize="13sp"/>
+   <TextView android:id="@+id/widget_water" android:layout_width="match_parent"
+    android:layout_height="wrap_content" android:gravity="center"
+    android:text="0,75 L" android:textSize="12sp" android:textStyle="bold"
+    android:textColor="#FFFFFF" android:maxLines="1"
+    android:autoSizeTextType="uniform"
+    android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="12sp"/>
+   <ProgressBar android:id="@+id/widget_water_bar"
+    style="?android:attr/progressBarStyleHorizontal"
+    android:layout_width="match_parent" android:layout_height="4dp"
+    android:layout_marginTop="4dp" android:max="100"
+    android:progressTint="#94D8F4"
+    android:progressBackgroundTint="#465169"/>
+  </LinearLayout>
+ </LinearLayout>
+</FrameLayout>

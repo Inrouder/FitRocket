@@ -4,4 +4,6 @@
     <string name="fitrocket_widget_label">FitRocket – Horizontal</string>
     <string name="fitrocket_widget_vertical_description">FitRocket Tagespunkte und Trinkmenge, hochkant</string>
     <string name="fitrocket_widget_vertical_label">FitRocket – Vertikal</string>
+    <string name="fitrocket_widget_compact_label">FitRocket – Kompakt 1×2</string>
+    <string name="fitrocket_widget_compact_description">Schmales Widget für Restpunkte und Trinkmenge</string>
 </resources>

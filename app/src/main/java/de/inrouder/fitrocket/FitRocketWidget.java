@@ -25,6 +25,10 @@ public final class FitRocketWidget extends AppWidgetProvider {
         int[] narrow=manager.getAppWidgetIds(vertical);
         if(narrow!=null && narrow.length>0)
             updateWidgets(context,manager,narrow,R.layout.fitrocket_widget_vertical);
+        ComponentName compact=new ComponentName(context,FitRocketWidgetCompact.class);
+        int[] small=manager.getAppWidgetIds(compact);
+        if(small!=null && small.length>0)
+            updateWidgets(context,manager,small,R.layout.fitrocket_widget_compact);
     }
 
     public static void updateWidgets(Context context,AppWidgetManager manager,int[] ids,
@@ -36,12 +40,13 @@ public final class FitRocketWidget extends AppWidgetProvider {
             p.getInt("waterGoal",1500));
         for(int id:ids){
             RemoteViews views=new RemoteViews(context.getPackageName(),layoutId);
+            boolean isCompact=layoutId==R.layout.fitrocket_widget_compact;
             views.setTextViewText(R.id.widget_points,
-                data.remainingText()+" P übrig");
+                isCompact?data.remainingText()+" P":data.remainingText()+" P übrig");
             views.setTextViewText(R.id.widget_used,
-                data.usedText()+" / "+data.budget+" P genutzt");
+                isCompact?"übrig":data.usedText()+" / "+data.budget+" P genutzt");
             views.setTextViewText(R.id.widget_water,
-                data.waterText()+" / "+data.waterGoalText()+" L");
+                isCompact?data.waterText()+" L":data.waterText()+" / "+data.waterGoalText()+" L");
             views.setProgressBar(R.id.widget_water_bar,100,data.waterPercent(),false);
 
             Intent open=new Intent(context,MainActivity.class);
