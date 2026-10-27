@@ -2018,7 +2018,7 @@ public class MainActivity extends Activity {
 
     LinearLayout about=card(Color.WHITE);
     about.addView(label("App & Hilfe",18));
-    settingsRow(about,"Auf Updates prüfen","Installiert: v"+installedVersion(),()->checkForUpdates());
+    settingsRow(about,"In-App-Update prüfen","Direkt herunterladen · Installieren bestätigen · v"+installedVersion(),()->checkForUpdates());
     settingsRow(about,"Automatische Updateprüfung",
        prefs.getBoolean("updateChecks",true)?"Bei App-Start gelegentlich prüfen":"Deaktiviert",
        ()->toggleUpdateChecks());
@@ -2078,6 +2078,84 @@ public class MainActivity extends Activity {
     }catch(Exception e){msg("Kein Browser gefunden.");}
   }
 
+  private boolean waitingForUpdatePermission=false;
+
+  private void installDownloadedUpdate(java.io.File apk){
+    if(!FitRocketInAppUpdate.hasInstallerPermission(this)){
+      waitingForUpdatePermission=true;
+      new AlertDialog.Builder(this).setTitle("Installation erlauben")
+        .setMessage("Android muss FitRocket einmalig erlauben, Updates aus dieser App "
+          +"zu installieren. Die neue APK wurde bereits innerhalb von FitRocket "
+          +"heruntergeladen und auf App-Identität, Versionsnummer und Signatur geprüft. "
+          +"Aktiviere „Aus dieser Quelle zulassen“ und kehre zur App zurück. "
+          +"Android fragt danach vor der eigentlichen Installation nochmals um Zustimmung.")
+        .setPositiveButton("Berechtigung öffnen",(d,w)->{
+          try{FitRocketInAppUpdate.openPermissionSettings(this);}
+          catch(Exception ex){
+            waitingForUpdatePermission=false;
+            msg("Android-Einstellungen konnten nicht geöffnet werden.");
+          }
+        })
+        .setNegativeButton("Abbrechen",(d,w)->waitingForUpdatePermission=false)
+        .show();
+      return;
+    }
+    waitingForUpdatePermission=false;
+    try{
+      FitRocketInAppUpdate.launchInstaller(this,apk);
+    }catch(Exception ex){
+      new AlertDialog.Builder(this).setTitle("Update konnte nicht gestartet werden")
+        .setMessage(ex.getMessage()==null?"Unbekannter Fehler.":ex.getMessage())
+        .setPositiveButton("OK",null).show();
+    }
+  }
+
+  private void downloadAndInstallUpdate(FitRocketUpdate.Release release){
+    if(release.apkUrl.isEmpty()){
+      new AlertDialog.Builder(this).setTitle("Kein APK-Download vorhanden")
+        .setMessage("Das Release enthält keine passende FitRocket.apk. "
+          +"Bitte die offizielle Release-Seite prüfen.")
+        .setPositiveButton("Release öffnen",(d,w)->openSafeUrl(release.pageUrl))
+        .setNegativeButton("Schließen",null).show();
+      return;
+    }
+    ProgressDialog loading=new ProgressDialog(this);
+    loading.setTitle("FitRocket "+release.version+" herunterladen");
+    loading.setMessage("Sicheres Update wird direkt in der App geladen …");
+    loading.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+    loading.setMax(100);
+    loading.setIndeterminate(true);
+    loading.setCancelable(false);
+    loading.show();
+    FitRocketInAppUpdate.download(this,release,new FitRocketInAppUpdate.Callback(){
+      @Override public void onProgress(int percent){
+        if(!loading.isShowing())return;
+        if(percent>=0){loading.setIndeterminate(false);loading.setProgress(percent);}
+        else loading.setIndeterminate(true);
+      }
+      @Override public void onReady(java.io.File apk){
+        loading.dismiss();
+        new AlertDialog.Builder(MainActivity.this)
+          .setTitle("Update ist bereit")
+          .setMessage("FitRocket "+release.version+" wurde heruntergeladen. "
+            +"Die APK gehört zu FitRocket und wurde vorab mit der "
+            +"Signatur der installierten App verglichen. "
+            +"Android benötigt noch deine Bestätigung zur Installation. "
+            +"Deine App-Daten bleiben bei einem regulären Update erhalten.")
+          .setPositiveButton("Jetzt installieren",(d,w)->installDownloadedUpdate(apk))
+          .setNegativeButton("Später",null).show();
+      }
+      @Override public void onFailure(String reason){
+        loading.dismiss();
+        new AlertDialog.Builder(MainActivity.this)
+          .setTitle("Update konnte nicht geladen werden")
+          .setMessage(reason)
+          .setPositiveButton("Release öffnen",(d,w)->openSafeUrl(release.pageUrl))
+          .setNegativeButton("Schließen",null).show();
+      }
+    });
+  }
+
   private void checkForUpdates(){
     AlertDialog loading=new AlertDialog.Builder(this)
       .setTitle("Updateprüfung").setMessage("Prüfe das aktuelle GitHub Release …")
@@ -2101,11 +2179,11 @@ public class MainActivity extends Activity {
         new AlertDialog.Builder(MainActivity.this)
           .setTitle("Update "+release.version+" verfügbar")
           .setMessage("Installiert: v"+installedVersion()+
-            "\n\n"+notes+"\n\nWichtig: Bitte zuerst unter Profil ein Backup exportieren. "
-            +"Bei unterschiedlich signierten Debug-APKs kann Android die Aktualisierung ablehnen. "
-            +"Die APK wird nur auf deinen Wunsch im Browser geöffnet; Android fragt vor einer Installation nach.")
-          .setPositiveButton("APK herunterladen",(d,w)->
-            openSafeUrl(release.apkUrl.isEmpty()?release.pageUrl:release.apkUrl))
+            "\n\n"+notes+"\n\nFitRocket kann die neue APK jetzt direkt herunterladen und "
+            +"den Android-Installationsdialog öffnen. Kein Browser oder manuelles "
+            +"Suchen einer APK nötig. Android benötigt weiterhin deine Zustimmung. "
+            +"Ein Backup vor einem größeren Update ist empfehlenswert.")
+          .setPositiveButton("In FitRocket aktualisieren",(d,w)->downloadAndInstallUpdate(release))
           .setNeutralButton("Release ansehen",(d,w)->openSafeUrl(release.pageUrl))
           .setNegativeButton("Später",null).show();
       }
@@ -2466,6 +2544,12 @@ public class MainActivity extends Activity {
   }
   @Override protected void onResume(){
     super.onResume();
+    if(waitingForUpdatePermission && FitRocketInAppUpdate.hasInstallerPermission(this)){
+      waitingForUpdatePermission=false;
+      java.io.File apk=FitRocketInAppUpdate.updateFile(this);
+      // Called only after an explicit user-requested update permission flow.
+      installDownloadedUpdate(apk);
+    }
     if(prefs!=null && lastRenderedDate!=null && !today().equals(lastRenderedDate)){
       if("FitRocket".equals(currentScreen))home();
       else if("Aktivität".equals(currentScreen))activityPage();
