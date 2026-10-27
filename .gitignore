@@ -6,3 +6,11 @@ local.properties
 *.iml
 *.apk
 *.aab
+
+# Never commit the Android release signing identity or credentials
+*.jks
+*.keystore
+*.p12
+*.pfx
+signing.properties
+key.properties
