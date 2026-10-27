@@ -69,12 +69,12 @@ public final class FitRocketAiSecrets {
         String key = apiKey == null ? "" : apiKey.trim();
         if (GEMINI.equals(provider)) {
             if (key.length() < 16 || key.length() > 500 ||
-                !key.matches("[A-Za-z0-9._~+=/\\\\-]+"))
+                !key.matches("[A-Za-z0-9._~+=/-]+"))
                 throw new IllegalArgumentException(
                     "Bitte den vollständigen Gemini-Schlüssel ohne Leerzeichen einfügen. "
                     + "Auch neuere Google-Schlüssel mit Punkten sind erlaubt.");
         } else if (!key.startsWith("sk-") || key.length() > 500 || key.length() < 8 ||
-                   !key.matches("[A-Za-z0-9._~+=/\\\\-]+")) {
+                   !key.matches("[A-Za-z0-9._~+=/-]+")) {
             throw new IllegalArgumentException("Bitte einen OpenAI-API-Schlüssel (sk-…) eintragen.");
         }
         return key;
