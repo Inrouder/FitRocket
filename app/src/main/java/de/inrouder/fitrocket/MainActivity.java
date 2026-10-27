@@ -602,15 +602,57 @@ public class MainActivity extends Activity {
     item.addView(name,new LinearLayout.LayoutParams(0,-2,1));
     item.addView(chip(m.optInt("points")+" P",m.optInt("points")==0?MINT:Color.rgb(255,232,219)));
     target.addView(item,ip);
-    item.setOnClickListener(v->new AlertDialog.Builder(this).setTitle(m.optString("name"))
-      .setItems(new String[]{"Punkte ändern","Eintrag löschen"},(d,which)->{
-        if(which==0)editMeal(m);
-        else new AlertDialog.Builder(this).setMessage("Eintrag wirklich löschen?")
-          .setPositiveButton("Löschen",(dd,w)->{
-            meals.remove(m);persist("meals",meals);refreshMealContext();
-          }).setNegativeButton("Abbrechen",null).show();
-      }).show());
+    item.setOnClickListener(v->{
+      boolean hasComposition=m.optJSONArray("aiIngredients")!=null;
+      String[] choices=hasComposition?
+          new String[]{"Zutaten & Berechnung ansehen","Punkte ändern","Eintrag löschen"}:
+          new String[]{"Punkte ändern","Eintrag löschen"};
+      new AlertDialog.Builder(this).setTitle(m.optString("name"))
+        .setItems(choices,(d,which)->{
+          if(hasComposition && which==0){showAiMealDetails(m);return;}
+          int actionIndex=hasComposition?which-1:which;
+          if(actionIndex==0)editMeal(m);
+          else new AlertDialog.Builder(this).setMessage("Eintrag wirklich löschen?")
+            .setPositiveButton("Löschen",(dd,w)->{
+              meals.remove(m);persist("meals",meals);refreshMealContext();
+            }).setNegativeButton("Abbrechen",null).show();
+        }).show();
+    });
   }
+  private void showAiMealDetails(JSONObject meal){
+    JSONArray parts=meal.optJSONArray("aiIngredients");
+    if(parts==null){msg("Keine Zutatenliste für diesen Eintrag.");return;}
+    LinearLayout box=new LinearLayout(this);box.setOrientation(1);
+    box.setPadding(dp(20),dp(8),dp(20),dp(8));
+    box.addView(label(meal.optString("name")+" · "+meal.optInt("points")+" P",18));
+    box.addView(label("KI-Schätzung · Zutaten und Nährwerte können ungenau sein.",13));
+    for(int i=0;i<parts.length();i++){
+      JSONObject ingredient=parts.optJSONObject(i);
+      if(ingredient==null)continue;
+      int ingredientPoints=0;
+      try{
+        JSONObject existing=FitRocketAiRules.matchCatalog(
+          ingredient.optString("food_id"),ingredient.optString("name"),foods);
+        if(existing==null||!"basic".equals(existing.optString("status"))){
+          JSONObject macros=existing!=null?existing.optJSONObject("nutrition"):null;
+          ingredientPoints=FitRocketAiRules.points(ingredient.optDouble("grams"),
+            macros!=null?macros.optDouble("kcal"):ingredient.optDouble("kcal_100g"),
+            macros!=null?macros.optDouble("saturatedFat_g"):ingredient.optDouble("saturated_fat_100g"),
+            macros!=null?macros.optDouble("sugar_g"):ingredient.optDouble("sugar_100g"),
+            macros!=null?macros.optDouble("protein_g"):ingredient.optDouble("protein_100g"));
+        }
+      }catch(Exception ignored){}
+      box.addView(label("• "+ingredient.optString("name")+" · "+
+        String.format(Locale.GERMAN,"%.0f g",ingredient.optDouble("grams"))+
+        " · "+ingredientPoints+" P",14));
+    }
+    String uncertainty=meal.optString("aiUncertainty","");
+    if(!uncertainty.isEmpty())box.addView(label("Unsicherheiten: "+uncertainty,12));
+    ScrollView scroll=new ScrollView(this);scroll.addView(box);
+    new AlertDialog.Builder(this).setTitle("Zutaten des Gerichts")
+      .setView(scroll).setPositiveButton("Schließen",null).show();
+  }
+
   private void editMeal(JSONObject m){EditText e=edit("Punkte",String.valueOf(m.optInt("points")),2);new AlertDialog.Builder(this).setTitle("Punkte anpassen").setView(e).setPositiveButton("Speichern",(d,w)->{try{int n=Integer.parseInt(e.getText().toString());if(n<0||n>2000)throw new Exception();m.put("points",n);m.put("quality","Manuell korrigiert");persist("meals",meals);refreshMealContext();}catch(Exception ignored){msg("Ungültige Punkte.");}}).setNegativeButton("Abbrechen",null).show();}
   private void searchScreen(){
     shell("Lebensmittel");LinearLayout searchCard=card(Color.WHITE);
