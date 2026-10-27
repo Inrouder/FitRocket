@@ -5,6 +5,10 @@ import org.json.*;
 /** Validate import shape and diary records before existing local data are replaced. */
 public final class FitRocketBackupCheck {
  private FitRocketBackupCheck(){}
+ private static boolean validPoints(double points){
+  return Double.isFinite(points) && points>=0 && points<=3000
+    && Math.abs(points*10-Math.rint(points*10))<0.0001;
+ }
  public static String preview(JSONObject root){
   if(root==null)throw new IllegalArgumentException("Leeres Backup");
   int schema=root.optInt("schemaVersion",-1);
@@ -15,7 +19,7 @@ public final class FitRocketBackupCheck {
   for(int i=0;i<meals.length();i++){
    JSONObject m=meals.optJSONObject(i);
    if(m==null||m.optString("name").trim().isEmpty()||m.optString("name").length()>300||
-     m.optInt("points",-1)<0||m.optInt("points",-1)>3000)throw new IllegalArgumentException("Ungültige Mahlzeit "+(i+1));
+     !validPoints(m.optDouble("points",Double.NaN)))throw new IllegalArgumentException("Ungültige Mahlzeit "+(i+1));
    try{LocalDate.parse(m.getString("date"));}
    catch(Exception e){throw new IllegalArgumentException("Ungültiges Datum in Mahlzeit "+(i+1));}
   }
@@ -36,7 +40,7 @@ public final class FitRocketBackupCheck {
    for(int i=0;i<favorites.length();i++){
     JSONObject f=favorites.optJSONObject(i);
     if(f==null||f.optString("name").trim().isEmpty()||
-      f.optInt("points",-1)<0||f.optInt("points",-1)>3000)
+      !validPoints(f.optDouble("points",Double.NaN)))
      throw new IllegalArgumentException("Ungültiger Favorit");
    }
   }
