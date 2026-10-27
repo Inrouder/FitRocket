@@ -1522,7 +1522,7 @@ public class MainActivity extends Activity {
           JSONArray old=favoriteItems(),items=new JSONArray();
           for(int k=0;k<old.length();k++){
             JSONObject x=old.optJSONObject(k);
-            if(x!=null&&!x.similar(fav))items.put(x);
+            if(x!=null&&!x.toString().equals(fav.toString()))items.put(x);
           }
           prefs.edit().putString("favoriteMeals",items.toString()).apply();
           favoritesScreen();
