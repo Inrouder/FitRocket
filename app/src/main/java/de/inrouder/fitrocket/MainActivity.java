@@ -33,20 +33,85 @@ public class MainActivity extends Activity {
   private String recipeFilter="Alle";
   private final int NAVY=Color.rgb(37,46,76), BLUE=Color.rgb(112,117,225), LIGHT=Color.rgb(255,247,242), PEACH=Color.rgb(255,220,204), MINT=Color.rgb(212,242,216), LAV=Color.rgb(240,231,255);
   private int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
-  private GradientDrawable shape(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
-  private GradientDrawable gradient(int a,int b,int radius){GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{a,b});d.setCornerRadius(dp(radius));return d;}
-  private LinearLayout card(int color){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(dp(16),dp(15),dp(16),dp(15));l.setBackground(shape(color,22));l.setElevation(dp(2));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,0,0,dp(12));l.setLayoutParams(lp);return l;}
-  private void heading(String title){TextView t=label(title,19);t.setTypeface(null,1);page.addView(t);}
-  private TextView chip(String s,int color){TextView t=label(s,13);t.setBackground(shape(color,30));t.setPadding(dp(12),dp(7),dp(12),dp(7));return t;}
-  private void action(LinearLayout parent,String name,Runnable fn){Button b=button(name);parent.addView(b);b.setOnClickListener(v->fn.run());}
+  private boolean dark(){return FitRocketTheme.isDark(this);}
+  private int ink(){return FitRocketTheme.text(this);}
+  private int muted(){return FitRocketTheme.secondary(this);}
+  private int surface(){return FitRocketTheme.surface(this);}
+  private int tint(int color){return FitRocketTheme.map(this,color);}
+  private GradientDrawable shape(int color,int radius){
+    GradientDrawable d=new GradientDrawable();
+    d.setColor(tint(color));d.setCornerRadius(dp(radius));return d;
+  }
+  private GradientDrawable gradient(int a,int b,int radius){
+    GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+        new int[]{tint(a),tint(b)});
+    d.setCornerRadius(dp(radius));return d;
+  }
+  private LinearLayout card(int color){
+    LinearLayout l=new LinearLayout(this);
+    l.setOrientation(1);l.setPadding(dp(14),dp(13),dp(14),dp(13));
+    l.setBackground(shape(color,18));l.setElevation(dp(dark()?0:1));
+    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+    lp.setMargins(0,0,0,dp(11));l.setLayoutParams(lp);return l;
+  }
+  private void heading(String title){
+    TextView t=label(title,18);t.setTypeface(null,1);
+    t.setPadding(dp(2),dp(13),dp(2),dp(8));page.addView(t);
+  }
+  private TextView chip(String s,int color){
+    TextView t=label(s,12);t.setBackground(shape(color,18));
+    t.setPadding(dp(10),dp(7),dp(10),dp(7));return t;
+  }
+  private void action(LinearLayout parent,String name,Runnable fn){
+    TextView item=label(name+"  ›",14);
+    item.setMinHeight(dp(43));item.setGravity(Gravity.CENTER_VERTICAL);
+    item.setPadding(dp(12),dp(12),dp(9),dp(12));
+    item.setBackground(shape(dark()?Color.rgb(35,39,51):Color.rgb(248,247,249),12));
+    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+    lp.setMargins(0,dp(3),0,dp(3));parent.addView(item,lp);
+    item.setOnClickListener(v->fn.run());
+  }
+  private void settingsRow(LinearLayout parent,String title,String subtitle,Runnable callback){
+    LinearLayout row=new LinearLayout(this);row.setOrientation(0);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(dp(3),dp(9),dp(3),dp(9));
+    LinearLayout texts=new LinearLayout(this);texts.setOrientation(1);
+    TextView name=label(title,15);name.setTypeface(null,1);
+    name.setPadding(dp(4),dp(2),dp(4),dp(2));texts.addView(name);
+    if(subtitle!=null && !subtitle.isEmpty()){
+      TextView hint=label(subtitle,12);hint.setTextColor(muted());
+      hint.setPadding(dp(4),dp(1),dp(4),dp(3));texts.addView(hint);
+    }
+    row.addView(texts,new LinearLayout.LayoutParams(0,-2,1));
+    TextView arrow=label("›",24);arrow.setTextColor(muted());row.addView(arrow);
+    parent.addView(row);row.setOnClickListener(v->callback.run());
+  }
 
   private String today(){return LocalDate.now().toString();}
   private String pretty(String date){try{return LocalDate.parse(date).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));}catch(Exception e){return date;}}
-  private TextView label(String text,int sp){TextView t=new TextView(this);t.setText(text);t.setTextSize(sp);t.setTextColor(NAVY);t.setPadding(dp(8),dp(7),dp(8),dp(7));return t;}
-  private Button button(String text){Button b=new Button(this);b.setText(text);b.setTextSize(14);b.setAllCaps(false);b.setTextColor(NAVY);b.setBackground(gradient(Color.rgb(255,221,204),Color.rgb(255,239,229),19));return b;}
-  private EditText edit(String hint,String value,int input){EditText e=new EditText(this);e.setHint(hint);e.setSingleLine(true);e.setInputType(input);if(value!=null)e.setText(value);return e;}
+  private TextView label(String text,int sp){TextView t=new TextView(this);t.setText(text);t.setTextSize(sp);t.setTextColor(ink());t.setPadding(dp(6),dp(5),dp(6),dp(5));return t;}
+  private Button button(String text){
+    Button b=new Button(this);b.setText(text);b.setTextSize(13);b.setAllCaps(false);
+    b.setTextColor(ink());b.setMinHeight(dp(46));b.setElevation(0);
+    b.setPadding(dp(8),dp(7),dp(8),dp(7));
+    b.setBackground(shape(dark()?Color.rgb(71,54,59):Color.rgb(250,230,221),13));
+    return b;
+  }
+  private EditText edit(String hint,String value,int input){
+    EditText e=new EditText(this);e.setHint(hint);e.setSingleLine(true);e.setInputType(input);
+    e.setTextColor(ink());e.setHintTextColor(muted());
+    e.setBackgroundTintList(android.content.res.ColorStateList.valueOf(FitRocketTheme.accent(this)));
+    if(value!=null)e.setText(value);return e;
+  }
   private void msg(String text){Toast.makeText(this,text,Toast.LENGTH_LONG).show();}
-  @Override public void onCreate(Bundle saved){super.onCreate(saved);prefs=getSharedPreferences("fitrocket",MODE_PRIVATE);
+  @Override public void onCreate(Bundle saved){
+    super.onCreate(saved);
+    prefs=getSharedPreferences("fitrocket",MODE_PRIVATE);
+    setTheme(dark()?android.R.style.Theme_Material_NoActionBar:android.R.style.Theme_Material_Light_NoActionBar);
+    getWindow().setStatusBarColor(FitRocketTheme.background(this));
+    getWindow().setNavigationBarColor(FitRocketTheme.background(this));
+    getWindow().getDecorView().setSystemUiVisibility(dark()?0:
+        View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
     budget=prefs.getInt("budget",23);
     if(!prefs.getBoolean("weekly28MigrationDone",false)){
       // One-time move to the new FitRocket weekly start allowance.
@@ -54,7 +119,15 @@ public class MainActivity extends Activity {
         .putBoolean("weekly28MigrationDone",true).apply();
     }
     weekly=prefs.getInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS);
-    loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);home();}
+    loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
+    if(saved!=null && "Profil".equals(saved.getString("fitrocketScreen")))profilePage();
+    else if(saved!=null && "Fortschritt".equals(saved.getString("fitrocketScreen")))progressPage();
+    else home();
+  }
+  @Override protected void onSaveInstanceState(Bundle out){
+    out.putString("fitrocketScreen",currentScreen);
+    super.onSaveInstanceState(out);
+  }
   private void readArray(String key,ArrayList<JSONObject> into){into.clear();try{JSONArray arr=new JSONArray(prefs.getString(key,"[]"));for(int i=0;i<arr.length();i++)into.add(arr.getJSONObject(i));}catch(Exception ignored){}}
   private void persist(String key,ArrayList<JSONObject> items){JSONArray a=new JSONArray();for(JSONObject x:items)a.put(x);prefs.edit().putString(key,a.toString()).apply();}
   private void loadFoods(){try(InputStream in=getAssets().open("foods.json")){ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);JSONArray a=new JSONArray(new String(o.toByteArray(),StandardCharsets.UTF_8));for(int i=0;i<a.length();i++)foods.add(a.getJSONObject(i));}catch(Exception e){msg("Lebensmitteldatenbank konnte nicht geladen werden.");}}
@@ -209,22 +282,54 @@ public class MainActivity extends Activity {
     currentScreen=heading;
     lastRenderedDate=today();
     LinearLayout frame=new LinearLayout(this);frame.setOrientation(1);
-    frame.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{Color.rgb(255,247,241),Color.rgb(247,239,255),Color.rgb(255,249,244)}));
-    setContentView(frame);
+    frame.setBackgroundColor(FitRocketTheme.background(this));setContentView(frame);
     ScrollView scroll=new ScrollView(this);scroll.setFillViewport(false);
-    page=new LinearLayout(this);page.setOrientation(1);page.setPadding(dp(18),dp(17),dp(18),dp(28));
+    scroll.setVerticalScrollBarEnabled(false);
+    page=new LinearLayout(this);page.setOrientation(1);
+    page.setPadding(dp(17),dp(12),dp(17),dp(26));
     scroll.addView(page);frame.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-    LinearLayout hero=card(Color.rgb(255,240,230));hero.setBackground(gradient(Color.rgb(255,237,224),Color.rgb(240,231,255),24));
-    TextView title=label(heading.equals("FitRocket")?"🚀 FitRocket":heading,25);title.setTypeface(null,1);hero.addView(title);
-    hero.addView(label(heading.equals("FitRocket")?"Deine Tagesbalance":"Alles an einem Ort",13));page.addView(hero);
-    LinearLayout nav=new LinearLayout(this);nav.setPadding(dp(12),dp(7),dp(12),dp(9));
-    nav.setOrientation(LinearLayout.HORIZONTAL);nav.setBackground(shape(Color.rgb(255,254,253),20));
-    String[] pages={"⌂ Heute","⌕ Suche","▦ Tagebuch","⋯ Mehr"};
-    for(int i=0;i<pages.length;i++){final int index=i;TextView item=label(pages[i],12);item.setGravity(Gravity.CENTER);
-      if((heading.equals("FitRocket")&&i==0)||( (heading.equals("Lebensmittel")||heading.equals("Rezepte"))&&i==1)||(heading.equals("Tagebuch")&&i==2)||((heading.equals("Mehr")||heading.equals("Gewicht"))&&i==3)){item.setBackground(shape(Color.rgb(255,230,224),16));}
-      nav.addView(item,new LinearLayout.LayoutParams(0,dp(46),1));item.setOnClickListener(v->{bookingDate=null;bookingGroup=null;bookingReturn=null;switch(index){case 0:home();break;case 1:bookingDate=null;bookingGroup=null;bookingReturn=null;searchScreen();break;case 2:history();break;default:more();}});
+
+    if("FitRocket".equals(heading)){
+      LinearLayout banner=card(dark()?Color.rgb(54,45,66):Color.rgb(248,237,248));
+      TextView title=label("🚀 FitRocket",23);title.setTypeface(null,1);
+      title.setPadding(dp(7),dp(2),0,0);
+      banner.addView(title);
+      TextView subtitle=label("Dein Tag im Überblick",12);subtitle.setTextColor(muted());
+      banner.addView(subtitle);page.addView(banner);
+    }else{
+      TextView title=label(heading,24);title.setTypeface(null,1);
+      title.setPadding(dp(3),dp(9),dp(3),dp(15));page.addView(title);
     }
-    nav.setPadding(dp(12),dp(7),dp(12),dp(40));
+
+    LinearLayout nav=new LinearLayout(this);nav.setOrientation(0);
+    nav.setPadding(dp(5),dp(7),dp(5),dp(9));
+    nav.setBackground(shape(surface(),17));
+    String[] labels={"⌂\\nHeute","⌕\\nSuche","▣\\nTagebuch","▤\\nFortschritt","◉\\nProfil"};
+    int active="FitRocket".equals(heading)?0:
+      ("Lebensmittel".equals(heading)||"Rezepte".equals(heading)||"KI-Assistent".equals(heading)||"KI-Vorschau".equals(heading))?1:
+      "Tagebuch".equals(heading)?2:
+      ("Fortschritt".equals(heading)||"Gewicht".equals(heading)||"Statistiken".equals(heading)||"Aktivität".equals(heading)||"Trinken".equals(heading))?3:4;
+    for(int i=0;i<labels.length;i++){
+      final int index=i;
+      TextView tab=label(labels[i],11);tab.setGravity(Gravity.CENTER);
+      tab.setSingleLine(false);tab.setMinLines(2);
+      tab.setPadding(dp(1),dp(3),dp(1),dp(3));
+      if(i==active){
+        tab.setTypeface(null,1);
+        tab.setBackground(shape(dark()?Color.rgb(69,53,72):Color.rgb(248,228,220),13));
+      }else tab.setTextColor(muted());
+      nav.addView(tab,new LinearLayout.LayoutParams(0,dp(55),1));
+      tab.setOnClickListener(v->{
+        bookingDate=null;bookingGroup=null;bookingReturn=null;
+        switch(index){
+          case 0:home();break;
+          case 1:searchScreen();break;
+          case 2:history();break;
+          case 3:progressPage();break;
+          default:profilePage();
+        }
+      });
+    }
     frame.addView(nav);
   }
   private int used(String date){int total=0;for(JSONObject x:meals)if(date.equals(x.optString("date")))total+=x.optInt("points");return total;}
