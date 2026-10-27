@@ -1,15 +1,12 @@
-# FitRocket v0.13.0 – Dauerhafte Updates und Raketen-Icon
+# FitRocket v0.14.0 – Dein persönlicher Alltag
 
-### Adaptive Rakete
-FitRocket besitzt ein neues, eigenständiges Android-App-Icon mit Rakete, Raketenantrieb und einem dezenten Ernährungsakzent.
+- Favoriten und gespeicherte Mahlzeiten per Tippen erneut eintragen, auch mit bereits bestätigten KI-Zutaten
+- Wochenrückblick mit protokollierten Tagen, Punktesumme, Tagesüberträgen, Bewegung und Trinkzielen
+- Frei aktivierbare Wassererinnerungen mit Zeitfenster, Intervall und Ruhezeiten; Android-Benachrichtigungsberechtigung erst bei Bedarf
+- Gewichtstrend als 7-Tage-Mittel und Vergleich mit dem Vormonat, basierend auf tatsächlichen Messungen
+- Backup-Format 7: Favoriten, Erinnerungsoptionen und Updatepräferenzen werden gesichert; vor Import werden Inhalte validiert und gezählt
+- Optionale stille Updateprüfung beim App-Start (höchstens einmal pro Tag), jede Installation erfordert weiterhin aktive Zustimmung
+- Bisherige Funktionen einschließlich FitRocket-Punkteberechnung, Offline-Tagebuch und Gemini-KI unverändert
+- Offizielle Release-APK wird ausschließlich mit dem in GitHub Actions konfigurierten dauerhaften Keystore signiert.
 
-### Langfristige Updatefähigkeit
-FitRocket v0.13.0 ist die erste Version, die **ausschließlich signiert mit einem eigenen dauerhaften Keystore** als offizielles GitHub Release veröffentlicht wird. Die Buildpipeline testet zunächst die App, erstellt danach bei vorhandenen Secrets die signierte Release-APK und prüft sie vor dem Upload. Ohne Signaturschlüssel gibt es nur einen Debug-Test-Build.
-
-### Einmaliger Übergang für bestehende Installationen
-Ältere GitHub-APK-Veröffentlichungen nutzten Debug-Signaturen. Android akzeptiert Updates nur mit demselben Zertifikat. Deshalb sind beim Wechsel auf v0.13.0 ggf. ein Backup, die Deinstallation der alten App und danach Import des Backups notwendig. Ab dann gelten der neue Schlüssel und die feste Signatur für alle Updates.
-
-### Einrichtung
-Die Erstellung des privaten Keystores und die GitHub-Secrets sind ausführlich unter `docs/SIGNING.md` beschrieben. Halte den Key privat und sichere ihn mehrfach.
-
-Die Funktionen aus v0.12.1 bleiben unverändert: Mahlzeiten, KI-Gerichte, Wasser, Gewicht, Fortschritt, Hell-/Dunkelmodus, Updates und Backup.
+Hinweis: Gewichtsdurchschnitte sind beschreibende Trends, keine Gesundheitsdiagnosen. Es werden keine KI-Auswertungen oder persönlichen Daten für den Wochenbericht versendet.

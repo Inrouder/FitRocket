@@ -1,5 +1,14 @@
 # FitRocket – Versionshinweise
 
+## 0.14.0 – Favoriten, Wochenrückblick und Komfort
+- Gespeicherte Mahlzeiten lassen sich als Favoriten erneut ins Tagebuch übernehmen.
+- Wochenrückblick zeigt tatsächliche erfasste Tage, Verbrauch und Wasserbilanz.
+- Wassererinnerungen mit Ruhezeiten und freiwilliger Benachrichtigungsfreigabe.
+- Gewichtstrend: 7-Tage-Durchschnitt und geglätteter Monatsvergleich.
+- Backup-Format 7 mit Vorschau und Datensatzvalidierung vor dem Überschreiben.
+- Dezente automatische GitHub-Updateprüfung maximal einmal täglich, abschaltbar.
+- Bestehender Android-Release-Signaturschlüssel bleibt unverändert.
+
 ## 0.13.0 – Raketen-Icon und eigenes Signaturzertifikat
 - Eigenes adaptives Android-App-Icon mit Rakete und gesundem Food-Akzent.
 - Dauerhafte Release-Signatur mit privatem Keystore aus vier GitHub-Actions-Secrets vorbereitet.

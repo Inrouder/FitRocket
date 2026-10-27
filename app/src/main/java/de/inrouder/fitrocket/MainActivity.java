@@ -1441,6 +1441,10 @@ public class MainActivity extends Activity {
   private void more(){profilePage();}
 
 
+  private JSONArray safeArray(String key){
+    try{return new JSONArray(prefs.getString(key,"[]"));}
+    catch(Exception e){return new JSONArray();}
+  }
   private JSONArray favoriteItems(){
     try{return new JSONArray(prefs.getString("favoriteMeals","[]"));}
     catch(Exception e){return new JSONArray();}
@@ -1530,7 +1534,7 @@ public class MainActivity extends Activity {
   private void weeklyReview(){
     shell("Wochenrückblick");
     JSONObject report=FitRocketInsights.week(LocalDate.now(),budget,waterGoal(),
-      new JSONArray(prefs.getString("meals","[]")),waterDays());
+      safeArray("meals"),waterDays());
     LinearLayout overall=card(LAV);
     overall.addView(label("📊 Wochenrückblick",21));
     overall.addView(label(pretty(report.optString("from"))+" bis "+pretty(report.optString("through")),14));
@@ -1644,7 +1648,7 @@ public class MainActivity extends Activity {
     LinearLayout recap=card(Color.WHITE);
     recap.addView(label("📊 Diese Woche im Überblick",18));
     JSONObject stats=FitRocketInsights.week(LocalDate.now(),budget,waterGoal(),
-       new JSONArray(prefs.getString("meals","[]")),waterDays());
+       safeArray("meals"),waterDays());
     recap.addView(label(stats.optInt("loggedDays")+" Tage mit Mahlzeiten · "+
        stats.optInt("totalPoints")+" P gegessen",15));
     recap.addView(label(stats.optInt("withinBudget")+" von "+stats.optInt("loggedDays")+
