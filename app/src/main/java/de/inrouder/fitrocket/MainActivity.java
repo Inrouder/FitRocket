@@ -622,7 +622,56 @@ public class MainActivity extends Activity {
             }).setNegativeButton("Abbrechen",null).show();
         }).show();
     });
+    // Swipe left to delete one mistaken diary entry. A tap still opens options.
+    attachSwipeDelete(item,()->confirmDeleteMeal(m));
   }
+
+  private void confirmDeleteMeal(JSONObject meal){
+    new AlertDialog.Builder(this).setTitle("Eintrag löschen?")
+      .setMessage("„"+meal.optString("name")+"“ ("+meal.optInt("points")+
+        " Punkte) aus dem Tagebuch löschen? Favoriten und die "+
+        "Lebensmitteldatenbank bleiben unverändert.")
+      .setPositiveButton("Löschen",(d,w)->{
+        if(meals.remove(meal)){
+          persist("meals",meals);
+          refreshMealContext();
+          msg("Eintrag gelöscht – Tages- und Wochenpunkte sind aktualisiert.");
+        }
+      }).setNegativeButton("Abbrechen",null).show();
+  }
+
+  private void attachSwipeDelete(View item,Runnable delete){
+    final float[] touch=new float[2];
+    final float threshold=dp(85);
+    item.setOnTouchListener((view,event)->{
+      switch(event.getActionMasked()){
+        case MotionEvent.ACTION_DOWN:
+          touch[0]=event.getRawX();touch[1]=event.getRawY();
+          return true;
+        case MotionEvent.ACTION_MOVE:
+          float dx=event.getRawX()-touch[0];
+          if(Math.abs(dx)>dp(18) && Math.abs(dx)>
+             Math.abs(event.getRawY()-touch[1])*1.5f){
+            view.getParent().requestDisallowInterceptTouchEvent(true);
+            view.setTranslationX(Math.max(-dp(110),Math.min(0,dx)));
+          }
+          return true;
+        case MotionEvent.ACTION_UP:
+          float distance=event.getRawX()-touch[0];
+          view.animate().translationX(0).setDuration(140).start();
+          if(distance < -threshold && Math.abs(distance)>
+             Math.abs(event.getRawY()-touch[1])*1.5f)delete.run();
+          else if(Math.abs(distance)<dp(18)&&
+             Math.abs(event.getRawY()-touch[1])<dp(18))view.performClick();
+          return true;
+        case MotionEvent.ACTION_CANCEL:
+          view.animate().translationX(0).setDuration(140).start();
+          return true;
+      }
+      return false;
+    });
+  }
+
   private void showAiMealDetails(JSONObject meal){
     JSONArray parts=meal.optJSONArray("aiIngredients");
     if(parts==null){msg("Keine Zutatenliste für diesen Eintrag.");return;}
@@ -1653,7 +1702,20 @@ public class MainActivity extends Activity {
         FitRocketFavoriteMath.scaledPoints(fav,food,ref,qty,foods);
         if(missing){
           fav.put("referenceQuantity",ref);fav.put("quantityUnit",unit);
-          if(!prefs.edit().putString("favoriteMeals",favoriteItems().toString()).commit())
+          JSONArray updated=favoriteItems();
+          for(int i=0;i<updated.length();i++){
+            JSONObject saved=updated.optJSONObject(i);
+            if(saved==null)continue;
+            boolean match=!fav.optString("favoriteId").isEmpty()
+              ?fav.optString("favoriteId").equals(saved.optString("favoriteId"))
+              :fav.optString("name").equals(saved.optString("name"))&&
+                fav.optInt("points")==saved.optInt("points");
+            if(match){
+              saved.put("referenceQuantity",ref);saved.put("quantityUnit",unit);
+              break;
+            }
+          }
+          if(!prefs.edit().putString("favoriteMeals",updated.toString()).commit())
             throw new IllegalStateException("Referenzmenge nicht gespeichert");
         }
         dialog.dismiss();
