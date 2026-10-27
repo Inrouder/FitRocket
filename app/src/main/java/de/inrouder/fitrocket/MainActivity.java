@@ -26,7 +26,7 @@ public class MainActivity extends Activity {
   private TextView summary;
   private int budget=23, weekly=FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS;
   private boolean healthBusy=false;
-  private String currentScreen="FitRocket";
+  private String currentScreen=FitRocketNavigation.START_SCREEN;
   private String lastRenderedDate=null;
   private LocalDate diaryDate=LocalDate.now();
   private String bookingDate=null,bookingGroup=null,bookingReturn=null;
@@ -122,12 +122,19 @@ public class MainActivity extends Activity {
     loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
     FitRocketWaterReminder.schedule(this);
     maybeCheckUpdatesOnLaunch();
+    if(saved!=null){
+      String selectedDate=saved.getString("fitrocketDiaryDate",today());
+      try{diaryDate=LocalDate.parse(selectedDate);}
+      catch(Exception ignored){diaryDate=LocalDate.now();}
+      if(diaryDate.isAfter(LocalDate.now()))diaryDate=LocalDate.now();
+    }
     if(saved!=null && "Profil".equals(saved.getString("fitrocketScreen")))profilePage();
     else if(saved!=null && "Fortschritt".equals(saved.getString("fitrocketScreen")))progressPage();
-    else home();
+    else history();
   }
   @Override protected void onSaveInstanceState(Bundle out){
     out.putString("fitrocketScreen",currentScreen);
+    out.putString("fitrocketDiaryDate",diaryDate.toString());
     super.onSaveInstanceState(out);
   }
   private void readArray(String key,ArrayList<JSONObject> into){into.clear();try{JSONArray arr=new JSONArray(prefs.getString(key,"[]"));for(int i=0;i<arr.length();i++)into.add(arr.getJSONObject(i));}catch(Exception ignored){}}
@@ -303,17 +310,9 @@ public class MainActivity extends Activity {
     page.setPadding(dp(17),dp(12),dp(17),dp(26));
     scroll.addView(page);frame.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
 
-    if("FitRocket".equals(heading)){
-      LinearLayout banner=card(dark()?Color.rgb(54,45,66):Color.rgb(248,237,248));
-      TextView title=label("🚀 FitRocket",23);title.setTypeface(null,1);
-      title.setPadding(dp(7),dp(2),0,0);
-      banner.addView(title);
-      TextView subtitle=label("Dein Tag im Überblick",12);subtitle.setTextColor(muted());
-      banner.addView(subtitle);page.addView(banner);
-    }else{
-      TextView title=label(heading,24);title.setTypeface(null,1);
-      title.setPadding(dp(3),dp(9),dp(3),dp(15));page.addView(title);
-    }
+    TextView title=label("Tagebuch".equals(heading)?"🚀 FitRocket · Tagebuch":heading,23);
+    title.setTypeface(null,1);
+    title.setPadding(dp(3),dp(9),dp(3),dp(13));page.addView(title);
 
     LinearLayout nav=new LinearLayout(this);nav.setOrientation(0);
     final int navLeft=dp(5),navTop=dp(7),navRight=dp(5),navBottom=dp(12);
@@ -332,11 +331,8 @@ public class MainActivity extends Activity {
       frame.setFitsSystemWindows(true);
     }
     nav.setBackground(shape(surface(),17));
-    String[] labels={"⌂\nHeute","⌕\nSuche","▣\nTagebuch","▤\nFortschritt","◉\nProfil"};
-    int active="FitRocket".equals(heading)?0:
-      ("Lebensmittel".equals(heading)||"Rezepte".equals(heading)||"KI-Assistent".equals(heading)||"KI-Vorschau".equals(heading))?1:
-      "Tagebuch".equals(heading)?2:
-      ("Fortschritt".equals(heading)||"Gewicht".equals(heading)||"Statistiken".equals(heading)||"Aktivität".equals(heading)||"Trinken".equals(heading))?3:4;
+    String[] labels=FitRocketNavigation.TABS;
+    int active=FitRocketNavigation.selectedTab(heading);
     for(int i=0;i<labels.length;i++){
       final int index=i;
       TextView tab=label(labels[i],11);tab.setGravity(Gravity.CENTER);
@@ -350,10 +346,9 @@ public class MainActivity extends Activity {
       tab.setOnClickListener(v->{
         bookingDate=null;bookingGroup=null;bookingReturn=null;
         switch(index){
-          case 0:home();break;
+          case 0:diaryDate=LocalDate.now();history();break;
           case 1:searchScreen();break;
-          case 2:history();break;
-          case 3:progressPage();break;
+          case 2:progressPage();break;
           default:profilePage();
         }
       });
@@ -441,131 +436,19 @@ public class MainActivity extends Activity {
     configure.setTextColor(FitRocketTheme.accent(this));target.addView(configure);
     configure.setOnClickListener(v->waterGoalDialog(target,day));
   }
-  private void home(){
-    shell("FitRocket");
-    double todayPoints=used(today());
-    double remaining=Math.max(0,budget-todayPoints);
-    LinearLayout balance=card(Color.WHITE);
-    TextView date=label("Heute · "+pretty(today()),17);date.setTypeface(null,1);
-    balance.addView(date);
-    glass=new GlassView();
-    balance.addView(glass,new LinearLayout.LayoutParams(-1,dp(160)));
-    LinearLayout chips=new LinearLayout(this);chips.setOrientation(0);
-    String[] text={
-      pt(todayPoints)+" P gegessen",
-      pt(remaining)+" P frei",
-      pt(availableWeek())+" P Woche"
-    };
-    int[] shades={Color.rgb(255,241,229),MINT,LAV};
-    for(int i=0;i<text.length;i++){
-      TextView item=chip(text[i],shades[i]);item.setGravity(Gravity.CENTER);
-      item.setTextSize(12);item.setSingleLine(true);
-      LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(40),1);
-      p.setMargins(dp(2),0,dp(2),0);chips.addView(item,p);
-    }
-    balance.addView(chips);
-    page.addView(balance);
-
-    LinearLayout shortcuts=card(Color.WHITE);
-    TextView quick=label("Schnell erfassen",16);quick.setTypeface(null,1);
-    shortcuts.addView(quick);
-    LinearLayout row=new LinearLayout(this);row.setOrientation(0);
-    Button search=button("＋ Lebensmittel"),scanner=button("▥ Barcode");
-    row.addView(search,new LinearLayout.LayoutParams(0,dp(49),1));
-    row.addView(scanner,new LinearLayout.LayoutParams(0,dp(49),1));
-    search.setOnClickListener(v->searchScreen());scanner.setOnClickListener(v->scanBarcode());
-    shortcuts.addView(row);
-    action(shortcuts,"★ Favoriten & gespeicherte Mahlzeiten",()->favoritesScreen());
-    action(shortcuts,"✨ Mit KI beschreiben oder Rezept finden",()->aiHub());
-    page.addView(shortcuts);
-
-    heading("Deine Mahlzeiten");
-    LinearLayout mealsCard=card(Color.WHITE);
-    dayMealSummary(mealsCard,today());
-    page.addView(mealsCard);
-
-    LinearLayout water=card(Color.WHITE);
-    LinearLayout head=new LinearLayout(this);head.setOrientation(0);
-    head.setGravity(Gravity.CENTER_VERTICAL);
-    TextView waterTitle=label("💧 Wasser",16);waterTitle.setTypeface(null,1);
-    head.addView(waterTitle,new LinearLayout.LayoutParams(0,-2,1));
-    TextView value=chip(String.format(Locale.GERMAN,"%.2f / %.2f L",
-        waterMl(today())/1000.0,waterGoal()/1000.0),Color.rgb(222,242,254));
-    head.addView(value);water.addView(head);
-    LinearLayout waterControls=new LinearLayout(this);waterControls.setOrientation(0);
-    Button addWater=button("＋ 250 ml");
-    waterControls.addView(addWater,new LinearLayout.LayoutParams(0,dp(44),1));
-    Button waterDetail=button("Alle Gläser ›");
-    waterControls.addView(waterDetail,new LinearLayout.LayoutParams(0,dp(44),1));
-    addWater.setOnClickListener(v->{
-      setWaterMl(today(),Math.min(10000,waterMl(today())+250));
-      home();
-    });
-    waterDetail.setOnClickListener(v->waterScreen());
-    water.addView(waterControls);page.addView(water);
-
-    LinearLayout overview=card(Color.WHITE);
-    TextView moreTitle=label("Dein Fortschritt",16);moreTitle.setTypeface(null,1);
-    overview.addView(moreTitle);
-    double last=latestWeight();
-    String weightText=last>0?String.format(Locale.GERMAN,"%.1f kg",last):"Noch keine Messung";
-    settingsRow(overview,"⚖ Gewicht",weightText,()->weightScreen());
-    settingsRow(overview,"🚶 Bewegung",earnedWeek()+" P diese Woche",()->activityPage());
-    settingsRow(overview,"⭐ Wochenkonto",pt(availableWeek())+" P verfügbar",()->progressPage());
-    page.addView(overview);
-  }
-
-  private void dayMealSummary(LinearLayout target,String date){
-    String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
-    String[] emoji={"☀","🥗","☾","🍓","🥤"};
-    for(int i=0;i<groups.length;i++){
-      final String group=groups[i];
-      double points=0;int count=0;String first="";
-      for(JSONObject m:meals){
-        if(date.equals(m.optString("date"))&&group.equals(mealGroup(m))){
-          points+=pts(m);count++;
-          if(first.isEmpty())first=m.optString("name","");
-        }
-      }
-      LinearLayout item=new LinearLayout(this);item.setOrientation(0);
-      item.setGravity(Gravity.CENTER_VERTICAL);
-      item.setPadding(dp(2),dp(6),dp(2),dp(6));
-      LinearLayout lines=new LinearLayout(this);lines.setOrientation(1);
-      TextView title=label(emoji[i]+"  "+group,14);title.setTypeface(null,1);
-      title.setPadding(dp(2),0,dp(2),dp(2));lines.addView(title);
-      TextView hint=label(count==0?"Noch nichts eingetragen":
-          first+(count>1?"  +"+(count-1)+" weitere":""),12);
-      hint.setTextColor(muted());hint.setMaxLines(1);
-      hint.setEllipsize(android.text.TextUtils.TruncateAt.END);
-      hint.setPadding(dp(2),dp(2),dp(2),0);lines.addView(hint);
-      item.addView(lines,new LinearLayout.LayoutParams(0,-2,1));
-      TextView counter=chip(pt(points)+" P",count==0?Color.rgb(245,244,247):MINT);
-      item.addView(counter);
-      TextView plus=chip("＋",Color.rgb(255,231,219));plus.setTextSize(19);
-      LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2);lp.setMargins(dp(8),0,0,0);
-      item.addView(plus,lp);
-      plus.setOnClickListener(v->beginGroupBooking(group,date));
-      item.setOnClickListener(v->{diaryDate=LocalDate.parse(date);history();});
-      target.addView(item);
-      if(i<groups.length-1){
-        View divider=new View(this);divider.setBackgroundColor(FitRocketTheme.divider(this));
-        target.addView(divider,new LinearLayout.LayoutParams(-1,dp(1)));
-      }
-    }
-  }
   private void beginGroupBooking(String group,String date){
     bookingDate=date;bookingGroup=group;
-    bookingReturn="Tagebuch".equals(currentScreen)?"Tagebuch":"FitRocket";
     searchScreen();
   }
   private void afterMealAdded(){
-    String returnTo=bookingReturn;
+    if(bookingDate!=null){
+      try{diaryDate=LocalDate.parse(bookingDate);}catch(Exception ignored){}
+    }
     bookingDate=null;bookingGroup=null;bookingReturn=null;
-    if("Tagebuch".equals(returnTo))history();
-    else home();
+    history();
   }
   private void refreshMealContext(){
-    if("Tagebuch".equals(currentScreen))history();else home();
+    history();
   }
   private String mealGroup(JSONObject meal){
     String raw=meal.optString("group","Snack");
@@ -1000,38 +883,96 @@ public class MainActivity extends Activity {
     return s;
   }
   private void addMeal(String name,double points,String foodId,String quality,String group){try{JSONObject x=new JSONObject();x.put("name",name);x.put("points",FitRocketPointLedger.validPoints(points));x.put("foodId",foodId);x.put("quality",quality);x.put("group",group);x.put("date",bookingDate==null?today():bookingDate);meals.add(x);persist("meals",meals);}catch(Exception e){msg("Speichern fehlgeschlagen.");}}
-  private void manual(){LinearLayout l=new LinearLayout(this);l.setPadding(22,4,22,4);l.setOrientation(1);EditText name=edit("Lebensmittel / Gericht","",1),points=edit("Punkte (manuell, z. B. 0,5)",null,8194);l.addView(name);l.addView(points);Spinner g=groupSpinner();l.addView(g);AlertDialog d=new AlertDialog.Builder(this).setTitle("Manuell erfassen").setView(l).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{String n=name.getText().toString().trim();double p=FitRocketPointLedger.validPoints(num(points.getText().toString()));if(n.length()<2)throw new Exception();addMeal(n,p,"","Manuell",g.getSelectedItem().toString());d.dismiss();home();}catch(Exception ex){msg("Bitte Name und gültige Punkte angeben.");}}));d.show();}
+  private void manual(){LinearLayout l=new LinearLayout(this);l.setPadding(22,4,22,4);l.setOrientation(1);EditText name=edit("Lebensmittel / Gericht","",1),points=edit("Punkte (manuell, z. B. 0,5)",null,8194);l.addView(name);l.addView(points);Spinner g=groupSpinner();l.addView(g);AlertDialog d=new AlertDialog.Builder(this).setTitle("Manuell erfassen").setView(l).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{String n=name.getText().toString().trim();double p=FitRocketPointLedger.validPoints(num(points.getText().toString()));if(n.length()<2)throw new Exception();addMeal(n,p,"","Manuell",g.getSelectedItem().toString());d.dismiss();history();}catch(Exception ex){msg("Bitte Name und gültige Punkte angeben.");}}));d.show();}
   private void textHelper(){EditText input=new EditText(this);input.setMinLines(3);input.setHint("Beispiel: Ich hatte eine Banane und einen Apfel");new AlertDialog.Builder(this).setTitle("Offline-Texterfassung (keine KI)").setMessage("Erkennt eindeutige Lebensmittelnamen aus deiner Datenbank. Mengen und Zutaten müssen vor dem Eintragen geprüft werden.").setView(input).setPositiveButton("Analysieren",(d,w)->interpret(input.getText().toString())).setNegativeButton("Abbrechen",null).show();}
   private void interpret(String source){String q=source.toLowerCase(Locale.ROOT);ArrayList<JSONObject> matches=new ArrayList<>();for(JSONObject f:foods){String name=f.optString("name").toLowerCase(Locale.ROOT);if(name.length()>=5&&q.contains(name))matches.add(f);}if(matches.size()!=1){new AlertDialog.Builder(this).setTitle("Bitte Lebensmittel auswählen").setMessage(matches.isEmpty()?"Keine eindeutige Übereinstimmung gefunden. Bitte suche das Lebensmittel manuell.":"Mehrere Lebensmittel erkannt. Bitte erfasse die Zutaten einzeln über die Suche.").setPositiveButton("Zur Suche",(d,w)->searchScreen()).show();return;}foodDialog(matches.get(0));}
   private void history(){
     shell("Tagebuch");
-    heading("Dein Ernährungstagebuch");
-    LinearLayout dateCard=card(Color.WHITE);
-    LinearLayout dayBar=new LinearLayout(this);dayBar.setOrientation(0);dayBar.setGravity(Gravity.CENTER_VERTICAL);
+    final String date=diaryDate.toString();
+
+    // The diary is the single home screen. Its day selector and points card
+    // replace the now-removed separate "Heute" page.
+    LinearLayout dayPicker=card(Color.WHITE);
+    LinearLayout dayBar=new LinearLayout(this);
+    dayBar.setOrientation(0);
+    dayBar.setGravity(Gravity.CENTER_VERTICAL);
     Button prev=button("‹"),next=button("›");
-    TextView center=label(pretty(diaryDate.toString()),17);center.setTypeface(null,1);
-    center.setGravity(Gravity.CENTER);
-    dayBar.addView(prev,new LinearLayout.LayoutParams(dp(54),dp(48)));
-    dayBar.addView(center,new LinearLayout.LayoutParams(0,dp(48),1));
-    dayBar.addView(next,new LinearLayout.LayoutParams(dp(54),dp(48)));
+    TextView center=label(diaryDate.equals(LocalDate.now())
+      ?"Heute · "+pretty(date):pretty(date),17);
+    center.setTypeface(null,1);center.setGravity(Gravity.CENTER);
+    dayBar.addView(prev,new LinearLayout.LayoutParams(dp(48),dp(47)));
+    dayBar.addView(center,new LinearLayout.LayoutParams(0,dp(47),1));
+    dayBar.addView(next,new LinearLayout.LayoutParams(dp(48),dp(47)));
     prev.setOnClickListener(v->{diaryDate=diaryDate.minusDays(1);history();});
     next.setEnabled(diaryDate.isBefore(LocalDate.now()));
-    next.setOnClickListener(v->{if(diaryDate.isBefore(LocalDate.now())){diaryDate=diaryDate.plusDays(1);history();}});
-    center.setOnClickListener(v->{
-      android.app.DatePickerDialog dp=new android.app.DatePickerDialog(this,(picker,y,m,d)->{
-         diaryDate=LocalDate.of(y,m+1,d);history();
-      },diaryDate.getYear(),diaryDate.getMonthValue()-1,diaryDate.getDayOfMonth());
-      dp.getDatePicker().setMaxDate(System.currentTimeMillis());dp.show();
+    next.setOnClickListener(v->{
+      if(diaryDate.isBefore(LocalDate.now())){diaryDate=diaryDate.plusDays(1);history();}
     });
-    dateCard.addView(dayBar);
-    double consumed=used(diaryDate.toString());
-    dateCard.addView(label("🍽 "+pt(consumed)+" P gegessen  ·  "+pt(Math.max(0,budget-consumed))+" P Tagesrest",16));
-    if(consumed>budget)dateCard.addView(label("Wochenkonto belastet: "+pt(consumed-budget)+" P",13));
-    page.addView(dateCard);
-    dayMealGroups(page,diaryDate.toString());
-    page.addView(waterCard(diaryDate.toString()));
-  }
+    center.setOnClickListener(v->{
+      android.app.DatePickerDialog picker=new android.app.DatePickerDialog(this,(view,y,m,d)->{
+        diaryDate=LocalDate.of(y,m+1,d);history();
+      },diaryDate.getYear(),diaryDate.getMonthValue()-1,diaryDate.getDayOfMonth());
+      picker.getDatePicker().setMaxDate(System.currentTimeMillis());
+      picker.show();
+    });
+    dayPicker.addView(dayBar);
+    if(!diaryDate.equals(LocalDate.now())){
+      TextView todayLink=label("Zurück zu heute ›",13);
+      todayLink.setTextColor(FitRocketTheme.accent(this));
+      todayLink.setGravity(Gravity.CENTER);
+      dayPicker.addView(todayLink);
+      todayLink.setOnClickListener(v->{diaryDate=LocalDate.now();history();});
+    }
+    page.addView(dayPicker);
 
+    LinearLayout balance=card(Color.WHITE);
+    TextView balanceTitle=label("Deine Punkte",17);
+    balanceTitle.setTypeface(null,1);balance.addView(balanceTitle);
+    glass=new GlassView(date);
+    balance.addView(glass,new LinearLayout.LayoutParams(-1,dp(156)));
+
+    double consumed=used(date);
+    double remaining=Math.max(0,budget-consumed);
+    boolean isToday=diaryDate.equals(LocalDate.now());
+    String[] labels={
+      pt(consumed)+" P genutzt",
+      pt(remaining)+" P übrig",
+      isToday?pt(availableWeek())+" P Woche":budget+" P Ziel"
+    };
+    int[] colors={Color.rgb(255,241,229),MINT,LAV};
+    LinearLayout chips=new LinearLayout(this);chips.setOrientation(0);
+    for(int i=0;i<labels.length;i++){
+      TextView value=chip(labels[i],colors[i]);
+      value.setGravity(Gravity.CENTER);
+      value.setTextSize(11);
+      value.setMaxLines(2);
+      LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,dp(42),1);
+      params.setMargins(dp(2),0,dp(2),0);
+      chips.addView(value,params);
+    }
+    balance.addView(chips);
+    if(consumed>budget){
+      TextView excess=label("Tagesbudget um "+pt(consumed-budget)+" P überschritten",12);
+      excess.setTextColor(muted());balance.addView(excess);
+    }
+    page.addView(balance);
+
+    LinearLayout shortcuts=card(Color.WHITE);
+    TextView quick=label("Schnell hinzufügen",15);quick.setTypeface(null,1);
+    shortcuts.addView(quick);
+    LinearLayout row=new LinearLayout(this);row.setOrientation(0);
+    Button food=button("⌕ Lebensmittel"),saved=button("★ Favoriten");
+    row.addView(food,new LinearLayout.LayoutParams(0,dp(46),1));
+    row.addView(saved,new LinearLayout.LayoutParams(0,dp(46),1));
+    food.setOnClickListener(v->searchScreen());
+    saved.setOnClickListener(v->favoritesScreen());
+    shortcuts.addView(row);
+    page.addView(shortcuts);
+
+    heading("Mahlzeiten");
+    dayMealGroups(page,date);
+    page.addView(waterCard(date));
+  }
   private String selectedAiProvider(){
     String p=prefs.getString("aiProvider",FitRocketAiSecrets.GEMINI);
     return FitRocketAiSecrets.OPENAI.equals(p)?FitRocketAiSecrets.OPENAI:FitRocketAiSecrets.GEMINI;
@@ -2743,8 +2684,12 @@ public class MainActivity extends Activity {
       installDownloadedUpdate(apk);
     }
     if(prefs!=null && lastRenderedDate!=null && !today().equals(lastRenderedDate)){
-      if("FitRocket".equals(currentScreen))home();
-      else if("Aktivität".equals(currentScreen))activityPage();
+      if("Tagebuch".equals(currentScreen)){
+        // When midnight passes while today's diary is open, show the new day.
+        // Preserve a deliberately selected historical date.
+        if(lastRenderedDate.equals(diaryDate.toString()))diaryDate=LocalDate.now();
+        history();
+      }else if("Aktivität".equals(currentScreen))activityPage();
       else if("Statistiken".equals(currentScreen))statistics();
     }
     if(prefs!=null && prefs.getBoolean("healthUse",false) && !healthBusy
@@ -2854,7 +2799,7 @@ public class MainActivity extends Activity {
           if(showResult)msg("Health Connect: 7 Tage Schritte und "+updated+" Trainings übernommen.");
           healthBusy=false;
           if("Aktivität".equals(currentScreen))activityPage();
-          else if("FitRocket".equals(currentScreen))home();
+          else if("Tagebuch".equals(currentScreen))history();
         }catch(Exception e){healthBusy=false;if(showResult)msg("Abgleich nicht gespeichert: "+e.getMessage());}
       }
       @Override public void onFailure(String reason){
@@ -3162,17 +3107,19 @@ public class MainActivity extends Activity {
               readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
               foods.clear();loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();
               FitRocketWaterReminder.schedule(this);
-              home();msg("Backup importiert.");
+              history();msg("Backup importiert.");
             }catch(Exception e){msg("Import konnte nicht abgeschlossen werden.");}
           }).setNegativeButton("Abbrechen",null).show();
       }catch(Exception e){msg("Die Backup-Datei ist ungültig.");}
     }
   }
     private class GlassView extends View {
-    final Paint p=new Paint(3);GlassView(){super(MainActivity.this);}
+    final String date;
+    final Paint p=new Paint(3);
+    GlassView(String date){super(MainActivity.this);this.date=date;}
     @Override protected void onDraw(Canvas c){
       super.onDraw(c);float w=getWidth(),h=getHeight(),cx=w/2,cy=h*.75f;
-      double n=used(today());float ratio=(float)(n/Math.max(1,budget));
+      double n=used(date);float ratio=(float)(n/Math.max(1,budget));
       float rad=Math.min(w*.34f,h*.62f);RectF arc=new RectF(cx-rad,cy-rad,cx+rad,cy+rad);
       p.setStyle(Paint.Style.STROKE);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeWidth(dp(19));
       p.setColor(dark()?Color.rgb(57,58,72):Color.rgb(250,235,231));c.drawArc(arc,190,160,false,p);
@@ -3180,7 +3127,7 @@ public class MainActivity extends Activity {
       c.drawArc(arc,190,160*Math.min(1f,Math.max(0f,ratio)),false,p);p.setShader(null);p.setStyle(Paint.Style.FILL);
       p.setColor(ink());p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(28));
       c.drawText(pt(n)+" / "+budget+" P",cx,cy-dp(25),p);
-      p.setTypeface(Typeface.DEFAULT);p.setTextSize(dp(13));p.setColor(muted());c.drawText("Heute genutzt",cx,cy-dp(4),p);
+      p.setTypeface(Typeface.DEFAULT);p.setTextSize(dp(13));p.setColor(muted());c.drawText("Gegessen an diesem Tag",cx,cy-dp(4),p);
       if(ratio>1){p.setTextSize(dp(12));p.setColor(dark()?Color.rgb(255,163,154):Color.rgb(205,91,91));c.drawText("Etwas über deinem Ziel",cx,cy+dp(18),p);}
     }
   }
