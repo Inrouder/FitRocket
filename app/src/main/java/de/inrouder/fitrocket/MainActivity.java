@@ -120,6 +120,8 @@ public class MainActivity extends Activity {
     }
     weekly=prefs.getInt("weekly",FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS);
     loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
+    FitRocketWaterReminder.schedule(this);
+    maybeCheckUpdatesOnLaunch();
     if(saved!=null && "Profil".equals(saved.getString("fitrocketScreen")))profilePage();
     else if(saved!=null && "Fortschritt".equals(saved.getString("fitrocketScreen")))progressPage();
     else home();
@@ -467,6 +469,7 @@ public class MainActivity extends Activity {
     row.addView(scanner,new LinearLayout.LayoutParams(0,dp(49),1));
     search.setOnClickListener(v->searchScreen());scanner.setOnClickListener(v->scanBarcode());
     shortcuts.addView(row);
+    action(shortcuts,"★ Favoriten & gespeicherte Mahlzeiten",()->favoritesScreen());
     action(shortcuts,"✨ Mit KI beschreiben oder Rezept finden",()->aiHub());
     page.addView(shortcuts);
 
@@ -605,13 +608,14 @@ public class MainActivity extends Activity {
     item.setOnClickListener(v->{
       boolean hasComposition=m.optJSONArray("aiIngredients")!=null;
       String[] choices=hasComposition?
-          new String[]{"Zutaten & Berechnung ansehen","Punkte ändern","Eintrag löschen"}:
-          new String[]{"Punkte ändern","Eintrag löschen"};
+          new String[]{"Zutaten & Berechnung ansehen","★ Als Favorit speichern","Punkte ändern","Eintrag löschen"}:
+          new String[]{"★ Als Favorit speichern","Punkte ändern","Eintrag löschen"};
       new AlertDialog.Builder(this).setTitle(m.optString("name"))
         .setItems(choices,(d,which)->{
           if(hasComposition && which==0){showAiMealDetails(m);return;}
           int actionIndex=hasComposition?which-1:which;
-          if(actionIndex==0)editMeal(m);
+          if(actionIndex==0){saveFavorite(m);return;}
+          if(actionIndex==1)editMeal(m);
           else new AlertDialog.Builder(this).setMessage("Eintrag wirklich löschen?")
             .setPositiveButton("Löschen",(dd,w)->{
               meals.remove(m);persist("meals",meals);refreshMealContext();
@@ -1444,6 +1448,20 @@ public class MainActivity extends Activity {
     score.addView(label(weekly+" Start · +"+rolloversWeek()+" gespart · +"+
         activityCredit()+" Bewegung · −"+spentWeek()+" verbraucht",13));
     page.addView(score);
+    LinearLayout recap=card(Color.WHITE);
+    recap.addView(label("📊 Diese Woche im Überblick",18));
+    JSONObject stats=FitRocketInsights.week(LocalDate.now(),budget,waterGoal(),
+       new JSONArray(prefs.getString("meals","[]")),waterDays());
+    recap.addView(label(stats.optInt("loggedDays")+" Tage mit Mahlzeiten · "+
+       stats.optInt("totalPoints")+" P gegessen",15));
+    recap.addView(label(stats.optInt("withinBudget")+" von "+stats.optInt("loggedDays")+
+       " erfassten Tagen im Tagesbudget",13));
+    recap.addView(label(stats.optInt("waterGoalDays")+" von "+stats.optInt("days")+
+       " Tagen Trinkziel erreicht",13));
+    recap.addView(label("Wochenstart: "+weekly+" P · Tagesüberträge +"+rolloversWeek()+
+       " P · Bewegung +"+activityCredit()+" P · verwendet −"+spentWeek()+" P",12));
+    action(recap,"Vollständigen Wochenrückblick ansehen",()->weeklyReview());
+    page.addView(recap);
 
     LinearLayout weightCard=card(Color.WHITE);
     double latest=latestWeight(),goal=goalWeight(),first=earliestWeight();
@@ -1455,6 +1473,12 @@ public class MainActivity extends Activity {
     if(goal>0)weightCard.addView(label(String.format(Locale.GERMAN,"Ziel %.1f kg",goal),13));
     if(first>0 && latest>0)
       weightCard.addView(label(String.format(Locale.GERMAN,"Veränderung %+.1f kg",latest-first),13));
+    Double average=FitRocketInsights.movingAverage(weights,LocalDate.now(),7);
+    Double change=FitRocketInsights.periodChange(weights,LocalDate.now(),30);
+    if(average!=null)weightCard.addView(label(String.format(Locale.GERMAN,
+       "7-Tage-Durchschnitt: %.1f kg",average),13));
+    if(change!=null)weightCard.addView(label(String.format(Locale.GERMAN,
+       "Monatsvergleich (7-Tage-Mittel): %+.1f kg",change),13));
     if(!weights.isEmpty())
       weightCard.addView(new FitRocketWeightChart(this,weights,goal>0?goal:null),
           new LinearLayout.LayoutParams(-1,dp(185)));
@@ -1512,17 +1536,24 @@ public class MainActivity extends Activity {
       selectedAiProviderName()+" · Rezeptideen und Schätzungen",()->aiHub());
     settingsRow(integrations,"Smartwatch & Health Connect",
       "Schritte und Training synchronisieren",()->activityPage());
+    settingsRow(integrations,"Wassererinnerungen",
+      prefs.getBoolean("waterReminderEnabled",false)?"Aktiv · mit Ruhezeiten":"Ausgeschaltet",
+      ()->waterReminderSettings());
     page.addView(integrations);
 
     LinearLayout storage=card(Color.WHITE);
     storage.addView(label("Daten & Sicherheit",18));
     settingsRow(storage,"Backup exportieren","Dein Tagebuch lokal sichern",()->startExport());
-    settingsRow(storage,"Backup importieren","Vorhandene Sicherung wiederherstellen",()->startImport());
+    settingsRow(storage,"Backup importieren","Mit Vorschau und Datenprüfung",()->startImport());
+    settingsRow(storage,"Favoriten & Mahlzeiten","Gespeicherte Gerichte erneut eintragen",()->favoritesScreen());
     page.addView(storage);
 
     LinearLayout about=card(Color.WHITE);
     about.addView(label("App & Hilfe",18));
     settingsRow(about,"Auf Updates prüfen","Installiert: v"+installedVersion(),()->checkForUpdates());
+    settingsRow(about,"Automatische Updateprüfung",
+       prefs.getBoolean("updateChecks",true)?"Bei App-Start gelegentlich prüfen":"Deaktiviert",
+       ()->toggleUpdateChecks());
     settingsRow(about,"Neueste APK & Release-Notizen","GitHub Releases öffnen",
         ()->openSafeUrl(FitRocketUpdate.REPO+"/releases/latest"));
     settingsRow(about,"FitRocket-Projektseite","Informationen und Quellcode",
@@ -1625,6 +1656,10 @@ public class MainActivity extends Activity {
     shell("Trinken");heading("Deine Wasserbilanz");
     page.addView(waterCard(today()));
     page.addView(label("Jedes Glas zählt 250 ml. Du bestimmst dein Tagesziel selbst.",13));
+    LinearLayout reminder=card(Color.WHITE);
+    settingsRow(reminder,"Wassererinnerungen",
+       prefs.getBoolean("waterReminderEnabled",false)?"Eingeschaltet":"Ausgeschaltet",
+       ()->waterReminderSettings());page.addView(reminder);
   }
   private void settingsDialog(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(25,5,25,5);EditText b=edit("Tagesbudget",String.valueOf(budget),2),w=edit("Wochenstart-Punkte",String.valueOf(weekly),2);
     l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);
@@ -1695,6 +1730,13 @@ public class MainActivity extends Activity {
     summaryCard.addView(metrics);
     if(first>0&&latest>0)summaryCard.addView(label(
       "Seit Beginn: "+String.format(Locale.GERMAN,"%+.1f kg",latest-first),15));
+    Double weeklyAverage=FitRocketInsights.movingAverage(weights,LocalDate.now(),7);
+    Double monthlyShift=FitRocketInsights.periodChange(weights,LocalDate.now(),30);
+    if(weeklyAverage!=null)summaryCard.addView(label(String.format(Locale.GERMAN,
+      "Ø letzte 7 Tage: %.1f kg",weeklyAverage),15));
+    if(monthlyShift!=null)summaryCard.addView(label(String.format(Locale.GERMAN,
+      "Vergleich zum Vormonat (geglättet): %+.1f kg",monthlyShift),14));
+    summaryCard.addView(label("Durchschnitt nur aus tatsächlich eingetragenen Messungen.",12));
     action(summaryCard,"＋ Gewicht eintragen",()->weightDialog());
     action(summaryCard,"🎯 Zielgewicht festlegen",()->goalWeightDialog());
     page.addView(summaryCard);
