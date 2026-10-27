@@ -364,7 +364,13 @@ public class MainActivity extends Activity {
       nav.requestApplyInsets();
     }
   }
-  private int used(String date){int total=0;for(JSONObject x:meals)if(date.equals(x.optString("date")))total+=x.optInt("points");return total;}
+  private double used(String date){return FitRocketPointLedger.used(meals,date);}
+  private String pt(double points){return FitRocketPointLedger.display(points);}
+  private double pts(JSONObject meal){return FitRocketPointLedger.value(meal);}
+  private boolean showHints(){return prefs.getBoolean("showHints",false);}
+  private void hint(LinearLayout parent,String value){
+    if(showHints()){TextView h=label(value,12);h.setTextColor(muted());parent.addView(h);}
+  }
   private int count(String date){int n=0;for(JSONObject x:meals)if(date.equals(x.optString("date")))n++;return n;}
   private String kind(JSONObject f){return f.isNull("points")?"Punkte eingeben":f.optInt("points")+" P";}
   private JSONObject waterDays(){
@@ -437,8 +443,8 @@ public class MainActivity extends Activity {
   }
   private void home(){
     shell("FitRocket");
-    int todayPoints=used(today());
-    int remaining=Math.max(0,budget-todayPoints);
+    double todayPoints=used(today());
+    double remaining=Math.max(0,budget-todayPoints);
     LinearLayout balance=card(Color.WHITE);
     TextView date=label("Heute · "+pretty(today()),17);date.setTypeface(null,1);
     balance.addView(date);
@@ -446,9 +452,9 @@ public class MainActivity extends Activity {
     balance.addView(glass,new LinearLayout.LayoutParams(-1,dp(160)));
     LinearLayout chips=new LinearLayout(this);chips.setOrientation(0);
     String[] text={
-      todayPoints+" P gegessen",
-      remaining+" P frei",
-      availableWeek()+" P Woche"
+      pt(todayPoints)+" P gegessen",
+      pt(remaining)+" P frei",
+      pt(availableWeek())+" P Woche"
     };
     int[] shades={Color.rgb(255,241,229),MINT,LAV};
     for(int i=0;i<text.length;i++){
@@ -505,7 +511,7 @@ public class MainActivity extends Activity {
     String weightText=last>0?String.format(Locale.GERMAN,"%.1f kg",last):"Noch keine Messung";
     settingsRow(overview,"⚖ Gewicht",weightText,()->weightScreen());
     settingsRow(overview,"🚶 Bewegung",earnedWeek()+" P diese Woche",()->activityPage());
-    settingsRow(overview,"⭐ Wochenkonto",availableWeek()+" P verfügbar",()->progressPage());
+    settingsRow(overview,"⭐ Wochenkonto",pt(availableWeek())+" P verfügbar",()->progressPage());
     page.addView(overview);
   }
 
@@ -514,10 +520,10 @@ public class MainActivity extends Activity {
     String[] emoji={"☀","🥗","☾","🍓","🥤"};
     for(int i=0;i<groups.length;i++){
       final String group=groups[i];
-      int points=0,count=0;String first="";
+      double points=0;int count=0;String first="";
       for(JSONObject m:meals){
         if(date.equals(m.optString("date"))&&group.equals(mealGroup(m))){
-          points+=m.optInt("points",0);count++;
+          points+=pts(m);count++;
           if(first.isEmpty())first=m.optString("name","");
         }
       }
@@ -533,7 +539,7 @@ public class MainActivity extends Activity {
       hint.setEllipsize(android.text.TextUtils.TruncateAt.END);
       hint.setPadding(dp(2),dp(2),dp(2),0);lines.addView(hint);
       item.addView(lines,new LinearLayout.LayoutParams(0,-2,1));
-      TextView counter=chip(points+" P",count==0?Color.rgb(245,244,247):MINT);
+      TextView counter=chip(pt(points)+" P",count==0?Color.rgb(245,244,247):MINT);
       item.addView(counter);
       TextView plus=chip("＋",Color.rgb(255,231,219));plus.setTextSize(19);
       LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2);lp.setMargins(dp(8),0,0,0);
@@ -573,15 +579,15 @@ public class MainActivity extends Activity {
       final String group=names[i];
       LinearLayout section=card(Color.WHITE);
       LinearLayout header=new LinearLayout(this);header.setOrientation(0);header.setGravity(Gravity.CENTER_VERTICAL);
-      int count=0,points=0;
+      int count=0;double points=0;
       for(JSONObject m:meals){
         if(date.equals(m.optString("date"))&&group.equals(mealGroup(m))){
-          count++;points+=m.optInt("points");
+          count++;points+=pts(m);
         }
       }
       TextView name=label(icons[i]+" "+group,17);name.setTypeface(null,1);
       header.addView(name,new LinearLayout.LayoutParams(0,-2,1));
-      header.addView(chip(points+" P",count==0?Color.rgb(244,245,250):MINT));
+      header.addView(chip(pt(points)+" P",count==0?Color.rgb(244,245,250):MINT));
       TextView plus=chip("＋",Color.rgb(255,232,217));plus.setTextSize(18);
       LinearLayout.LayoutParams addP=new LinearLayout.LayoutParams(-2,-2);addP.setMargins(dp(10),0,0,0);
       header.addView(plus,addP);
@@ -603,7 +609,7 @@ public class MainActivity extends Activity {
     LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(-1,-2);ip.setMargins(0,dp(5),0,0);
     TextView name=label(m.optString("name"),14);name.setMaxLines(2);name.setEllipsize(android.text.TextUtils.TruncateAt.END);
     item.addView(name,new LinearLayout.LayoutParams(0,-2,1));
-    item.addView(chip(m.optInt("points")+" P",m.optInt("points")==0?MINT:Color.rgb(255,232,219)));
+    item.addView(chip(pt(pts(m))+" P",pts(m)==0?MINT:Color.rgb(255,232,219)));
     target.addView(item,ip);
     item.setOnClickListener(v->{
       boolean hasComposition=m.optJSONArray("aiIngredients")!=null;
@@ -628,7 +634,7 @@ public class MainActivity extends Activity {
 
   private void confirmDeleteMeal(JSONObject meal){
     new AlertDialog.Builder(this).setTitle("Eintrag löschen?")
-      .setMessage("„"+meal.optString("name")+"“ ("+meal.optInt("points")+
+      .setMessage("„"+meal.optString("name")+"“ ("+pt(pts(meal))+
         " Punkte) aus dem Tagebuch löschen? Favoriten und die "+
         "Lebensmitteldatenbank bleiben unverändert.")
       .setPositiveButton("Löschen",(d,w)->{
@@ -677,7 +683,7 @@ public class MainActivity extends Activity {
     if(parts==null){msg("Keine Zutatenliste für diesen Eintrag.");return;}
     LinearLayout box=new LinearLayout(this);box.setOrientation(1);
     box.setPadding(dp(20),dp(8),dp(20),dp(8));
-    box.addView(label(meal.optString("name")+" · "+meal.optInt("points")+" P",18));
+    box.addView(label(meal.optString("name")+" · "+pt(pts(meal))+" P",18));
     box.addView(label("KI-Schätzung · Zutaten und Nährwerte können ungenau sein.",13));
     for(int i=0;i<parts.length();i++){
       JSONObject ingredient=parts.optJSONObject(i);
@@ -893,9 +899,9 @@ public class MainActivity extends Activity {
       dp.getDatePicker().setMaxDate(System.currentTimeMillis());dp.show();
     });
     dateCard.addView(dayBar);
-    int consumed=used(diaryDate.toString());
-    dateCard.addView(label("🍽 "+consumed+" P gegessen  ·  "+Math.max(0,budget-consumed)+" P Tagesrest",16));
-    if(consumed>budget)dateCard.addView(label("Wochenkonto belastet: "+(consumed-budget)+" P",13));
+    double consumed=used(diaryDate.toString());
+    dateCard.addView(label("🍽 "+pt(consumed)+" P gegessen  ·  "+pt(Math.max(0,budget-consumed))+" P Tagesrest",16));
+    if(consumed>budget)dateCard.addView(label("Wochenkonto belastet: "+pt(consumed-budget)+" P",13));
     page.addView(dateCard);
     dayMealGroups(page,diaryDate.toString());
     page.addView(waterCard(diaryDate.toString()));
@@ -2211,7 +2217,7 @@ public class MainActivity extends Activity {
     l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);
     l.addView(label("Wochenstart-Punkte (Standard 28)",14));l.addView(w);
     l.addView(label("Montags neu verfügbar. Ungenutzte Tagespunkte werden nach Mitternacht automatisch übertragen, maximal 4 pro Tag.",12));new AlertDialog.Builder(this).setTitle("Budget").setView(l).setPositiveButton("Speichern",(d,n)->{try{int bb=Integer.parseInt(b.getText().toString()),ww=Integer.parseInt(w.getText().toString());if(bb<1||bb>200||ww<0||ww>500)throw new Exception();budget=bb;weekly=ww;prefs.edit().putInt("budget",bb).putInt("weekly",ww).apply();more();}catch(Exception e){msg("Ungültige Budgetwerte.");}}).setNegativeButton("Abbrechen",null).show();}
-  private void statistics(){shell("Statistiken");LocalDate now=LocalDate.now(),start=now.minusDays(now.getDayOfWeek().getValue()-1);page.addView(label("Diese Woche",20));int weeklyUsed=0;for(int i=0;i<7;i++){LocalDate date=start.plusDays(i);int n=used(date.toString());weeklyUsed+=n;page.addView(label(date.getDayOfWeek().toString().substring(0,2)+" "+pretty(date.toString())+": "+n+" Punkte",15));}page.addView(label("Gesamt: "+weeklyUsed+" Punkte; Ø "+String.format(Locale.GERMAN,"%.1f",weeklyUsed/7.0)+" pro Kalendertag",15));page.addView(label("Dieser Monat",20));LocalDate first=now.withDayOfMonth(1);int total=0,tracked=0,days=now.getDayOfMonth();for(int i=0;i<days;i++){String day=first.plusDays(i).toString();total+=used(day);if(count(day)>0)tracked++;}page.addView(label("Erfasste Punkte: "+total+" · Tage mit Einträgen: "+tracked+" / "+days,16));page.addView(label("Wochenkonto: "+weekly+" Start + "+rolloversWeek()+" Tagesübertrag + "
+  private void statistics(){shell("Statistiken");LocalDate now=LocalDate.now(),start=now.minusDays(now.getDayOfWeek().getValue()-1);page.addView(label("Diese Woche",20));double weeklyUsed=0;for(int i=0;i<7;i++){LocalDate date=start.plusDays(i);double n=used(date.toString());weeklyUsed+=n;page.addView(label(date.getDayOfWeek().toString().substring(0,2)+" "+pretty(date.toString())+": "+pt(n)+" Punkte",15));}page.addView(label("Gesamt: "+pt(weeklyUsed)+" Punkte; Ø "+String.format(Locale.GERMAN,"%.1f",weeklyUsed/7.0)+" pro Kalendertag",15));page.addView(label("Dieser Monat",20));LocalDate first=now.withDayOfMonth(1);double total=0;int tracked=0,days=now.getDayOfMonth();for(int i=0;i<days;i++){String day=first.plusDays(i).toString();total+=used(day);if(count(day)>0)tracked++;}page.addView(label("Erfasste Punkte: "+pt(total)+" · Tage mit Einträgen: "+tracked+" / "+days,16));page.addView(label("Wochenkonto: "+weekly+" Start + "+rolloversWeek()+" Tagesübertrag + "
    +activityCredit()+" Bewegungsbonus − "+spentWeek()+" verbraucht = "+availableWeek()+" Punkte übrig",15));page.addView(label("Ø je dokumentiertem Tag: "+(tracked>0?String.format(Locale.GERMAN,"%.1f",total/(double)tracked):"–"),16));page.addView(label("Achtung: Fehlende Tage gelten nicht als Null-Punkte-Tage.",13));if(!weights.isEmpty()){page.addView(label("Gewichtseinträge: "+weights.size(),16));for(int i=weights.size()-1;i>=Math.max(0,weights.size()-8);i--)page.addView(label(pretty(weights.get(i).optString("date"))+" · "+weights.get(i).optString("kg")+" kg",14));}}
   private double latestWeight(){
     double value=0;String lastDate="";
@@ -2459,17 +2465,15 @@ public class MainActivity extends Activity {
   }
 
   private int earnedWeek(){return workoutPointsWeek()+totalStepPointsWeek();}
-  private int spentWeek(){
-    return FitRocketWeeklyWallet.spentWeek(LocalDate.now(),budget,
-        date->used(date.toString()));
+  private double spentWeek(){
+    return FitRocketPointLedger.weekSpent(LocalDate.now(),budget,d->used(d.toString()));
   }
-  private int rolloversWeek(){
-    return FitRocketWeeklyWallet.rolloversWeek(LocalDate.now(),budget,
-        date->used(date.toString()));
+  private double rolloversWeek(){
+    return FitRocketPointLedger.weekRollovers(LocalDate.now(),budget,d->used(d.toString()));
   }
   private int activityCredit(){return FitRocketMath.credit(earnedWeek(),prefs.getInt("activityShare",0));}
-  private int availableWeek(){
-    return FitRocketWeeklyWallet.remaining(weekly,rolloversWeek(),activityCredit(),spentWeek());
+  private double availableWeek(){
+    return FitRocketPointLedger.weeklyAvailable(weekly,rolloversWeek(),activityCredit(),spentWeek());
   }
 
   private void activityPage(){
@@ -2497,7 +2501,7 @@ public class MainActivity extends Activity {
     boolean daysFinished=false;
     for(LocalDate day=startDay;day.isBefore(currentDay);day=day.plusDays(1)){
       daysFinished=true;
-      int saved=FitRocketWeeklyWallet.dailyTransfer(budget,used(day.toString()));
+      double saved=FitRocketPointLedger.dailyTransfer(budget,used(day.toString()));
       transfers.addView(label(pretty(day.toString())+" · +"+saved+" / 4 P",14));
     }
     if(!daysFinished)transfers.addView(label("Der erste Tagesübertrag wird nach Tagesabschluss gutgeschrieben.",13));
@@ -2977,14 +2981,14 @@ public class MainActivity extends Activity {
     final Paint p=new Paint(3);GlassView(){super(MainActivity.this);}
     @Override protected void onDraw(Canvas c){
       super.onDraw(c);float w=getWidth(),h=getHeight(),cx=w/2,cy=h*.75f;
-      int n=used(today());float ratio=n/(float)Math.max(1,budget);
+      double n=used(today());float ratio=(float)(n/Math.max(1,budget));
       float rad=Math.min(w*.34f,h*.62f);RectF arc=new RectF(cx-rad,cy-rad,cx+rad,cy+rad);
       p.setStyle(Paint.Style.STROKE);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeWidth(dp(19));
       p.setColor(dark()?Color.rgb(57,58,72):Color.rgb(250,235,231));c.drawArc(arc,190,160,false,p);
       p.setShader(new SweepGradient(cx,cy,new int[]{Color.rgb(119,211,154),Color.rgb(173,222,98),Color.rgb(255,184,122),Color.rgb(247,115,119),Color.rgb(119,211,154)},new float[]{0f,.34f,.62f,.84f,1f}));
       c.drawArc(arc,190,160*Math.min(1f,Math.max(0f,ratio)),false,p);p.setShader(null);p.setStyle(Paint.Style.FILL);
       p.setColor(ink());p.setTypeface(Typeface.DEFAULT_BOLD);p.setTextAlign(Paint.Align.CENTER);p.setTextSize(dp(28));
-      c.drawText(n+" / "+budget+" P",cx,cy-dp(25),p);
+      c.drawText(pt(n)+" / "+budget+" P",cx,cy-dp(25),p);
       p.setTypeface(Typeface.DEFAULT);p.setTextSize(dp(13));p.setColor(muted());c.drawText("Heute genutzt",cx,cy-dp(4),p);
       if(ratio>1){p.setTextSize(dp(12));p.setColor(dark()?Color.rgb(255,163,154):Color.rgb(205,91,91));c.drawText("Etwas über deinem Ziel",cx,cy+dp(18),p);}
     }
