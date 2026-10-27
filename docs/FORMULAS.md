@@ -81,3 +81,12 @@ Rezeptvorschläge bestehen aus Rezeptzutaten, die mit einer konkreten Produkt-ID
 Wasser wird in **250-ml-Schritten** je Kalendertag gespeichert; das Tagesziel ist individuell einstellbar. Wasser wird nicht als Essens-Punktwert verrechnet.
 
 Gewichtsaufzeichnungen werden je Tag mit Datum und Kilogramm geführt. Die Verlaufsgrafik verbindet die gespeicherten Werte und zeigt optional eine Ziel-Linie. Sie dient der Darstellung, nicht der Prognose.
+
+## 9. KI-Vorschläge (ab v0.10.0)
+Die KI gibt für jede Zutat Name, Masse in Gramm, Kalorien, gesättigte Fettsäuren, Zucker und Eiweiß je 100 g/ml an. Dies sind **Schätzungen**, sofern kein verlässlicher FitRocket-Katalogdatensatz ausgewählt wurde. Sie werden nicht als offizielle Herstellerangaben ausgegeben.
+
+Anschließend berechnet allein der unveränderte lokale FitRocket-Algorithmus die Punkte aus den Mengen und Nährwerten (siehe Abschnitt 1). Bei Rezepten wird die Menge je Zutat durch die Anzahl Portionen geteilt und dann bewertet. Der Gesamtscore einer Portion ist die Summe der gerundeten Einzelzutaten-Scores.
+
+ZeroPoint-Status wird nur angewandt, wenn **exakte ID UND exakter normalisierter Name** zu einem vorhandenen `basic`-Eintrag passen. Die KI kann den Status also nicht allein durch Text oder Punkteangaben vergeben. Bei `nutrition`-Katalogtreffern gelten die lokal hinterlegten Nährwerte, nicht die Modellschätzung.
+
+Nutzerinnen und Nutzer können vor der Übernahme Zutaten entfernen, hinzufügen und Nährwerte ändern. Geschätzte Werte und daraus abgeleitete FitRocket-Punkte haben keine Garantie auf Übereinstimmung mit der tatsächlichen Mahlzeit. Insbesondere Speiseöl, Dressings und zusätzliches Fett müssen vollständig erfasst werden.

@@ -2,16 +2,38 @@
 
 FitRocket ist ein eigenständiges Android-Ernährungs- und Bewegungstagebuch mit einem eigenen FitRocket-Punktesystem. Die Daten bleiben auf deinem Gerät. Die App bietet warme Pastellfarben, übersichtliche Tageskarten und ein flexibel nutzbares Wochenkonto.
 
-## FitRocket v0.9.0 herunterladen
+## FitRocket v0.10.0 herunterladen
 
 1. Den [Android-APK-Workflow](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml) aufrufen.
 2. Den aktuellsten erfolgreichen GitHub-Actions-Lauf auswählen.
-3. Unter **Artifacts** das Paket `FitRocket-v0.9.0-debug-apk` herunterladen.
+3. Unter **Artifacts** das Paket `FitRocket-v0.10.0-debug-apk` herunterladen.
 4. ZIP entpacken und `app-debug.apk` installieren.
 
 Bei regulären Updates derselben Debug-Signatur bleiben gespeicherte Daten erhalten. Vor Neuinstallation oder Telefonwechsel immer **Mehr → Backup exportieren** verwenden. Eine Deinstallation ohne Backup löscht die lokalen FitRocket-Daten.
 
-## Neue Funktionen – Version 0.9.0
+## Neu in FitRocket v0.10.0: KI-Assistent ✨
+
+FitRocket hat jetzt einen optionalen Online-Küchenassistenten. **Die KI ermittelt keine FitRocket-Punkte selbst**: Sie schlägt nur Zutaten, Mengen und Nährwerte vor, die App rechnet anschließend mit dem vorhandenen FitRocket-Modell.
+
+- **Rezeptideen nach Vorlieben:** Essen, Vorlieben und Ausschlüsse frei beschreiben. Die KI erstellt eine Zutatenliste und Zubereitungsanleitung; Punkte pro Portion werden lokal berechnet. Vorschläge lassen sich im integrierten Rezeptbuch speichern.
+- **Gegessene Mahlzeiten erkennen:** Freitext wie „Reis mit Hähnchen, Gemüse und etwas Sahnesoße“ wird in geschätzte Zutaten und Mengen zerlegt. Nach Kontrolle kannst du die Mahlzeit im Tagebuch eintragen.
+- **Neue Lebensmittel aus Beschreibungen:** Produkt oder Lebensmittel nennen; die KI schätzt kcal, gesättigte Fette, Zucker und Eiweiß je 100 g/ml. Du kannst die Werte korrigieren und sie nach ausdrücklicher Bestätigung im lokalen Lebensmittelkatalog speichern.
+- **Vollständige Vorschau:** Zutaten ergänzen, entfernen, Namen, Mengen und die vier Nährwerte ändern; FitRocket-Punkte werden sofort neu berechnet.
+- **0-Punkte-Grundzutaten bleiben erhalten:** 0 Punkte gelten nur, wenn die KI die unveränderte, exakt passende Kombination aus Produkt-ID und Namen im vorhandenen FitRocket-Basiskatalog verwendet. Andere Zutaten werden mit der eigenen Formel berechnet.
+- **Offline ohne KI:** Eigene Lebensmittel anhand der Nährwertangaben der Verpackung erstellen und speichern.
+- **Backup-Schema 5:** Eigene KI-Lebensmittel, gespeicherte KI-Rezepte und Geschmackswünsche werden exportiert/importiert. Der geheime API-Schlüssel wird niemals exportiert.
+
+### Einrichtung
+1. In der App **Mehr → KI-Assistent → API-Schlüssel einrichten** öffnen.
+2. Einen **persönlichen OpenAI-API-Schlüssel** von https://platform.openai.com/api-keys eintragen.
+3. Unter **Vorlieben bearbeiten** z. B. vegetarisch, proteinreich oder „ohne Pilze“ speichern.
+4. Rezept, Mahlzeit oder Produkt beschreiben und das Ergebnis **vor dem Speichern überprüfen**.
+
+**Wichtig zu Kosten und Datenschutz:** Die Nutzung der OpenAI API wird unabhängig von ChatGPT-Abonnements nach API-Verbrauch abgerechnet. Die App sendet nur die von dir eingegebene Anfrage, deine ausdrücklich gespeicherten Vorlieben und eine kleine Auswahl öffentlicher Lebensmittelbezeichnungen an die API – nicht automatisch Gewicht, Tagebuch oder Health-Connect-Daten. OpenAI kann die Anfragen nach seinen eigenen Datenschutz- und Aufbewahrungsbedingungen verarbeiten. Der Schlüssel liegt im Android Keystore verschlüsselt auf deinem Gerät, nicht in GitHub oder im Backup. Für eine öffentlich verteilte App wird ein Server-Proxy empfohlen, der den Schlüssel niemals an den Client herausgibt. Weitere Details unter [docs/AI_ASSISTANT.md](docs/AI_ASSISTANT.md).
+
+**Ohne API-Schlüssel bleiben alle bisherigen App-Funktionen nutzbar.** Ein Live-Test der KI-API benötigt einen gültigen eigenen Schlüssel und ist nicht Bestandteil der Android-Unit-Tests.
+
+## Funktionen aus Version 0.9.0
 
 ### Tagesübersicht und Mahlzeiten
 - Übersichtlichere **Heute**-Ansicht mit Punktekreis, Schnellaktionen, Wochenkonto, Wasser und Gewicht.

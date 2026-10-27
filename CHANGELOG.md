@@ -1,5 +1,20 @@
 # FitRocket – Versionshinweise
 
+## 0.10.0 – KI-Küchenassistent, Rezepte und Lebensmittelschätzung
+- Online-KI für persönliche Rezepte, Beschreibungen von Mahlzeiten und Nährwert-Schätzung neuer Produkte.
+- Eigene, auf dem Gerät geschützte API-Schlüssel-Eingabe (Android Keystore, AES-GCM), ohne Hardcoding und ohne Schlüssel in Backups.
+- Strukturierte API-Antworten mit JSON-Schema; einheitliche Zutaten-/Nährwertformulare.
+- Die Punkte stammen ausschließlich aus FitRocketMath, nicht aus einer Modellbehauptung.
+- Nur exakt zugeordnete, unveränderte Katalog-Basislebensmittel erhalten 0 Punkte.
+- Für jedes KI-Ergebnis editierbare Zutaten, Portionsmengen und Nährwerte.
+- Fehlende Zutaten lassen sich ergänzen, falsch erkannte entfernen.
+- KI-Rezepte können dauerhaft gespeichert und im normalen Rezeptbuch verwendet werden.
+- Neue Lebensmittel landen nur nach ausdrücklicher Nutzerbestätigung in der lokalen Lebensmittelsuche.
+- Offline-Formular für neue Lebensmittel anhand von vier Nährwertangaben.
+- Gespeicherte Ernährungsvorlieben, begrenzte Eingabelängen, API-Timeouts und erkennbare Fehlermeldungen.
+- Backupschema 5 für eigene KI-Lebensmittel und Rezepte, niemals für den API-Schlüssel.
+- Automatisierte Tests für KI-Punkteregeln, Katalog-ID-Abgleich und strikte Antwortstruktur.
+
 ## 0.9.0 – Übersicht, Barcode, Wasser, Rezepte & Gewicht
 - Heute-Ansicht neu gegliedert und Schnellaktionen ergänzt.
 - Frühstück, Mittagessen, Abendessen, Snacks und Getränke als eigene Tagebuch-Bereiche.

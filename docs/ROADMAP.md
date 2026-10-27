@@ -1,8 +1,10 @@
 # FitRocket – Roadmap
 
-- **0.7.0:** Ernährungspunkte, Bewegungsrechnung, persönliches Profil, Schritte und Wochenkonto.
-- **0.8.0:** Health Connect (Android 14+) mit Schritt- und Trainingseinlesung.
-- **0.8.1:** 28 Wochenpunkte und täglich maximal 4 ungenutzte Punkte Übertrag.
-- **0.9.0:** Neu gegliederte Tagesübersicht, Barcode-Scanner, Open-Food-Facts-Produktabfrage, offline Rezeptvorschläge, bildliches Wasserprotokoll und Gewichtskurve.
-- **1.0.0:** Stabilitätstests auf mehreren Geräten, kleinere Bildschirme und Barrierefreiheit; Berechtigungskontrollen, Release-Signierung und verlässliche Datenmigration.
-- **Später:** Optionaler Speiseplan und Einkaufszettel, Scanprodukt-Bearbeitung, Android-13-Health-Connect-Unterstützung, präzisere Trainings-Deduplizierung, Erinnerungseinstellungen und lokale Rezeptbearbeitung.
+- **0.7.0:** Eigene Ernährungs-/Bewegungspunkte, Profil, Schritte und Wochenkonto.
+- **0.8.0:** Optionaler Health-Connect-Abgleich für kompatible Smartwatch-Apps.
+- **0.8.1:** 28 Wochenstartpunkte und maximal 4 ungenutzte Tagespunkte pro Tag.
+- **0.9.0:** Mahlzeitenübersicht, Barcode-Scanner, Produktdaten, Wasser und Gewichtsverlauf.
+- **0.10.0:** Optionaler KI-Assistent mit freier Essensbeschreibung, personalisierten Rezepten, Nährwertschätzungen, korrigierbarer Vorschau, eigenem Lebensmittelkatalog und verschlüsseltem Nutzer-API-Schlüssel.
+- **0.11.x:** Eigene Lebensmittel/Rezepte auch nach dem Speichern bearbeiten, Rezeptsammlungen und Favoriten, übersichtlichere Portionsdarstellung und kürzere API-Anfragen.
+- **1.0.0:** Instrumentierte Praxistests auf Geräten, zentraler Proxy für einen öffentlichen KI-Dienst, Barrierefreiheit, Release-Signierung und robustes Versions-/Datenmigrationssystem.
+- **Später:** Opt-in Erinnerungen, optionale Einkaufszettel, Health-Connect-Verbesserungen und Rezeptplaner.
