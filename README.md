@@ -6,6 +6,14 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
+## FitRocket v0.15.0 – Variable Portionen, Gramm & FAQ
+
+- **Portionen oder Gramm:** Schnell 1 Handvoll/Portion/Stück buchen oder eine genaue Menge in g/ml eingeben.
+- **Exakte Zehntelpunkte:** 100 g = 1 Punkt → 20 g = 0,2 Punkte; sowohl Tages- als auch Wochenkonto berücksichtigen den Wert.
+- **Hilfe auf Wunsch:** Über **Profil → Darstellung → Erklärhinweise** Texte dauerhaft aus- oder einschalten. Unter **Profil → App & Hilfe → FAQ** findest du 15 Antworten.
+- **In-App-Updates** laden signierte APKs weiterhin direkt von GitHub herunter und übergeben sie sicher an den Android-Paketinstaller.
+- [Änderungen im Detail](docs/RELEASE_NOTES.md).
+
 ## FitRocket v0.14.3 – Updates direkt aus der App
 
 In **Profil → In-App-Update prüfen** kannst du eine neue signierte FitRocket-Version direkt herunterladen. Ein Download im Browser und die Suche nach der heruntergeladenen Datei entfallen.

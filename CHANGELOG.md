@@ -1,5 +1,17 @@
 # FitRocket – Versionshinweise
 
+## 0.15.0 – Portionen, Zehntelpunkte und FAQ
+- Portion oder Gramm/Milliliter als auswählbare Erfassungsart für alle bekannten Lebensmittel.
+- Geprüfte Referenzmengen in g/ml und frei einstellbare Portionsfaktoren.
+- Dezimalwerte für die tatsächliche Buchung und die Tages-/Wochenbilanz (z. B. 0,2 P).
+- Nährwertbasierte Produkte auf Basis der 100-g-/100-ml-Referenz proportional berechnet.
+- Favoriten-Zutaten und Mengen mit genauer Zehntelpunkteberechnung.
+- Das Wochenkonto behält den täglichen Übertrag von maximal 4 P bei, jetzt dezimalgenau.
+- Hilfetexte dauerhaft über einen Schalter im Profil aus- und einblendbar, im Backup enthalten.
+- Integrierte FAQ-Seite mit 15 praxisnahen Antworten.
+- Dezimalvalidierung für ältere und neue JSON-Backups; zusätzliche Tests für Gramm, Portion, Favoriten und Wochenpunkte.
+- Die sichere In-App-Updatefunktion und bestehende App-Signatur bleiben erhalten.
+
 ## 0.14.3 – Komfortable sichere In-App-Updates
 - Neue APK vom offiziellen GitHub Release direkt im FitRocket-App-Speicher herunterladen, mit Fortschrittsanzeige.
 - Nur fest definierte HTTPS-GitHub-Release-Adressen und vertrauenswürdige CDN-Weiterleitungen akzeptieren.
