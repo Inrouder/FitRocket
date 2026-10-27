@@ -57,17 +57,31 @@ public final class FitRocketAiSecrets {
         return generator.generateKey();
     }
 
-    public static void set(Context context, String provider, String apiKey) throws Exception {
+    /**
+     * Local input sanity check ONLY. Gemini issued newer authorization keys since May 2026
+     * which can include dots; do not enforce old "AIza" prefixes or a narrow regex.
+     * Google validates authenticity when the API request is made.
+     * Restrict input to printable ASCII without whitespace/control characters so that
+     * it cannot inject HTTP header lines, but permit dots and auth-key punctuation.
+     */
+    public static String validateKey(String provider, String apiKey) {
         checkProvider(provider);
         String key = apiKey == null ? "" : apiKey.trim();
         if (GEMINI.equals(provider)) {
-            // Standard Gemini keys usually begin with AIza, but other authorized key
-            // formats may exist; avoid rejecting them based on a brittle prefix.
-            if (key.length() < 20 || key.length() > 500 || !key.matches("[A-Za-z0-9_\\-]+"))
-                throw new IllegalArgumentException("Bitte einen gültigen Gemini-API-Schlüssel eintragen.");
-        } else if (!key.startsWith("sk-") || key.length() > 500 || key.length() < 8) {
+            if (key.length() < 16 || key.length() > 500 ||
+                !key.matches("[A-Za-z0-9._~+=/\\\\-]+"))
+                throw new IllegalArgumentException(
+                    "Bitte den vollständigen Gemini-Schlüssel ohne Leerzeichen einfügen. "
+                    + "Auch neuere Google-Schlüssel mit Punkten sind erlaubt.");
+        } else if (!key.startsWith("sk-") || key.length() > 500 || key.length() < 8 ||
+                   !key.matches("[A-Za-z0-9._~+=/\\\\-]+")) {
             throw new IllegalArgumentException("Bitte einen OpenAI-API-Schlüssel (sk-…) eintragen.");
         }
+        return key;
+    }
+
+    public static void set(Context context, String provider, String apiKey) throws Exception {
+        String key = validateKey(provider, apiKey);
 
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, secretKey());
