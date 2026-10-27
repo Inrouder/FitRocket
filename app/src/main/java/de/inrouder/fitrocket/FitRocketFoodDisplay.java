@@ -22,6 +22,20 @@ public final class FitRocketFoodDisplay {
         return false;
     }
 
+    /** Weight or volume explicitly printed in a catalog portion; never guessed. */
+    public static double portionAmount(JSONObject food) {
+        if(food==null)return Double.NaN;
+        java.util.regex.Matcher match=java.util.regex.Pattern.compile(
+            "(\\d+(?:[.,]\\d+)?)\\s*(g|ml)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE)
+            .matcher(food.optString("portion",""));
+        if(!match.find())return Double.NaN;
+        try{
+            double value=Double.parseDouble(match.group(1).replace(',','.'));
+            return value>0&&value<=10000?value:Double.NaN;
+        }catch(Exception e){return Double.NaN;}
+    }
+
     public static String unit(JSONObject food) {
         return isDrink(food) ? "ml" : "g";
     }
