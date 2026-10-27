@@ -27,19 +27,19 @@ public final class FitRocketInsights {
  }
  public static JSONObject week(LocalDate today,int budget,int waterGoal,JSONArray meals,JSONObject water){
   LocalDate monday=today.minusDays(today.getDayOfWeek().getValue()-1);
-  int days=0,loggedDays=0,points=0,within=0,waterDays=0,waterTotal=0;
+  double points=0;int days=0,loggedDays=0,within=0,waterDays=0,waterTotal=0;
   JSONArray daily=new JSONArray();
   for(LocalDate d=monday;!d.isAfter(today);d=d.plusDays(1)){
-   int food=0;boolean logged=false;
+   double food=0;boolean logged=false;
    for(int i=0;i<meals.length();i++){
     JSONObject m=meals.optJSONObject(i);
     if(m!=null&&d.toString().equals(m.optString("date"))){
-     food+=Math.max(0,m.optInt("points"));logged=true;
+     food+=FitRocketPointLedger.value(m);logged=true;
     }
    }
    int ml=water.optInt(d.toString(),0);
    JSONObject row=new JSONObject();
-   try{row.put("date",d.toString()).put("points",food).put("waterMl",ml).put("logged",logged);daily.put(row);}
+   try{row.put("date",d.toString()).put("points",FitRocketPointLedger.tenth(food)).put("waterMl",ml).put("logged",logged);daily.put(row);}
    catch(JSONException e){throw new IllegalStateException(e);}
    days++;points+=food;waterTotal+=Math.max(0,ml);
    if(logged){loggedDays++;if(food<=budget)within++;}
@@ -48,7 +48,7 @@ public final class FitRocketInsights {
   JSONObject result=new JSONObject();
   try{result.put("from",monday.toString()).put("through",today.toString())
      .put("days",days).put("loggedDays",loggedDays).put("withinBudget",within)
-     .put("totalPoints",points).put("waterTotal",waterTotal)
+     .put("totalPoints",FitRocketPointLedger.tenth(points)).put("waterTotal",waterTotal)
      .put("waterGoalDays",waterDays).put("daysDetail",daily);}
   catch(JSONException e){throw new IllegalStateException(e);}
   return result;
