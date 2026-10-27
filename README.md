@@ -6,7 +6,11 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
-## FitRocket v0.12.0
+## FitRocket v0.12.1
+
+**Neu:** Korrigierte untere Navigation oberhalb der Android-Systemtasten und ganze Gerichte per KI berechnen. Beim Hinzufügen zu Frühstück, Mittagessen, Abendessen, Snack oder Getränke findest du jetzt **„Ganzes Gericht mit KI berechnen“**. Das Gericht wird in geschätzte Zutaten und Mengen zerlegt; die eigene FitRocket-Punkteformel berechnet den Gesamtwert. Ein bestätigtes Gericht wird als ein Tagebucheintrag mit später sichtbarer Zutatenliste gespeichert.
+
+## Änderungen aus Version 0.12.0
 
 **Neuer, aufgeräumter Aufbau:** Die App hat jetzt die fünf Bereiche **Heute**, **Suche**, **Tagebuch**, **Fortschritt** und **Profil**. Die Startseite zeigt nur den wichtigsten Tagesüberblick und die häufigsten Aktionen. Gewicht, Statistiken und Aktivitäten sind unter Fortschritt; Aussehen, persönliche Ziele, KI, Daten und Updates unter Profil.
 

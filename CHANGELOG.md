@@ -1,5 +1,13 @@
 # FitRocket – Versionshinweise
 
+## 0.12.1 – Systemnavigation und KI-Gerichte
+- Navigation auf Android 15/Edge-to-Edge und Drei-Tasten-Geräten mit getrennten Window Insets für Kopf- und Fußbereich korrigiert.
+- KI-Erfassung nach Frühstück/Mittagessen/Abendessen/Snack/Getränke analysiert jetzt vollständige Gerichte mit mehreren Zutaten.
+- Einzelne neue Lebensmittel separat vom KI-Gerichtemodus erfassbar.
+- KI-Gericht wird als ein Eintrag mit selbst berechneter Punktsumme, Mahlzeitengruppe, Datum und überprüfbarer Zutatenliste gespeichert.
+- In der Tagesansicht lässt sich die Zutaten-/Punkteaufschlüsselung später ansehen.
+- Mehrere neue Tests für zusammengesetzte Gerichte und Portionen.
+
 ## 0.12.0 – Neue App-Navigation, Hell/Dunkel, Profil, Releases und Updates
 - Fünf Hauptbereiche: Heute, Suche, Tagebuch, Fortschritt und Profil.
 - Heute-Seite verschlankt: kompakte Punktestatusanzeige, schnelle Erfassung, Mahlzeitenübersicht, Wasser und Fortschrittslinks.

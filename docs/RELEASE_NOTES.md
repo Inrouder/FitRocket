@@ -1,29 +1,23 @@
-# FitRocket v0.12.0 – Klarer, ruhiger und jetzt mit Updates
+# FitRocket v0.12.1 – Bessere Navigation und KI-Gerichte
 
-Die App wurde grundlegend neu strukturiert, ohne deine Ernährungs- und Bewegungsdaten zu verändern.
+## Android-Navigationsleiste
+- Die FitRocket-Menüleiste berücksichtigt auf Android 11+ eigene Window Insets für die Systemgesten- und Navigationsleiste.
+- Auch Android 15 mit Edge-to-Edge-Layout und Geräte mit den drei Android-Tasten werden berücksichtigt.
+- Zusätzlicher unterer Sicherheitsabstand und bessere Bedienbarkeit im Dunkelmodus.
 
-### Neue Navigation
-- Fünf Hauptbereiche: **Heute, Suche, Tagebuch, Fortschritt, Profil**.
-- **Heute** zeigt kompakt Tages- und Wochenpunkte, schnelle Erfassung, Mahlzeiten, Wasser und Fortschritt.
-- **Fortschritt** bündelt Gewichtsverlauf, Auswertungen, Bewegung, Smartwatch und Wasser.
-- **Profil** enthält Name, persönliche Körperdaten, Ziele, Darstellung, KI-Verbindungen, Backups und Updates.
+## Ganze Gerichte per KI erfassen
+- Beim Hinzufügen zu **Frühstück, Mittagessen, Abendessen, Snack oder Getränke** gibt es jetzt die Option **„Ganzes Gericht mit KI berechnen“**.
+- Auch auf der Lebensmittel-Suchseite verfügbar. Die Erfassung eines **einzelnen Produkts** bleibt separat möglich.
+- Die KI zerlegt eine Beschreibung wie „Eierpfannkuchen mit Milch, Mehl, Eiern, Butter und Marmelade“ in Zutaten und schätzt die jeweiligen Mengen und Nährwerte.
+- FitRocket addiert die Punkte der Zutaten selbst anhand seiner bestehenden Formel, statt einem von der KI genannten Gesamtwert zu vertrauen.
+- Alle Zutaten und Portionsgrößen können vor der Buchung überprüft, geändert, entfernt oder ergänzt werden.
+- Beim Speichern wird **ein** Gericht als Mahlzeit für den gewählten Tag und die gewählte Mahlzeitengruppe eingetragen.
+- Die bestätigte Zutatenliste bleibt mit dem Tagebucheintrag gespeichert und kann später über **„Zutaten & Berechnung ansehen“** aufgerufen werden.
+- Die bisherigen Basislebensmittel mit null Punkten behalten ihre Sonderbehandlung nur bei exakter Katalogübereinstimmung.
 
-### Darstellung
-- Drei Modi: **Systemeinstellung, Hell und Dunkel**.
-- Farbpalette, Karten, Navigationsleiste und Diagramme an den Dunkelmodus angepasst.
-- Kleinere, weniger dominante Schaltflächen und klar gegliederte Einstellungen.
+## Qualität
+- Automatisierte Berechnungstests umfassen nun auch gemischte Gerichte und Portionsskalierung.
+- Ein tatsächlicher KI-Aufruf erfordert weiterhin einen persönlich hinterlegten API-Schlüssel.
+- Schätzwerte können stark von tatsächlichen Zutaten abweichen. Insbesondere Öl, Butter und Soßen überprüfen.
 
-### Updates und Downloadseite
-- **Profil → Auf Updates prüfen** vergleicht deine Version mit dem aktuellen stabilen GitHub Release.
-- Release-Notizen anzeigen und aktuelle APK bewusst im Browser herunterladen; keine heimliche Installation.
-- APK ist dauerhaft als **FitRocket.apk** in den GitHub Releases verfügbar, anstelle nur zeitlich begrenzter Actions-Artefakte.
-- Responsive Download-Startseite (GitHub Pages) mit Release-Version, aktuellem Download und Installationshinweisen.
-
-### Daten und Kompatibilität
-- Backup-Format v6 übernimmt jetzt auch Profilname und Darstellung; alte Backups bleiben importierbar.
-- Vorhandene Mahlzeiten, Rezepte, Wochenpunkte, Gemini/OpenAI-Schlüssel, Health Connect und Gewichtseinträge bleiben bei einem normalen Update bestehen.
-- Aktualisierte Unit-Tests für Versionen und APK-Release-Links.
-
-**Installation:** Bestehende APK normalerweise einfach aktualisieren. Vor Neuinstallation oder Gerätewechsel im Profil ein JSON-Backup exportieren. Die GitHub Actions verwenden eine Debug-Signatur; eine abweichende Signatur kann eine direkte Aktualisierung verhindern.
-
-Die APK wurde automatisiert kompiliert und getestet; die Bedienung auf einem realen Android-Gerät muss weiterhin praktisch geprüft werden.
+Die App-Daten bleiben bei normalem Update erhalten. Vor der Installation empfehlen wir ein JSON-Backup.
