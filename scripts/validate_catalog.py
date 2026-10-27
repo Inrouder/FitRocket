@@ -8,7 +8,8 @@ ROOT = Path(__file__).resolve().parent.parent
 foods = json.loads((ROOT / "app/src/main/assets/foods.json").read_text(encoding="utf-8"))
 recipes = json.loads((ROOT / "app/src/main/assets/recipes.json").read_text(encoding="utf-8"))
 
-assert isinstance(foods, list) and len(foods) >= 358, "Food catalog unexpectedly reduced"
+assert isinstance(foods, list) and len(foods) >= 356, "Food catalog unexpectedly reduced"
+assert not any(f.get("id") in {"BEISPIEL001", "BEISPIEL002"} for f in foods), "Ambiguous pasta/rice entries returned"
 assert isinstance(recipes, list) and len(recipes) >= 10, "Recipe catalog unexpectedly reduced"
 by_id = {}
 statuses = {"basic", "nutrition", "portion", "custom"}
