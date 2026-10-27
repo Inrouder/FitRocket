@@ -6,6 +6,13 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
+## FitRocket v0.15.2 – Designverbesserungen
+
+- Im Dunkelmodus ist der Gewichtspunkt jetzt weiß mit lila Kontur.
+- Die vier unteren Menüschaltflächen sind ungefähr 50 % größer.
+- Wochenrückblick und Fortschritt besitzen farbige Kennzahlen und ein übersichtliches Diagramm der Punkte je Wochentag.
+- Das Suchfeld bleibt weiß mit dunkler Schrift und wird nicht mehr durch Android rosa eingefärbt.
+
 ## FitRocket v0.15.1 – Tagebuch als Hauptseite
 
 **Weniger Reiter, mehr Überblick:** Statt einer separaten Heute-Ansicht startet FitRocket jetzt unmittelbar im Tagebuch. Dort findest du den grafischen Punktebogen (Tagesverbrauch und Restpunkte), deine Wochenpunkte für heute, die Datumsnavigation, die fünf Mahlzeitengruppen und die Wasser-Challenge. Lebensmittelsuche und Favoriten sind direkt erreichbar.

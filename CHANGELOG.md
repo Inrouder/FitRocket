@@ -1,5 +1,13 @@
 # FitRocket – Versionshinweise
 
+## 0.15.2 – Größere Navigation, lesbares Gewichtsdiagramm, grafischer Wochenrückblick
+- Der neueste Gewichtspunkt ist im Dunkelmodus weiß mit lila Kontur.
+- Untere Navigationsschaltflächen etwa 50 % größer: Höhe 55→83 dp, Text 11→16 sp.
+- Neuer Wochenrückblick und Fortschrittsüberblick mit vier runden, farbigen Kennzahlen und einem 7-Tage-Punkte-Balkendiagramm.
+- Tagesbudget als gestrichelte Zielmarke; Tage ohne Einträge werden nicht als Nulltage gewertet.
+- Lebensmittel-Suchfeld in beiden Designs weiß mit dunkler Schrift; alte Android-Tönung entfernt.
+- Bestehende lokale Daten, Punktformel und Signatur bleiben erhalten.
+
 ## 0.15.1 – Tagebuch ersetzt Heute als Hauptseite
 - Separaten Heute-Bildschirm vollständig entfernt. FitRocket öffnet direkt das Tagebuch.
 - Vier statt fünf Hauptreiter: Tagebuch, Suche, Fortschritt und Profil.
