@@ -6,7 +6,14 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
-## FitRocket v0.14.0 – Alltag & Komfort
+## FitRocket v0.14.1 – Lesbares Suchfeld und richtige Portionsangaben
+
+- **Lebensmittelsuche:** Immer weißes Eingabefeld mit dunkler Schrift und gut erkennbarem Suchhinweis – sowohl im Hell- als auch im Dunkelmodus.
+- **Richtige Einheit:** Gekochte Nudeln, Reis und andere feste Lebensmittel werden mit **Gramm (g)** angezeigt, Getränke mit **Millilitern (ml)**. Die verwirrende allgemeine Angabe „100 g (beim Getränk 100 ml)“ entfällt aus der Nutzeroberfläche.
+- **Buchung:** Auch bei der Mengenwahl und im Tagebuch erscheint die zum Lebensmittel passende Einheit.
+- Keine Änderung der Nährwerte oder FitRocket-Punkteformel. Zusätzliche JUnit-Tests für Gramm, Milliliter und bestehende Portionsgrößen.
+
+## Änderungen aus FitRocket v0.14.0 – Alltag & Komfort
 
 Neu: Favoriten-Mahlzeiten speichern und erneut buchen, Wochenrückblick, Wassererinnerungen mit Ruhezeiten, Gewichtstrend, sichere Backup-Inhaltsvorschau und zurückhaltende automatische Updateprüfung. Alle Daten bleiben lokal gespeichert.
 

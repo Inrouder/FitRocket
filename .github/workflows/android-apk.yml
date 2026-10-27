@@ -48,7 +48,7 @@ jobs:
       - name: Upload debug-only test APK
         uses: actions/upload-artifact@v4
         with:
-          name: FitRocket-v0.14.0-UNSIGNED-RELEASE-TEST-DEBUG
+          name: FitRocket-v0.14.1-UNSIGNED-RELEASE-TEST-DEBUG
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
@@ -109,7 +109,7 @@ jobs:
         if: steps.signing.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: FitRocket-v0.14.0-signed-release
+          name: FitRocket-v0.14.1-signed-release
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
@@ -130,7 +130,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: FitRocket-v0.14.0-signed-release
+          name: FitRocket-v0.14.1-signed-release
           path: apk
       - name: Publish signed FitRocket.apk
         env:

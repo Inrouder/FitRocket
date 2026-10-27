@@ -1,5 +1,12 @@
 # FitRocket – Versionshinweise
 
+## 0.14.1 – Lebensmittelsuche mit gutem Kontrast und korrekten Portionen
+- Eingabefeld der Suche dauerhaft weiß mit dunkler Schrift und gut sichtbarem Hinweis.
+- Einheitendarstellung aus der Lebensmittelkategorie: feste Produkte in g, Getränke in ml.
+- Keine generische Getränkezusatzbeschreibung mehr bei Nudeln und anderen festen Lebensmitteln.
+- Menge und Nährwerte im Erfassungsdialog eindeutig beschriftet; gebuchte Essensmenge mit korrekter Einheit.
+- Sechs zusätzliche automatisierte Tests für Portionsdarstellung und unveränderte bestehende Portionen.
+
 ## 0.14.0 – Favoriten, Wochenrückblick und Komfort
 - Gespeicherte Mahlzeiten lassen sich als Favoriten erneut ins Tagebuch übernehmen.
 - Wochenrückblick zeigt tatsächliche erfasste Tage, Verbrauch und Wasserbilanz.
