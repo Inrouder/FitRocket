@@ -18,17 +18,24 @@ import java.util.List;
  * User requests only, no background generation; secrets are never embedded in APK.
  */
 public final class FitRocketGeminiApi {
-    public static final String MODEL_LITE = "gemini-2.5-flash-lite";
-    public static final String MODEL_FLASH = "gemini-2.5-flash";
+    // Google restricts Gemini 2.5 models to previously active API projects.
+    // Use the documented current-generation text models for all new installations.
+    public static final String MODEL_LITE = "gemini-3.5-flash-lite";
+    public static final String MODEL_FLASH = "gemini-3.8-flash";
     public static final String DEFAULT_MODEL = MODEL_LITE;
+    private static final String LEGACY_LITE = "gemini-2.5-flash-lite";
+    private static final String LEGACY_FLASH = "gemini-2.5-flash";
 
     private static final String BASE_URL =
         "https://generativelanguage.googleapis.com/v1beta/models/";
 
     private FitRocketGeminiApi() {}
 
+    /** Transparently migrate any 2.5 selection saved by FitRocket v0.11.1. */
     public static String safeModel(String model) {
-        return MODEL_FLASH.equals(model) ? MODEL_FLASH : MODEL_LITE;
+        if (MODEL_FLASH.equals(model) || LEGACY_FLASH.equals(model))
+            return MODEL_FLASH;
+        return MODEL_LITE;
     }
 
     private static byte[] readLimited(InputStream stream, int maxBytes) throws Exception {
@@ -77,7 +84,7 @@ public final class FitRocketGeminiApi {
         JSONObject config = new JSONObject()
             .put("responseMimeType", "application/json")
             .put("responseJsonSchema", resultSchema)
-            .put("maxOutputTokens", 4600)
+            .put("maxOutputTokens", 8000)
             .put("temperature", 0.5);
         return new JSONObject()
             .put("systemInstruction", new JSONObject()
@@ -128,8 +135,9 @@ public final class FitRocketGeminiApi {
             return "Gemini-API-Schlüssel ungültig, gesperrt oder ohne Zugriffsrechte. "
                 + "Prüfe den Schlüssel in Google AI Studio (HTTP " + status + ").";
         if (status == 404)
-            return "Das ausgewählte Gemini-Modell ist für diesen API-Schlüssel nicht verfügbar. "
-                + "Versuche Flash-Lite oder Flash.";
+            return "Google findet das ausgewählte Gemini-Modell nicht oder erlaubt diesem "
+                + "Projekt keinen Zugriff (HTTP 404). FitRocket nutzt Gemini 3.5 Flash-Lite "
+                + "bzw. 3.8 Flash. Bitte die Modellauswahl in den KI-Einstellungen prüfen.";
         if (status == 429 || code.contains("RESOURCE_EXHAUSTED") || code.contains("quota")) {
             return "Gemini-Kontingent oder Anfragelimit erreicht (429). "
                 + "Das kostenlose Kontingent kann vorübergehend erschöpft sein. "
