@@ -69,6 +69,7 @@ public final class FitRocketAiService {
     private static String catalogHints(List<JSONObject> foods,String prompt){
         // Constrain zero-point claims to exact FitRocket IDs and names, not model guesses.
         String[] popular={
+            "ZP007","ZP014","ZP019","ZP233","ZP193","ZP129","ZP111","ZP016",
             "ZP071","ZP214","ZP134","ZP236","ZP064","ZP095","ZP210","ZP213",
             "ZP085","ZP084","ZP100","ZP194","ZP062","ZP023","ZP105","ZP104",
             "ZP039","ZP013","ZP080","ZP037","ZP015","ZP209","ZP156","ZP140",
@@ -77,23 +78,35 @@ public final class FitRocketAiService {
             "CALC011","CALC010","CALC004","CALC008","CALC020","CALC001",
             "CALC018","CALC028","CALC032","CALC015","CALC021","CALC035"
         };
-        String lowered=prompt.toLowerCase(Locale.ROOT);
+        String lowered=FitRocketAiRules.normalize(prompt);
         List<JSONObject> selected=new ArrayList<>();
         for(String wanted:popular){
             for(JSONObject f:foods)if(wanted.equals(f.optString("id")) && !selected.contains(f)){
                 selected.add(f);break;
             }
         }
+        // Only bundled, non-private entries may be sent as catalogue hints.
         for(JSONObject f:foods){
-            if(selected.size()>=95)break;
-            String key=f.optString("name").toLowerCase(Locale.ROOT);
+            if(selected.size()>=145)break;
+            String id=f.optString("id");
+            if(!(id.startsWith("ZP")||id.startsWith("EX")||
+                 id.startsWith("USBLUE")||id.startsWith("CALC")))continue;
+            String key=FitRocketAiRules.normalize(f.optString("name"));
             if(key.length()>=4 && lowered.contains(key) && !selected.contains(f)
                 && ("basic".equals(f.optString("status"))||"nutrition".equals(f.optString("status"))))
                 selected.add(f);
         }
+        for(JSONObject f:foods){
+            if(selected.size()>=210)break;
+            String id=f.optString("id");
+            if(!(id.startsWith("ZP")||id.startsWith("EX")||
+                 id.startsWith("USBLUE")||id.startsWith("CALC")))continue;
+            if(("basic".equals(f.optString("status"))||"nutrition".equals(f.optString("status")))
+                 && !selected.contains(f))selected.add(f);
+        }
         StringBuilder text=new StringBuilder();
         for(JSONObject f:selected){
-            if(text.length()>5200)break;
+            if(text.length()>11000)break;
             text.append(f.optString("id")).append(" = ").append(f.optString("name"))
                 .append(" [").append(f.optString("status")).append("]; ");
         }
