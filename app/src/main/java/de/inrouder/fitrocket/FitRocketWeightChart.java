@@ -91,8 +91,19 @@ public final class FitRocketWeightChart extends View {
         for(Map.Entry<LocalDate,Double> entry:data.entrySet()){
             float x=size<2?(left+right)/2:left+(right-left)*index/(size-1f);
             float y=yFor.apply(entry.getValue());
-            paint(index==size-1?navy:lavender,1);p.setStyle(Paint.Style.FILL);
-            canvas.drawCircle(x,y,dp(index==size-1?5:3.4f),p);index++;
+            // Avoid the palette mapper darkening the latest data point.
+            // A white point with a lavender outline remains visible on dark cards.
+            boolean latest=index==size-1;
+            if(latest && FitRocketTheme.isDark(getContext())){
+                paint(Color.rgb(194,159,244),2);p.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(x,y,dp(7),p);
+                paint(Color.WHITE,1);p.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(x,y,dp(5),p);
+            }else{
+                paint(latest?navy:lavender,1);p.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(x,y,dp(latest?5:3.4f),p);
+            }
+            index++;
         }
         if(!data.isEmpty()){
             paint(navy,1);p.setTextSize(dp(11));p.setTextAlign(Paint.Align.LEFT);
