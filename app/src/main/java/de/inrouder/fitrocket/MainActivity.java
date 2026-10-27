@@ -712,7 +712,7 @@ public class MainActivity extends Activity {
       .setView(scroll).setPositiveButton("Schließen",null).show();
   }
 
-  private void editMeal(JSONObject m){EditText e=edit("Punkte",String.valueOf(m.optInt("points")),2);new AlertDialog.Builder(this).setTitle("Punkte anpassen").setView(e).setPositiveButton("Speichern",(d,w)->{try{int n=Integer.parseInt(e.getText().toString());if(n<0||n>2000)throw new Exception();m.put("points",n);m.put("quality","Manuell korrigiert");persist("meals",meals);refreshMealContext();}catch(Exception ignored){msg("Ungültige Punkte.");}}).setNegativeButton("Abbrechen",null).show();}
+  private void editMeal(JSONObject m){EditText e=edit("Punkte",pt(pts(m)),8194);new AlertDialog.Builder(this).setTitle("Punkte anpassen").setView(e).setPositiveButton("Speichern",(d,w)->{try{double n=FitRocketPointLedger.validPoints(num(e.getText().toString()));m.put("points",n);m.put("quality","Manuell korrigiert");persist("meals",meals);refreshMealContext();}catch(Exception ignored){msg("Ungültige Punkte.");}}).setNegativeButton("Abbrechen",null).show();}
   private void searchScreen(){
     shell("Lebensmittel");LinearLayout searchCard=card(Color.WHITE);
     TextView title=label("⌕ Lebensmittel suchen",18);title.setTypeface(null,1);searchCard.addView(title);
@@ -1008,7 +1008,7 @@ public class MainActivity extends Activity {
     return s;
   }
   private void addMeal(String name,double points,String foodId,String quality,String group){try{JSONObject x=new JSONObject();x.put("name",name);x.put("points",FitRocketPointLedger.validPoints(points));x.put("foodId",foodId);x.put("quality",quality);x.put("group",group);x.put("date",bookingDate==null?today():bookingDate);meals.add(x);persist("meals",meals);}catch(Exception e){msg("Speichern fehlgeschlagen.");}}
-  private void manual(){LinearLayout l=new LinearLayout(this);l.setPadding(22,4,22,4);l.setOrientation(1);EditText name=edit("Lebensmittel / Gericht","",1),points=edit("Punkte (manuell)",null,2);l.addView(name);l.addView(points);Spinner g=groupSpinner();l.addView(g);AlertDialog d=new AlertDialog.Builder(this).setTitle("Manuell erfassen").setView(l).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{String n=name.getText().toString().trim();int p=Integer.parseInt(points.getText().toString());if(n.length()<2||p<0||p>2000)throw new Exception();addMeal(n,p,"","Manuell",g.getSelectedItem().toString());d.dismiss();home();}catch(Exception ex){msg("Bitte Name und gültige Punkte angeben.");}}));d.show();}
+  private void manual(){LinearLayout l=new LinearLayout(this);l.setPadding(22,4,22,4);l.setOrientation(1);EditText name=edit("Lebensmittel / Gericht","",1),points=edit("Punkte (manuell, z. B. 0,5)",null,8194);l.addView(name);l.addView(points);Spinner g=groupSpinner();l.addView(g);AlertDialog d=new AlertDialog.Builder(this).setTitle("Manuell erfassen").setView(l).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{String n=name.getText().toString().trim();double p=FitRocketPointLedger.validPoints(num(points.getText().toString()));if(n.length()<2)throw new Exception();addMeal(n,p,"","Manuell",g.getSelectedItem().toString());d.dismiss();home();}catch(Exception ex){msg("Bitte Name und gültige Punkte angeben.");}}));d.show();}
   private void textHelper(){EditText input=new EditText(this);input.setMinLines(3);input.setHint("Beispiel: Ich hatte eine Banane und einen Apfel");new AlertDialog.Builder(this).setTitle("Offline-Texterfassung (keine KI)").setMessage("Erkennt eindeutige Lebensmittelnamen aus deiner Datenbank. Mengen und Zutaten müssen vor dem Eintragen geprüft werden.").setView(input).setPositiveButton("Analysieren",(d,w)->interpret(input.getText().toString())).setNegativeButton("Abbrechen",null).show();}
   private void interpret(String source){String q=source.toLowerCase(Locale.ROOT);ArrayList<JSONObject> matches=new ArrayList<>();for(JSONObject f:foods){String name=f.optString("name").toLowerCase(Locale.ROOT);if(name.length()>=5&&q.contains(name))matches.add(f);}if(matches.size()!=1){new AlertDialog.Builder(this).setTitle("Bitte Lebensmittel auswählen").setMessage(matches.isEmpty()?"Keine eindeutige Übereinstimmung gefunden. Bitte suche das Lebensmittel manuell.":"Mehrere Lebensmittel erkannt. Bitte erfasse die Zutaten einzeln über die Suche.").setPositiveButton("Zur Suche",(d,w)->searchScreen()).show();return;}foodDialog(matches.get(0));}
   private void history(){
@@ -1734,7 +1734,7 @@ public class MainActivity extends Activity {
         JSONObject fav=all.optJSONObject(i);
         if(fav!=null&&id.equals(fav.optString("foodId"))&&
             title.equalsIgnoreCase(fav.optString("name"))&&
-            fav.optInt("points")==meal.optInt("points")&&
+            Math.abs(fav.optDouble("points")-pts(meal))<0.001&&
             Math.abs(fav.optDouble("referenceQuantity",-1)-reference)<0.01){
           msg("Dieser Favorit ist bereits gespeichert.");return;
         }
@@ -1742,11 +1742,13 @@ public class MainActivity extends Activity {
       JSONObject favorite=new JSONObject();
       favorite.put("favoriteId",UUID.randomUUID().toString());
       favorite.put("name",title);
-      favorite.put("points",meal.optInt("points"));
+      favorite.put("points",pts(meal));
       favorite.put("group",meal.optString("group","Snack"));
       favorite.put("foodId",id);
       favorite.put("quality",meal.optString("quality",""));
       favorite.put("referenceQuantity",reference);
+      if(meal.has("referencePoints"))favorite.put("referencePoints",
+          meal.optDouble("referencePoints"));
       favorite.put("quantityUnit",unit);
       if(meal.has("aiIngredients"))favorite.put("aiIngredients",
         new JSONArray(meal.getJSONArray("aiIngredients").toString()));
@@ -1771,7 +1773,7 @@ public class MainActivity extends Activity {
     box.setPadding(dp(20),dp(10),dp(20),dp(10));
     box.addView(label("Welche Menge hatte dieser Eintrag ursprünglich?",15));
     box.addView(label("Diese Referenzmenge wird zusammen mit den "+
-      meal.optInt("points")+" Punkten gespeichert. Bei der nächsten Verwendung "+
+      pt(pts(meal))+" Punkten gespeichert. Bei der nächsten Verwendung "+
       "kannst du die Menge frei wählen.",13));
     EditText quantity=edit("Ursprüngliche Menge in "+unit,"",8194);
     box.addView(quantity);
@@ -1803,7 +1805,7 @@ public class MainActivity extends Activity {
 
   private void bookFavorite(JSONObject favorite,String group,double reference,double quantity){
     try{
-      int points=FitRocketFavoriteMath.scaledPoints(
+      double points=FitRocketFavoriteMath.scaledPointsPrecise(
         favorite,findFoodById(favorite.optString("foodId")),
         reference,quantity,foods);
       JSONObject entry=new JSONObject();
@@ -1824,7 +1826,7 @@ public class MainActivity extends Activity {
         entry.put("aiUncertainty",favorite.optString("aiUncertainty",""));
       }
       meals.add(entry);persist("meals",meals);
-      msg("Favorit mit "+points+" Punkten eingetragen.");
+      msg("Favorit mit "+pt(points)+" Punkten eingetragen.");
       afterMealAdded();
     }catch(Exception e){msg("Menge oder Nährwerte prüfen: "+e.getMessage());}
   }
@@ -1840,7 +1842,7 @@ public class MainActivity extends Activity {
     form.addView(label(fav.optString("name"),18));
     if(missing)form.addView(label("Alter Favorit ohne gespeicherte Menge: "+
       "Bitte einmal angeben, auf wie viel "+unit+" sich die "+
-      fav.optInt("points")+" Punkte ursprünglich bezogen.",13));
+      pt(pts(fav))+" Punkte ursprünglich bezogen.",13));
     EditText base=edit("Referenzmenge "+unit,
       missing?"":String.format(Locale.GERMAN,"%.1f",known),8194);
     if(missing){form.addView(label("Ursprüngliche Menge ("+unit+")",13));form.addView(base);}
@@ -1859,8 +1861,8 @@ public class MainActivity extends Activity {
         double ref=missing?num(base.getText().toString()):
           FitRocketFavoriteMath.referenceQuantity(fav,food);
         double qty=num(amount.getText().toString());
-        int points=FitRocketFavoriteMath.scaledPoints(fav,food,ref,qty,foods);
-        preview.setText(qty+" "+unit+" → "+points+" P");
+        double points=FitRocketFavoriteMath.scaledPointsPrecise(fav,food,ref,qty,foods);
+        preview.setText(pt(qty)+" "+unit+" → "+pt(points)+" P");
       }catch(Exception e){preview.setText("Bitte gültige Mengen eingeben.");}
     };
     TextWatcher watcher=new TextWatcher(){
@@ -1880,7 +1882,7 @@ public class MainActivity extends Activity {
         double ref=missing?FitRocketFavoriteMath.positive(num(base.getText().toString()))
           :FitRocketFavoriteMath.referenceQuantity(fav,food);
         double qty=FitRocketFavoriteMath.positive(num(amount.getText().toString()));
-        FitRocketFavoriteMath.scaledPoints(fav,food,ref,qty,foods);
+        FitRocketFavoriteMath.scaledPointsPrecise(fav,food,ref,qty,foods);
         if(missing){
           fav.put("referenceQuantity",ref);fav.put("quantityUnit",unit);
           JSONArray updated=favoriteItems();
@@ -1890,7 +1892,7 @@ public class MainActivity extends Activity {
             boolean match=!fav.optString("favoriteId").isEmpty()
               ?fav.optString("favoriteId").equals(saved.optString("favoriteId"))
               :fav.optString("name").equals(saved.optString("name"))&&
-                fav.optInt("points")==saved.optInt("points");
+                Math.abs(pts(fav)-pts(saved))<0.001;
             if(match){
               saved.put("referenceQuantity",ref);saved.put("quantityUnit",unit);
               break;
@@ -1930,7 +1932,7 @@ public class MainActivity extends Activity {
       box.addView(label("★ "+fav.optString("name"),16));
       box.addView(label(fav.optString("group","Snack")+
         (Double.isFinite(ref)?" · bisher "+String.format(Locale.GERMAN,"%.0f",ref)+
-          " "+unit+" / "+fav.optInt("points")+" P":" · Referenzmenge einmal festlegen"),12));
+          " "+unit+" / "+pt(pts(fav))+" P":" · Referenzmenge einmal festlegen"),12));
       action(box,"Menge wählen und eintragen",()->bookFavoriteDialog(fav));
       action(box,"Aus Favoriten entfernen",()->new AlertDialog.Builder(this)
         .setTitle("Favorit entfernen?")
