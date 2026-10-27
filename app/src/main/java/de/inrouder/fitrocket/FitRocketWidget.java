@@ -44,21 +44,18 @@ public final class FitRocketWidget extends AppWidgetProvider {
             p.getInt("waterGoal",1500));
         for(int id:ids){
             RemoteViews views=new RemoteViews(context.getPackageName(),layoutId);
-            // Both small formats omit long texts; the 2x1 layout has no
-            // progress bar or 'used' TextView, so never address absent IDs.
+            // Small widgets show a compact format, but both also contain
+            // their own "used" caption and water progress bar.
             boolean isOneByTwo=layoutId==R.layout.fitrocket_widget_compact;
             boolean isTwoByOne=layoutId==R.layout.fitrocket_widget_compact_horizontal;
             boolean small=isOneByTwo||isTwoByOne;
             views.setTextViewText(R.id.widget_points,
                 small?data.remainingText()+" P":data.remainingText()+" P übrig");
-            if(!isTwoByOne) {
-                views.setTextViewText(R.id.widget_used,
-                    isOneByTwo?"übrig":data.usedText()+" / "+data.budget+" P genutzt");
-            }
+            views.setTextViewText(R.id.widget_used,
+                small?"übrig":data.usedText()+" / "+data.budget+" P genutzt");
             views.setTextViewText(R.id.widget_water,
                 small?data.waterText()+" L":data.waterText()+" / "+data.waterGoalText()+" L");
-            if(!isTwoByOne)
-                views.setProgressBar(R.id.widget_water_bar,100,data.waterPercent(),false);
+            views.setProgressBar(R.id.widget_water_bar,100,data.waterPercent(),false);
 
             Intent open=new Intent(context,MainActivity.class);
             open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
