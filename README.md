@@ -2,15 +2,28 @@
 
 FitRocket ist ein eigenständiges Android-Ernährungs- und Bewegungstagebuch mit einem eigenen FitRocket-Punktesystem. Die Daten bleiben auf deinem Gerät. Die App bietet warme Pastellfarben, übersichtliche Tageskarten und ein flexibel nutzbares Wochenkonto.
 
-## FitRocket v0.11.1 herunterladen
+## FitRocket v0.11.2 herunterladen
 
 1. Den [Android-APK-Workflow](https://github.com/Inrouder/FitRocket/actions/workflows/android-apk.yml) aufrufen.
 2. Den aktuellsten erfolgreichen GitHub-Actions-Lauf auswählen.
-3. Unter **Artifacts** das Paket `FitRocket-v0.11.1-debug-apk` herunterladen.
+3. Unter **Artifacts** das Paket `FitRocket-v0.11.2-debug-apk` herunterladen.
 4. ZIP entpacken und `app-debug.apk` installieren.
 
 Bei regulären Updates derselben Debug-Signatur bleiben gespeicherte Daten erhalten. Vor Neuinstallation oder Telefonwechsel immer **Mehr → Backup exportieren** verwenden. Eine Deinstallation ohne Backup löscht die lokalen FitRocket-Daten.
 
+
+## Fehlerbehebung v0.11.2 – Gemini 404 bei neuen API-Projekten
+
+Google lässt neue Projekte nicht mehr ohne Weiteres auf die Gemini-2.5-Familie zugreifen. FitRocket v0.11.0 und v0.11.1 nutzten `gemini-2.5-flash-lite` und `gemini-2.5-flash`; bei neuen Schlüsseln konnte die Anfrage deshalb mit **HTTP 404** scheitern.
+
+- Standard-KI ist jetzt **Gemini 3.5 Flash-Lite** (`gemini-3.5-flash-lite`), mit begrenztem kostenlosem API-Tarif.
+- Als Qualitätsoption ist **Gemini 3.8 Flash** (`gemini-3.8-flash`) auswählbar, ebenfalls mit begrenztem kostenlosen Tarif.
+- Die bisherige Modellauswahl aus v0.11.0/v0.11.1 wird **automatisch auf das passende neue Modell übertragen**, ohne deinen API-Schlüssel zu löschen.
+- Die Fehlermeldung bei HTTP 404 nennt künftig auch eingeschränkte Modellberechtigungen und den API-Zugriff als mögliche Ursache.
+- Die Gemini-JSON-Ausgabe und FitRocket-Punktberechnung sind unverändert; neue automatische Tests prüfen die Modellmigration.
+- **Wichtig:** Ein erfolgreicher APK-Build beweist nicht, dass der persönliche Schlüssel Zugang hat. Bitte nach Installation eine Anfrage testen.
+
+Modellreferenz: [Google Gemini-Modelle](https://ai.google.dev/gemini-api/docs/models). Gratislimits und Datenschutz: [Google Gemini-Preise](https://ai.google.dev/gemini-api/docs/pricing).
 
 ## Fehlerbehebung v0.11.1 – Neue Gemini-Autorisierungsschlüssel
 

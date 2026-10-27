@@ -1,4 +1,4 @@
-# FitRocket-KI-Assistent v0.11.1
+# FitRocket-KI-Assistent v0.11.2
 
 ## Ziele
 FitRocket soll unabhängig von externen Diätprogrammen bleiben. Die KI erstellt Vorschläge und Schätzungen, während **FitRocket die Punkte ausschließlich lokal anhand der FitRocketMath-Formel berechnet**.
@@ -11,6 +11,22 @@ FitRocket soll unabhängig von externen Diätprogrammen bleiben. Die KI erstellt
 Zusätzlich können Lebensmittel komplett **offline** aus eigenen Nährwertangaben neu angelegt werden.
 
 
+## v0.11.2: Gemini-404 durch eingeschränkte Modelle
+
+Google beschränkt `gemini-2.5-flash` und `gemini-2.5-flash-lite` inzwischen auf ältere Projekte, die diese Modelle bereits verwendet haben. Neue Projekte erhalten bei diesen alten Modell-IDs typischerweise HTTP 404. FitRocket ersetzt deshalb die Standardmodelle:
+
+| Zweck | FitRocket v0.11.1 | FitRocket v0.11.2 |
+|---|---|---|
+| Standard, günstig | `gemini-2.5-flash-lite` | **`gemini-3.5-flash-lite`** |
+| Alternative, leistungsfähiger | `gemini-2.5-flash` | **`gemini-3.8-flash`** |
+
+Bestehende Nutzer müssen keine Daten oder Schlüssel löschen. `FitRocketGeminiApi.safeModel()` übersetzt alte gespeicherte Modelle auf die neuen Werte, bevor eine API-Anfrage gesendet wird.
+
+Beide neuen Modelle sind auf der offiziellen Modell- und Preisseite aufgeführt und besitzen begrenzte kostenlose API-Tarife. Je nach Projekt können Einschränkungen gelten; kostenpflichtige API-Nutzung wird nicht automatisch aktiviert. Gesundheits- und Tagebuchdaten werden weiterhin nicht automatisch übertragen.
+
+- https://ai.google.dev/gemini-api/docs/models
+- https://ai.google.dev/gemini-api/docs/pricing
+
 ## v0.11.1: Unterstützte Gemini-Schlüsselformate
 
 Google AI Studio stellt seit Mai 2026 Autorisierungsschlüssel aus, deren Format anders als bei früheren API-Schlüsseln aussehen kann (einschließlich eines Punktes). FitRocket v0.11.0 hatte eine zu strenge Zeichenprüfung und verhinderte das lokale Speichern. In v0.11.1 akzeptiert FitRocket auch neue Autorisierungsschlüssel, prüft nur noch Länge/ungültige Leer- bzw. Steuerzeichen und überlässt die tatsächliche Authentifizierung der Google API. Der Schlüssel wird im Eingabefeld explizit verdeckt dargestellt.
@@ -21,12 +37,12 @@ Offizielle Hinweise: https://ai.google.dev/gemini-api/docs/api-key
 
 ## Standardanbieter: Google Gemini
 
-Ab v0.11.0 verwendet FitRocket standardmäßig **Google Gemini**. Das empfohlene Standardmodell ist `gemini-2.5-flash-lite` (kostenlose Nutzung innerhalb der aktuellen Freigrenzen). Alternativ ist `gemini-2.5-flash` auswählbar. Beide Modelle sind nur verfügbar, sofern Googles API-Kontingent sie zulässt.
+Ab v0.11.0 verwendet FitRocket standardmäßig **Google Gemini**. Das empfohlene Standardmodell ist `gemini-3.5-flash-lite` (kostenlose Nutzung innerhalb der aktuellen Freigrenzen). Alternativ ist `gemini-3.8-flash` auswählbar. Beide Modelle sind nur verfügbar, sofern Googles API-Kontingent sie zulässt.
 
 ### Einrichtung
 1. In https://aistudio.google.com/apikey einen persönlichen **Gemini API Key** erstellen.
 2. In der App **Mehr → KI-Assistent** öffnen.
-3. **Google Gemini** als Anbieter belassen, bei Bedarf zwischen Flash-Lite und Flash wählen.
+3. **Google Gemini** als Anbieter belassen, bei Bedarf zwischen 3.5 Flash-Lite und 3.8 Flash wählen.
 4. **Google Gemini-Schlüssel einrichten** öffnen und den Schlüssel speichern.
 5. Rezept, Mahlzeit oder Lebensmittel beschreiben und die vorgeschlagenen Zutaten/Nährwerte prüfen, bevor gespeichert wird.
 

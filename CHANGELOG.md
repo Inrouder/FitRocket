@@ -1,5 +1,13 @@
 # FitRocket – Versionshinweise
 
+## 0.11.2 – Neue Gemini-Modelle für neue API-Projekte
+- Behoben: HTTP 404 bei neuen Gemini-Projekten durch die bisherige Standardauswahl von Gemini 2.5 Flash-Lite.
+- Gemäß Googles Modellübersicht aktualisiert: Gemini 3.5 Flash-Lite als Standard und Gemini 3.8 Flash als Qualitätsoption.
+- Vorhandene 2.5-Modell-Einstellungen werden ohne Löschen des API-Schlüssels automatisch auf aktuelle Modelle abgebildet.
+- Modellwahl und KI-Assistent zeigen die aktuellen Modellnamen an.
+- Verbesserte Fehlermeldung, falls ein Modell weiterhin nicht für einen API-Schlüssel verfügbar ist.
+- Zusätzliche Tests für alte Einstellungen und den 404-Fehler.
+
 ## 0.11.1 – Korrektur der Gemini-Key-Eingabe
 - Eingabefehler bei neueren Google-Gemini-Authentifizierungsschlüsseln behoben, inklusive Punkt im Schlüsselformat.
 - Keine unzuverlässige Präfix- oder Zeichenformatprüfung mehr, die gültige Google-Schlüssel aussperrt; tatsächliche Authentifizierung wird über die Google-API geprüft.
