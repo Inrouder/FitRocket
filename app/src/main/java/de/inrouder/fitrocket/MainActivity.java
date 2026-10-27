@@ -753,7 +753,15 @@ public class MainActivity extends Activity {
         String text=FitRocketFoodDisplay.pointsLabel(f);
         top.addView(chip(text, f.optInt("points")==0&&!f.isNull("points")?MINT:Color.rgb(255,227,208)));
         item.addView(top);item.addView(label(f.optString("category")+" · "+FitRocketFoodDisplay.referencePortion(f),12));
-        results.addView(item);item.setOnClickListener(v->foodDialog(f));if(count>=70)break;
+        results.addView(item);
+        item.setOnClickListener(v->foodDialog(f));
+        if(isPersonalFood(f)){
+          // Only personally created foods are removable. Bundled basic foods are protected.
+          attachSwipeDelete(item,()->confirmDeletePersonalFood(f));
+          item.setContentDescription(f.optString("name")+
+            ". Antippen zum Erfassen. Nach links wischen zum Löschen.");
+        }
+        if(count>=70)break;
       }
       if(count==0){LinearLayout empty=card(Color.WHITE);empty.addView(label("Keine Treffer – du kannst eine Mahlzeit manuell erfassen.",15));results.addView(empty);}
     };
@@ -771,6 +779,40 @@ public class MainActivity extends Activity {
     double factor=grams/100.0;
     return fitRocketFoodScore(n.optDouble("kcal")*factor,n.optDouble("saturatedFat_g")*factor,n.optDouble("sugar_g")*factor,n.optDouble("protein_g")*factor);
   }
+  private boolean isPersonalFood(JSONObject food){
+    String id=food.optString("id","");
+    if(!(id.startsWith("AI")||id.startsWith("OWN")||id.startsWith("SCAN")))
+      return false;
+    String key=id.startsWith("SCAN")?"scannedProducts":"aiFoods";
+    JSONArray stored=safeArray(key);
+    for(int i=0;i<stored.length();i++){
+      JSONObject x=stored.optJSONObject(i);
+      if(x!=null&&id.equals(x.optString("id")))return true;
+    }
+    return false;
+  }
+
+  private void confirmDeletePersonalFood(JSONObject food){
+    new AlertDialog.Builder(this).setTitle("Eigenes Lebensmittel löschen?")
+      .setMessage("„"+food.optString("name")+"“ aus deiner Lebensmittelliste löschen? "
+       +"Bereits gebuchte Tagebucheinträge bleiben erhalten. Bei gespeicherten "
+       +"Rezepten kann die Zutatenverknüpfung danach fehlen.")
+      .setPositiveButton("Löschen",(dialog,which)->{
+        String id=food.optString("id","");
+        String key=id.startsWith("SCAN")?"scannedProducts":"aiFoods";
+        JSONArray old=safeArray(key),next=new JSONArray();
+        for(int i=0;i<old.length();i++){
+          JSONObject entry=old.optJSONObject(i);
+          if(entry!=null&&!id.equals(entry.optString("id")))next.put(entry);
+        }
+        if(prefs.edit().putString(key,next.toString()).commit()){
+          foods.removeIf(item->id.equals(item.optString("id")));
+          searchScreen();
+          msg("Eigenes Lebensmittel gelöscht.");
+        }else msg("Lebensmittel konnte nicht gelöscht werden.");
+      }).setNegativeButton("Abbrechen",null).show();
+  }
+
   private void nutritionDialog(JSONObject f) {
     LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(8),dp(20),dp(8));
     content.addView(label(f.optString("name")+" · ca. Punkte nach Nährwerten",16));
