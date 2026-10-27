@@ -10,8 +10,16 @@ public final class FitRocketFoodDisplay {
     public static boolean isDrink(JSONObject food) {
         if (food == null) return false;
         String category=food.optString("category","").trim().toLowerCase(Locale.ROOT);
-        return category.equals("getränke") || category.startsWith("getränke /")
-            || category.startsWith("getränke &");
+        if(category.equals("getränke") || category.startsWith("getränke /")
+            || category.startsWith("getränke &"))return true;
+        // Example: milk catalogued under "Milch & Käse" as "1 Glas (250ml)".
+        // Do not inspect nutritional entries containing a generic "beim Getränk"
+        // instruction; that legacy text also appears on solid foods.
+        if("portion".equals(food.optString("status")))
+            return java.util.regex.Pattern.compile("\\d+(?:[.,]\\d+)?\\s*ml\\b",
+                java.util.regex.Pattern.CASE_INSENSITIVE)
+                .matcher(food.optString("portion","")).find();
+        return false;
     }
 
     public static String unit(JSONObject food) {
