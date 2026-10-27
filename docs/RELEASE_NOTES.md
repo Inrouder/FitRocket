@@ -1,17 +1,20 @@
-# FitRocket v0.15.4 – Android-Startbildschirm-Widget
+# FitRocket v0.15.5 – Raketen-Widgets in horizontal und vertikal
 
-- **Neues Homescreen-Widget:** FitRocket zeigt Tagesrestpunkte, bereits genutzte Punkte und die Trinkmenge auf dem Android-Startbildschirm.
-- **Trinkziel:** Die Anzeige enthält den Wasserstand in Litern und einen Fortschrittsbalken.
-- **Schneller Zugriff:** Tippen auf das Widget öffnet die App.
-- **Automatische Aktualisierung:** Bei neuer Mahlzeit, Änderung der Trinkmenge oder des Trinkziels und beim Öffnen der App. Android aktualisiert es außerdem regelmäßig (min. ungefähr 30 Minuten) und bei unterstützten Systemereignissen wie Tageswechsel und Neustart.
-- **Datenschutz:** Das Widget liest ausschließlich die lokal vorhandenen FitRocket-Daten; keine Serververbindung oder zusätzlichen Berechtigungen.
-- **Format:** Standardgröße 4×2, vom Android-Launcher größenveränderbar.
-- **Tests:** Dezimalpunkte, Trinkmenge, neues Datum, überschrittenes Ziel und fehlerhafte lokale Daten.
+FitRocket hat jetzt **zwei getrennt auswählbare Android-Startbildschirm-Widgets**.
 
-## Widget auf den Startbildschirm setzen
-1. Auf dem Android-Startbildschirm eine freie Stelle lange gedrückt halten.
-2. **Widgets** auswählen und zu **FitRocket** scrollen.
-3. **FitRocket – Punkte & Wasser** auswählen und auf dem Startbildschirm platzieren.
-4. Nach einem Tagebucheintrag oder Wasser-Update aktualisieren sich die angezeigten Werte automatisch.
+- **Horizontal (4×2):** breites Design mit großen Tagesrestpunkten, verbrauchten Punkten, Wasserstand und Wasser-Fortschrittsleiste.
+- **Vertikal (2×3):** schmales Hochformat mit denselben Werten, aufgeteilt in gut lesbare Bereiche.
+- **Design:** dunkler, abgerundeter Widget-Hintergrund, lavendelfarbene Akzente und eine große halbtransparente Rakete im Hintergrund, inspiriert vom FitRocket-Mockup.
+- Beide Formate aktualisieren sich nach Tagebucheinträgen, Wasseränderungen sowie Android-System-Updates.
+- Ein Tipp auf das Widget öffnet FitRocket.
+- Beide Widgets verwenden die vorhandene lokale Punkteberechnung; keine zusätzlichen Berechtigungen oder Cloud-Verbindungen.
+- Je nach Android-Launcher sind die Widgets größenveränderbar.
 
-Die bestehende Release-Signatur, App-ID, Tagebuchdaten, Favoriten und Punkteberechnung bleiben erhalten.
+## Platzieren
+1. Auf dem Android-Startbildschirm einen freien Bereich lange gedrückt halten.
+2. Widgets → FitRocket öffnen.
+3. **FitRocket – Horizontal** oder **FitRocket – Vertikal** wählen und platzieren.
+
+Hinweis: Ein echtes 1×2-Widget bietet auf vielen Launchern nicht genug Breite für alle Werte. Die schmale Hochkantversion ist deshalb als 2×3 ausgelegt und kann bei unterstützten Launchern verkleinert werden.
+
+Bestehende FitRocket-Daten, APK-Signatur und Update-Funktion bleiben unverändert.

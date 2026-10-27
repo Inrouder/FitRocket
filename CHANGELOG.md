@@ -1,5 +1,11 @@
 # FitRocket – Versionshinweise
 
+## 0.15.5 – Vertikales und horizontales Raketen-Widget
+- Eigenständiges Hochkant-Widget (2×3) zusätzlich zum breiten 4×2-Widget.
+- Beide Widgets im FitRocket-Weltraumdesign mit transparenter Rakete, weißer Punktzahl und Wasseranzeige.
+- Gemeinsame Live-Aktualisierung aller platzierten Widgets bei Punkten, Trinkmenge und Systemereignissen.
+- Keine Änderung der Ernährungsdaten und Punkteformel.
+
 ## 0.15.4 – Homescreen-Widget für Punkte und Trinkmenge
 - Android-App-Widget zeigt verbleibende und genutzte Tagespunkte sowie Trinkmenge mit Ziel-Fortschritt.
 - Aktualisierung nach neuen Mahlzeiten und Wasseränderungen, beim Öffnen der App und über Systemaktualisierungen.
