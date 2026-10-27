@@ -538,6 +538,176 @@ public class MainActivity extends Activity {
     dayMealGroups(page,diaryDate.toString());
     page.addView(waterCard(diaryDate.toString()));
   }
+
+  private void aiHub(){
+    shell("KI-Assistent");
+    LinearLayout intro=card(Color.rgb(247,241,255));
+    TextView title=label("✨ Dein FitRocket-Küchenassistent",21);title.setTypeface(null,1);intro.addView(title);
+    intro.addView(label("Du beschreibst, was du möchtest oder gegessen hast. "
+        +"Die KI schätzt Zutaten und Mengen – FitRocket berechnet danach die Punkte selbst.",14));
+    intro.addView(label("Vor dem Speichern kannst du alle Zutaten und Nährwerte überprüfen.",13));
+    page.addView(intro);
+
+    LinearLayout tasks=card(Color.WHITE);tasks.addView(label("Was möchtest du machen?",17));
+    action(tasks,"🍲 Rezept nach meinen Vorlieben",()->aiCompose("recipe"));
+    action(tasks,"🍽 Gegessene Mahlzeit einschätzen",()->aiCompose("meal"));
+    action(tasks,"🍎 Neues Lebensmittel einschätzen",()->aiCompose("food"));
+    page.addView(tasks);
+
+    LinearLayout taste=card(MINT);
+    taste.addView(label("🌿 Deine Geschmacksvorlieben",17));
+    String prefsText=prefs.getString("aiPreferences","");
+    taste.addView(label(prefsText.isEmpty()
+        ?"Beispiele: vegetarisch, eiweißreich, ohne Pilze, maximal 20 Minuten, kein Fisch."
+        :prefsText,14));
+    action(taste,"Vorlieben bearbeiten",()->aiPreferencesDialog());page.addView(taste);
+
+    LinearLayout connection=card(Color.WHITE);
+    connection.addView(label("🔐 Verbindung & Datenschutz",17));
+    connection.addView(label(FitRocketAiSecrets.configured(this)
+        ?"Ein persönlich hinterlegter API-Schlüssel ist auf diesem Gerät verschlüsselt gespeichert."
+        :"Für Online-Rezepte und KI-Schätzungen benötigst du einen eigenen OpenAI-API-Schlüssel.",13));
+    connection.addView(label("Nur deine aktuelle Essensbeschreibung, Vorlieben und ausgewählte "
+        +"öffentliche Lebensmittelnamen werden für eine Anfrage übertragen – keine Gewichts-, "
+        +"Gesundheits- oder Tagebucheinträge. Jede Anfrage kann API-Kosten verursachen.",12));
+    action(connection,"API-Schlüssel einrichten / entfernen",()->aiKeyDialog());
+    action(connection,"Ohne KI: Lebensmittel aus Nährwerten",()->aiManualFood());
+    page.addView(connection);
+  }
+
+  private void aiPreferencesDialog(){
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);
+    content.setPadding(dp(18),dp(10),dp(18),dp(10));
+    content.addView(label("Was magst du, was nicht, und wie soll FitRocket Rezepte planen?",14));
+    EditText e=new EditText(this);
+    e.setHint("z. B. proteinreich, vegetarisch, ohne Zwiebeln, 20 Minuten");
+    e.setMinLines(3);e.setMaxLines(7);
+    e.setInputType(android.text.InputType.TYPE_CLASS_TEXT|
+        android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|
+        android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+    e.setText(prefs.getString("aiPreferences",""));content.addView(e);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Geschmacksvorlieben")
+      .setView(content).setPositiveButton("Speichern",null).setNegativeButton("Abbrechen",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      String text=e.getText().toString().trim();
+      if(text.length()>500){msg("Bitte maximal 500 Zeichen verwenden.");return;}
+      prefs.edit().putString("aiPreferences",text).apply();dialog.dismiss();aiHub();
+    }));dialog.show();
+  }
+
+  private void aiKeyDialog(){
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);
+    content.setPadding(dp(18),dp(10),dp(18),dp(10));
+    content.addView(label("Dein eigener OpenAI API-Schlüssel",17));
+    content.addView(label("Ein API-Schlüssel stammt von platform.openai.com/api-keys. "
+       +"Ein ChatGPT-Abonnement enthält kein automatisches API-Guthaben. "
+       +"Bei jeder KI-Anfrage können separate Kosten entstehen.",13));
+    content.addView(label("Der Schlüssel wird nicht im Repository hinterlegt, nicht im Backup exportiert "
+       +"und mittels Android Keystore verschlüsselt. Auf einem öffentlich verteilten mobilen Client "
+       +"ist ein Backend-Proxy trotzdem sicherer; diese Version ist für private Tests gedacht.",12));
+    EditText e=edit("sk-…", "",android.text.InputType.TYPE_CLASS_TEXT|
+        android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+    e.setSingleLine(true);e.setSelectAllOnFocus(false);content.addView(e);
+    content.addView(label(FitRocketAiSecrets.configured(this)
+      ?"Ein Schlüssel ist vorhanden. Mit einem neuen Eintrag kannst du ihn ersetzen."
+      :"Noch kein Schlüssel gespeichert.",13));
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("KI-Einstellungen")
+        .setView(content).setPositiveButton("Schlüssel speichern",null)
+        .setNeutralButton("Schlüssel löschen",null).setNegativeButton("Abbrechen",null).create();
+    dialog.setOnShowListener(v->{
+      dialog.getButton(-1).setOnClickListener(btn->{
+        try{
+          FitRocketAiSecrets.set(this,e.getText().toString().trim());
+          e.setText("");dialog.dismiss();msg("API-Schlüssel gespeichert.");aiHub();
+        }catch(Exception error){msg("Speichern nicht möglich: "+error.getMessage());}
+      });
+      dialog.getButton(-3).setOnClickListener(btn->{
+        new AlertDialog.Builder(this).setTitle("API-Schlüssel entfernen?")
+           .setMessage("Der lokal verschlüsselte Schlüssel wird gelöscht. "
+             +"Gespeicherte Rezepte und Lebensmittel bleiben erhalten.")
+           .setPositiveButton("Entfernen",(d,w)->{
+              FitRocketAiSecrets.clear(this);e.setText("");dialog.dismiss();aiHub();
+           }).setNegativeButton("Abbrechen",null).show();
+      });
+    });dialog.show();
+  }
+
+  private void aiCompose(String mode){
+    String title="recipe".equals(mode)?"Rezeptidee erstellen":
+      "meal".equals(mode)?"Mahlzeit beschreiben":"Lebensmittel einschätzen";
+    shell("KI-Assistent");
+    LinearLayout card=card(Color.WHITE);card.addView(label("✨ "+title,20));
+    String example="recipe".equals(mode)
+       ?"Was möchtest du essen? Zum Beispiel: proteinreich, vegetarisch, wenig Aufwand, mit Paprika und Reis."
+       :"meal".equals(mode)
+          ?"Beispiel: Ich hatte eine Schüssel Reis mit Hähnchen, Paprikasoße und etwas Öl."
+          :"Beispiel: Ein Schoko-Protein-Pudding, etwa 200 g, ungesüßt.";
+    card.addView(label(example,14));
+    EditText input=new EditText(this);
+    input.setHint("Beschreibe dein Essen oder deine Wünsche …");
+    input.setInputType(android.text.InputType.TYPE_CLASS_TEXT|
+       android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|
+       android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+    input.setMinLines(4);input.setMaxLines(9);
+    input.setPadding(dp(14),dp(12),dp(14),dp(12));
+    input.setBackground(shape(Color.rgb(248,243,253),16));
+    card.addView(input);
+    if("recipe".equals(mode)){
+      card.addView(label("Deine Vorlieben: "+
+         (prefs.getString("aiPreferences","").isEmpty()?"noch nicht hinterlegt"
+           :prefs.getString("aiPreferences","")),12));
+      action(card,"Vorlieben bearbeiten",()->aiPreferencesDialog());
+    }
+    card.addView(label("Du prüfst alle geschätzten Mengen und Nährwerte, bevor etwas "
+      +"in deinem Tagebuch oder Lebensmittelkatalog gespeichert wird.",12));
+    action(card,"✨ Vorschlag mit KI erstellen",()->aiSubmit(mode,input.getText().toString()));
+    page.addView(card);
+    if(!FitRocketAiSecrets.configured(this)){
+      LinearLayout key=card(LAV);key.addView(label("🔐 KI noch nicht verbunden",17));
+      key.addView(label("Für eine Anfrage benötigst du einen eigenen OpenAI-API-Schlüssel.",13));
+      action(key,"API-Schlüssel einrichten",()->aiKeyDialog());page.addView(key);
+    }
+    if("food".equals(mode)){
+      LinearLayout manual=card(MINT);
+      action(manual,"Lebensmittel ohne KI aus Nährwerten erstellen",()->aiManualFood());
+      page.addView(manual);
+    }
+  }
+
+  private void aiSubmit(String mode,String prompt){
+    if(!FitRocketAiSecrets.configured(this)){
+      new AlertDialog.Builder(this).setTitle("KI-Schlüssel fehlt")
+        .setMessage("Für Online-KI benötigst du deinen eigenen OpenAI-API-Schlüssel. "
+          +"Für Lebensmittel kannst du Nährwerte auch komplett offline eingeben.")
+        .setPositiveButton("Einrichten",(d,w)->aiKeyDialog())
+        .setNegativeButton("Abbrechen",null).show();return;
+    }
+    String preferences=prefs.getString("aiPreferences","");
+    if(prompt.trim().length()<5||prompt.length()>1400){
+      msg("Bitte eine Beschreibung mit 5–1400 Zeichen eingeben.");return;
+    }
+    AlertDialog loading=new AlertDialog.Builder(this).setTitle("✨ FitRocket denkt mit")
+       .setMessage("Rezept oder Lebensmittel werden vorgeschlagen. "
+          +"Im nächsten Schritt prüfst du die Schätzung.")
+       .setNegativeButton("Im Hintergrund abbrechen",(d,w)->{})
+       .create();
+    final boolean[] active={true};
+    loading.setOnDismissListener(d->active[0]=false);
+    loading.show();
+    FitRocketAiService.request(this,mode,prompt,preferences,foods,
+      new FitRocketAiService.Callback(){
+        @Override public void onSuccess(JSONObject result){
+          boolean current=active[0];loading.dismiss();
+          if(current)aiReview(mode,result);
+        }
+        @Override public void onFailure(String message){
+          boolean current=active[0];loading.dismiss();
+          if(current)new AlertDialog.Builder(MainActivity.this).setTitle("KI-Anfrage fehlgeschlagen")
+            .setMessage(message).setPositiveButton("OK",null).show();
+        }
+      });
+  }
+
   private void recipeScreen(){
     shell("Rezepte");
     LinearLayout intro=card(Color.rgb(255,249,239));
