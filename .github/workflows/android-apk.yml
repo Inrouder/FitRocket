@@ -48,7 +48,7 @@ jobs:
       - name: Upload debug-only test APK
         uses: actions/upload-artifact@v4
         with:
-          name: FitRocket-v0.15.7-UNSIGNED-RELEASE-TEST-DEBUG
+          name: FitRocket-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
@@ -109,7 +109,7 @@ jobs:
         if: steps.signing.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: FitRocket-v0.15.7-signed-release
+          name: FitRocket-signed-${{ github.sha }}
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
@@ -130,7 +130,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: FitRocket-v0.15.7-signed-release
+          name: FitRocket-signed-${{ github.sha }}
           path: apk
       - name: Publish signed FitRocket.apk
         env:
@@ -150,7 +150,17 @@ jobs:
             echo "::error::Release $TAG already exists. Increment versionCode and versionName before publishing."
             exit 1
           fi
+          NOTES="docs/releases/$TAG.md"
+          if [[ ! -s "$NOTES" ]]; then
+            echo "::error::Release notes missing for $TAG: $NOTES"
+            exit 1
+          fi
+          FIRST_LINE=$(head -n 1 "$NOTES")
+          if [[ "$FIRST_LINE" != "# FitRocket $TAG"* ]]; then
+            echo "::error::Release note heading does not match $TAG"
+            exit 1
+          fi
           gh release create "$TAG" /tmp/FitRocket.apk --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" --title "FitRocket $TAG" \
-            --notes-file docs/RELEASE_NOTES.md --latest
+            --notes-file "$NOTES" --latest
           echo "Signed release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG"
