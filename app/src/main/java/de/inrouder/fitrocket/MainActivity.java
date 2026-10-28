@@ -626,47 +626,64 @@ public class MainActivity extends Activity {
   }
 
   private void editMeal(JSONObject m){EditText e=edit("Punkte",pt(pts(m)),8194);new AlertDialog.Builder(this).setTitle("Punkte anpassen").setView(e).setPositiveButton("Speichern",(d,w)->{try{double n=FitRocketPointLedger.validPoints(num(e.getText().toString()));m.put("points",n);m.put("quality","Manuell korrigiert");persist("meals",meals);refreshMealContext();}catch(Exception ignored){msg("Ungültige Punkte.");}}).setNegativeButton("Abbrechen",null).show();}
+  /** Search home: separate text lookup, barcode actions and AI tools into readable cards. */
   private void searchScreen(){
-    shell("Lebensmittel");LinearLayout searchCard=card(Color.WHITE);
-    TextView title=label("⌕ Lebensmittel suchen",18);title.setTypeface(null,1);searchCard.addView(title);
-    EditText search=edit("Suche nach Lebensmitteln…","",1);
+    shell("Lebensmittel");
+    LinearLayout searchCard=card(Color.WHITE);
+    TextView title=label("🔎 Lebensmittel finden",19);title.setTypeface(null,1);
+    searchCard.addView(title);
+    searchCard.addView(label("Suche nach Namen, Kategorien oder bekannten Zutaten.",13));
+    EditText search=edit("Lebensmittel suchen …","",1);
     search.setSingleLine(true);
-    search.setPadding(dp(14),dp(12),dp(14),dp(12));
-    // Keep the search field white in both themes; mapping it to the dark
-    // pastel accent previously produced low-contrast placeholder text.
+    search.setPadding(dp(17),dp(15),dp(17),dp(15));
     GradientDrawable searchField=new GradientDrawable();
     searchField.setColor(Color.WHITE);
-    searchField.setCornerRadius(dp(20));
+    searchField.setCornerRadius(dp(24));
     searchField.setStroke(dp(1),Color.rgb(213,218,228));
-    search.setBackground(searchField);
-    // edit() installs a purple tint; clear it AFTER replacing the background.
-    // Otherwise some Android/OEM themes recolor this white drawable pink.
-    search.setBackgroundTintList(null);
+    search.setBackground(searchField);search.setBackgroundTintList(null);
     search.setTextColor(Color.rgb(28,34,47));
     search.setHintTextColor(Color.rgb(103,112,129));
     search.setHighlightColor(Color.rgb(211,219,234));
-    searchCard.addView(search);
-    LinearLayout barcodeRow=new LinearLayout(this);barcodeRow.setOrientation(0);
-    Button scanner=button("▥ Barcode scannen"),manualCode=button("123 Nummer eingeben");
-    barcodeRow.addView(scanner,new LinearLayout.LayoutParams(0,dp(50),1));
-    barcodeRow.addView(manualCode,new LinearLayout.LayoutParams(0,dp(50),1));
-    scanner.setOnClickListener(v->scanBarcode());manualCode.setOnClickListener(v->barcodeManualDialog());
-    searchCard.addView(barcodeRow);
-    if(bookingGroup!=null){
-      LinearLayout mealHint=card(MINT);
-      mealHint.addView(label("🍽 Für "+bookingGroup+" · "+pretty(bookingDate==null?today():bookingDate),15));
-      hint(mealHint,"Die KI erkennt Zutaten und schätzt die Punkte.");
-      action(mealHint,"✨ Ganzes Gericht mit KI berechnen",()->aiCompose("meal"));
-      searchCard.addView(mealHint);
-    }else{
-      action(searchCard,"✨ Ganzes Gericht mit KI berechnen",()->aiCompose("meal"));
-    }
-    action(searchCard,"🍎 Einzelnes Lebensmittel mit KI hinzufügen",()->aiCompose("food"));
+    LinearLayout.LayoutParams searchLp=new LinearLayout.LayoutParams(-1,-2);
+    searchLp.setMargins(0,dp(10),0,dp(10));searchCard.addView(search,searchLp);
     page.addView(searchCard);
-    heading("Deine Lebensmittelauswahl");
+
+    LinearLayout barcodeCard=card(dark()?Color.rgb(32,38,54):Color.rgb(242,248,255));
+    TextView barcodeTitle=label("▥ Barcode & Produktnummer",17);barcodeTitle.setTypeface(null,1);
+    barcodeCard.addView(barcodeTitle);
+    barcodeCard.addView(label("Verpackung scannen oder den Barcode von Hand eingeben.",12));
+    LinearLayout barcodeActions=new LinearLayout(this);barcodeActions.setOrientation(1);
+    Button scanner=button("▥  Barcode scannen");
+    Button manualCode=button("123  Nummer eingeben");
+    scanner.setBackground(shape(dark()?Color.rgb(70,58,72):Color.rgb(255,230,214),20));
+    manualCode.setBackground(shape(dark()?Color.rgb(48,66,90):Color.rgb(221,236,252),20));
+    LinearLayout.LayoutParams scannerLp=new LinearLayout.LayoutParams(-1,dp(53));
+    scannerLp.setMargins(0,dp(9),0,dp(7));
+    barcodeActions.addView(scanner,scannerLp);
+    barcodeActions.addView(manualCode,new LinearLayout.LayoutParams(-1,dp(53)));
+    scanner.setOnClickListener(v->scanBarcode());
+    manualCode.setOnClickListener(v->barcodeManualDialog());
+    barcodeCard.addView(barcodeActions);page.addView(barcodeCard);
+
+    LinearLayout aiCard=card(dark()?Color.rgb(38,34,58):Color.rgb(248,241,255));
+    TextView aiTitle=label("✨ KI-Küchenhelfer",17);aiTitle.setTypeface(null,1);
+    aiCard.addView(aiTitle);
+    aiCard.addView(label("Beschreibe ein ganzes Gericht oder ergänze ein einzelnes Lebensmittel.",12));
+    if(bookingGroup!=null){
+      aiCard.addView(label("🍽 Für "+bookingGroup+" · "+pretty(bookingDate==null?today():bookingDate),13));
+    }
+    action(aiCard,"🍲 Ganzes Gericht berechnen",()->aiCompose("meal"));
+    action(aiCard,"🍎 Lebensmittel mit KI hinzufügen",()->aiCompose("food"));
+    page.addView(aiCard);
+
+    LinearLayout resultsHeading=card(dark()?Color.rgb(32,38,54):Color.rgb(246,249,255));
+    TextView resultTitle=label("🥗 Deine Lebensmittelauswahl",18);resultTitle.setTypeface(null,1);
+    resultsHeading.addView(resultTitle);
+    resultsHeading.addView(label("Passende Lebensmittel erscheinen hier während der Suche.",12));
+    page.addView(resultsHeading);
     LinearLayout results=new LinearLayout(this);results.setOrientation(1);page.addView(results);
     Runnable filter=()->{results.removeAllViews();String q=search.getText().toString().toLowerCase(Locale.ROOT).trim();
-      if(q.length()<2){LinearLayout hint=card(Color.WHITE);hint.addView(label("🍎 Suche nach Obst, Gemüse oder deinem Lieblingsessen",15));results.addView(hint);return;}
+      if(q.length()<2){LinearLayout hint=card(Color.WHITE);hint.addView(label("Tippe oben mindestens zwei Buchstaben ein, um Lebensmittel zu finden.",15));results.addView(hint);return;}
       int count=0;for(JSONObject f:foods){String value=(f.optString("name")+" "+f.optString("alias")+" "+f.optString("category")).toLowerCase(Locale.ROOT);
         if(!value.contains(q))continue;count++;
         LinearLayout item=card(Color.WHITE);
