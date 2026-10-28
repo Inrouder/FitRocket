@@ -1,5 +1,34 @@
 # FitRocket – Versionshinweise
 
+## 0.16.3 – Aktuelle Update-Informationen
+- GitHub Releases erhalten künftig zur jeweiligen App-Version passende Release Notes.
+- Die Build-Pipeline prüft, ob die Versionshinweise für die aktuelle Version vorhanden sind.
+- Fehlende Versionshistorie ab 0.15.8 nachgetragen; alte Update-Beschreibungen werden nicht mehr für neue Releases wiederverwendet.
+
+## 0.16.2 – Lebensmittelsuche aufgeräumt
+- Suche, Barcode/Produktnummer, KI-Küchenhelfer und Trefferliste als getrennte, abgerundete Karten.
+- Mehr Abstand und bessere Lesbarkeit; bisherige Scan-, KI- und Suchfunktionen bleiben erreichbar.
+
+## 0.16.1 – Rezeptfotos, Kamera und Backup
+- Rezeptbilder über Galerie oder Android-Kamera (Vorschaubild) erfassen.
+- Komprimierte Rezeptfotos im JSON-Backup speichern; ältere Bild-URIs beim Export nach Möglichkeit einbetten.
+- Navigationshöhe und Beschriftungen weiter korrigiert.
+
+## 0.16.0 – Raketenhintergrund und Navigation
+- Dezenter Raketen-Vektorhintergrund mit farblichem Verlauf.
+- Schwebende, abgerundete Navigation mit getrennten einzeiligen Labels und größeren Symbolen.
+- Bestehenden KI-Rezeptprozess für erkannte Zutaten aus Rezeptlinks eingebunden.
+
+## 0.15.9 – Neues Kochbuch
+- Eigenständiger fünfter Hauptreiter Kochbuch.
+- KI-Rezepte, manuelle Rezepte, Recipe-JSON-LD-Linkimport und lokale Rezeptbilder.
+- Stärker abgerundete Karten und überarbeitetes Navigationsthema.
+
+## 0.15.8 – Lebensmittel und Bewegungspunkte
+- Widersprüchliche pauschale Einträge für alle Nudeln und Reisarten entfernt.
+- Aktivitätsgutschrift standardmäßig zu 100 Prozent und am gleichen Tag für das Wochenkonto verfügbar.
+
+
 ## 0.15.7 – Zusätzliches 2×1-Raketenwidget
 - Flaches 2×1-Widget mit Restpunkten links und Trinkmenge rechts.
 - Dekorativer halbtransparenter Raketenhintergrund und kompakte Beschriftung.
