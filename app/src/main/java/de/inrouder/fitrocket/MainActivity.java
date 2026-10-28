@@ -339,7 +339,7 @@ public class MainActivity extends Activity {
         android.graphics.Insets bars=insets.getInsets(
           WindowInsets.Type.navigationBars()|WindowInsets.Type.systemGestures());
         // Some 3-button OEM implementations report no nav inset until after layout.
-        int bottom=Math.max(bars.bottom,dp(22));
+        int bottom=Math.max(bars.bottom,dp(8));
         view.setPadding(navLeft,navTop,navRight,navBottom+bottom);
         return insets;
       });
@@ -1772,7 +1772,9 @@ public class MainActivity extends Activity {
       row.addView(label(category+" · "+recipe.optInt("minutes")+" Min. · "+
           recipe.optInt("servings")+" Portion(en)",13));
       action(row,"Rezept & Zutaten ansehen ›",()->recipeDialog(recipe));
-      if(recipe.optString("id").startsWith("OWN"))action(row,"✏️ Bearbeiten / Foto ändern",()->editOwnRecipe(recipe));
+      if(recipe.optString("id").startsWith("OWN"))action(row,"✏️ Bearbeiten",()->editOwnRecipe(recipe));
+      if(recipe.optString("id").startsWith("OWN")||recipe.optString("id").startsWith("AIRECIPE"))
+        action(row,"📷 Rezeptfoto wählen / ändern",()->selectRecipePhoto(recipe.optString("id")));
       page.addView(row);count++;
     }
     if(count==0)page.addView(label("Für diese Kategorie sind noch keine Rezeptideen vorhanden.",14));
