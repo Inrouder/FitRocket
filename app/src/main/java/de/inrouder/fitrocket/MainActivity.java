@@ -3183,7 +3183,8 @@ public class MainActivity extends Activity {
     super.onActivityResult(request,result,data);
     if(result!=RESULT_OK||data==null)return;
     if(request==85){
-      android.graphics.Bitmap bitmap=(android.graphics.Bitmap)data.getExtras().get("data");
+      android.os.Bundle extras=data.getExtras();
+      android.graphics.Bitmap bitmap=extras==null?null:(android.graphics.Bitmap)extras.get("data");
       if(bitmap==null){msg("Die Kamera hat kein Foto geliefert.");return;}
       ByteArrayOutputStream bytes=new ByteArrayOutputStream();
       bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,80,bytes);
@@ -3249,7 +3250,7 @@ public class MainActivity extends Activity {
     }else if(request==IMPORT_REQUEST){
       try(InputStream in=getContentResolver().openInputStream(uri)){
         ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;
-        while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>5000000)throw new IOException("Backup zu groß");}
+        while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>90000000)throw new IOException("Backup zu groß");}
         JSONObject payload=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8));
         String backupPreview=FitRocketBackupCheck.preview(payload);
         int schema=payload.optInt("schemaVersion",0);
