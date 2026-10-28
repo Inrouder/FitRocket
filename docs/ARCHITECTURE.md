@@ -55,3 +55,6 @@ Export/Import laufen über Android Storage Access Framework und JSON. `savedAiRe
 - Externe Rezeptseiten sind unzuverlässig; JSON-LD-Erkennung kann je nach HTML, Redirects und Bot-Schutz scheitern.
 - Aktueller Kamera-Intent ist nur Vorschau: für volle Auflösung später FileProvider + EXTRA_OUTPUT und sauberes Lifecycle-Handling ergänzen.
 - Release-Build und End-to-End-Tests sind nach Änderungen weiterhin explizit zu prüfen.
+
+## Lebensmittelsuche (v0.16.2)
+Die Methode `searchScreen()` gruppiert Textsuche, Barcode-Funktionen, KI-Küchenhelfer und Suchergebnisse in eigenständigen Cards. Barcode-Scan und manuelle Eingabe führen weiterhin zu `scanBarcode()` und `barcodeManualDialog()`; KI-Aktionen rufen `aiCompose("meal")` beziehungsweise `aiCompose("food")` auf. Suchergebnisse werden über den unveränderten `TextWatcher` und die lokale Katalogfilterung erzeugt. Beim UI-Test die Skalierung der Systemschrift und Dark Mode berücksichtigen.
