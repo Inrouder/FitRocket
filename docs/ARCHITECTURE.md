@@ -61,3 +61,6 @@ Die Methode `searchScreen()` gruppiert Textsuche, Barcode-Funktionen, KI-Küchen
 
 ## Kochbuch-Organisation (v0.16.4)
 `hiddenStandardRecipes` enthält nur ausgeblendete IDs aus `recipes.json`; das Bundle wird nicht gelöscht. `recipeCategoryOverrides` speichert Kategorien für Standardrezepte, während eigene/AI-Rezepte `cookbookCategory` direkt im Rezeptobjekt halten. Beide zusätzlichen Prefs-Keys gehören zum JSON-Backup; fehlende Keys in Alt-Backups bedeuten keine ausgeblendeten Rezepte und keine Überschreibungen. Die Mahlzeitengruppe (`group`) bleibt für die Buchung unabhängig von der Kochbuch-Kategorie erhalten.
+
+## Löschgeste für persönliche Kochbuchrezepte (v0.16.5)
+Nur Rezepte mit IDs `OWN*` und `AIRECIPE*` dürfen über `attachSwipeDelete` und `confirmDeleteOwnRecipe` aus `savedAiRecipes` gelöscht werden; Standardrezepte nutzen weiter `hiddenStandardRecipes`. Nach Bestätigung wird die Liste neu geladen. Bestehende Tagebucheinträge bleiben unangetastet. Im Kochbuch muss die Wischgeste auf verschiedenen Android-Geräten und bei verschachtelten Buttons getestet werden.
