@@ -1,5 +1,10 @@
 # FitRocket – Versionshinweise
 
+## 0.16.4 – Kochbuch-Kategorien und Standardrezepte
+- Mitgelieferte Rezepte per Schaltfläche aus dem persönlichen Kochbuch ausblenden und auf Wunsch gesammelt wiederherstellen.
+- Eigene frei benannte Kochbuch-Kategorien für Standard-, KI- und eigene Rezepte; Filter über Kategorieauswahl.
+- Kategorien und ausgeblendete Standardrezepte werden im JSON-Backup gespeichert und wiederhergestellt.
+
 ## 0.16.3 – Aktuelle Update-Informationen
 - GitHub Releases erhalten künftig zur jeweiligen App-Version passende Release Notes.
 - Die Build-Pipeline prüft, ob die Versionshinweise für die aktuelle Version vorhanden sind.
