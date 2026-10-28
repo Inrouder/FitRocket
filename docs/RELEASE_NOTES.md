@@ -1,16 +1,17 @@
-# FitRocket v0.15.7 – Neues kompaktes 2×1-Widget
+# FitRocket v0.16.3 – Korrekte Update-Informationen
 
-Zusätzlich zu den bestehenden Varianten (4×2, 2×3 und 1×2) gibt es jetzt ein **flaches 2×1-Widget**.
+Dieses Update verbessert die Veröffentlichung der Versionshinweise. Im Update-Dialog werden künftig die **Neuerungen der tatsächlich angebotenen Version** angezeigt und nicht mehr die veraltete Beschreibung von v0.15.7.
 
-- Links: Restpunkte des heutigen Tages in großer Schrift.
-- Rechts: aktuell getrunkene Liter.
-- Dunkler FitRocket-Hintergrund mit halbtransparenter Rakete.
-- Besonders kurze Beschriftungen und automatische Schriftgrößenanpassung.
-- Läuft über die bereits vorhandene Widget-Aktualisierung bei Mahlzeiten, Trinkmengenänderungen und Tageswechsel.
-- Antippen öffnet FitRocket; keine neue Berechtigung oder Cloud-Verbindung.
-- Das kompakte Format verzichtet aus Platzgründen auf den Wasserbalken und genutzte Punkte.
-- Auf Android kann die endgültige Größe je nach Homescreen-Launcher von 2×1 abweichen.
+## Was ist neu?
+- Release Notes und Versionsnummer werden beim GitHub-Release-Build miteinander abgeglichen.
+- Fehlende Änderungen seit v0.15.8 sind in der Versionshistorie dokumentiert.
+- Bei nicht passenden Release Notes schlägt der Release-Build fehl, statt eine irreführende Beschreibung auszuliefern.
 
-**Hinzufügen:** Startbildschirm lange berühren → Widgets → FitRocket → **Kompakt 2×1**.
+## Zuletzt hinzugekommene Funktionen
+- Klarer gegliederte Lebensmittelsuche mit separatem Barcode- und KI-Bereich (v0.16.2).
+- Rezeptfotos über Galerie/Kamera und Rezeptbilder im Backup (v0.16.1).
+- Dezent integrierter Raketenhintergrund und neu gestaltete Navigation (v0.16.0).
+- Neues Kochbuch für eigene und KI-generierte Rezepte sowie Rezept-Import von Webseiten (v0.15.9).
+- Korrigierte Nudel- und Reiseinträge sowie unmittelbare Anrechnung der Bewegungspunkte (v0.15.8).
 
-Die bisherige Signierung sowie gespeicherte Mahlzeiten, Wasser- und Kontostände bleiben erhalten.
+**Datenschutz und Daten:** Die vorhandenen Tagebuchdaten, Rezepte und Profile bleiben bei einem normalen, gleich signierten Android-Update erhalten. Bitte vor größeren Änderungen ein Backup anlegen.
