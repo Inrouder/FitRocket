@@ -58,3 +58,6 @@ Export/Import laufen über Android Storage Access Framework und JSON. `savedAiRe
 
 ## Lebensmittelsuche (v0.16.2)
 Die Methode `searchScreen()` gruppiert Textsuche, Barcode-Funktionen, KI-Küchenhelfer und Suchergebnisse in eigenständigen Cards. Barcode-Scan und manuelle Eingabe führen weiterhin zu `scanBarcode()` und `barcodeManualDialog()`; KI-Aktionen rufen `aiCompose("meal")` beziehungsweise `aiCompose("food")` auf. Suchergebnisse werden über den unveränderten `TextWatcher` und die lokale Katalogfilterung erzeugt. Beim UI-Test die Skalierung der Systemschrift und Dark Mode berücksichtigen.
+
+## Kochbuch-Organisation (v0.16.4)
+`hiddenStandardRecipes` enthält nur ausgeblendete IDs aus `recipes.json`; das Bundle wird nicht gelöscht. `recipeCategoryOverrides` speichert Kategorien für Standardrezepte, während eigene/AI-Rezepte `cookbookCategory` direkt im Rezeptobjekt halten. Beide zusätzlichen Prefs-Keys gehören zum JSON-Backup; fehlende Keys in Alt-Backups bedeuten keine ausgeblendeten Rezepte und keine Überschreibungen. Die Mahlzeitengruppe (`group`) bleibt für die Buchung unabhängig von der Kochbuch-Kategorie erhalten.
