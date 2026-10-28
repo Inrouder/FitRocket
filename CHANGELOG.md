@@ -1,5 +1,10 @@
 # FitRocket – Versionshinweise
 
+## 0.16.5 – Eigene Rezepte per Wischen löschen
+- Selbst angelegte und gespeicherte KI-Rezepte im Kochbuch nach links wischen, Löschung anschließend bestätigen.
+- Mitgelieferte Standardrezepte bleiben geschützt und können weiterhin nur ausgeblendet werden.
+- Bisher gebuchte Mahlzeiten bleiben unverändert. Die gespeicherten Rezeptdaten inklusive Foto werden aus dem lokalen Kochbuch entfernt.
+
 ## 0.16.4 – Kochbuch-Kategorien und Standardrezepte
 - Mitgelieferte Rezepte per Schaltfläche aus dem persönlichen Kochbuch ausblenden und auf Wunsch gesammelt wiederherstellen.
 - Eigene frei benannte Kochbuch-Kategorien für Standard-, KI- und eigene Rezepte; Filter über Kategorieauswahl.
