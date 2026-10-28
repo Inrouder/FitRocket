@@ -298,9 +298,17 @@ public class MainActivity extends Activity {
     currentScreen=heading;
     lastRenderedDate=today();
     LinearLayout frame=new LinearLayout(this);frame.setOrientation(1);
-    frame.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-      dark()?new int[]{Color.rgb(12,24,51),Color.rgb(35,44,73),Color.rgb(57,48,77)}:
-             new int[]{Color.rgb(210,226,249),Color.rgb(247,234,228),Color.rgb(231,237,252)}));
+    GradientDrawable sky=new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+      dark()?new int[]{Color.rgb(22,31,58),Color.rgb(44,43,70),Color.rgb(55,51,74)}:
+             new int[]{Color.rgb(209,226,251),Color.rgb(245,232,230),Color.rgb(227,235,250)});
+    android.graphics.drawable.Drawable rocket=getDrawable(R.drawable.fitrocket_background_rocket);
+    rocket.setAlpha(dark()?50:42);
+    android.graphics.drawable.LayerDrawable backdrop=new android.graphics.drawable.LayerDrawable(
+      new android.graphics.drawable.Drawable[]{sky,rocket});
+    backdrop.setLayerGravity(1,Gravity.TOP|Gravity.RIGHT);
+    backdrop.setLayerWidth(1,dp(190));backdrop.setLayerHeight(1,dp(230));
+    backdrop.setLayerInset(1,0,dp(15),dp(9),0);
+    frame.setBackground(backdrop);
     // Android 15+ draws content edge-to-edge. Give the header the top inset
     // and the bottom navigation its own bottom inset (never overlap 3-button
     // controls or the gesture handle). Return unconsumed insets to children.
@@ -324,7 +332,7 @@ public class MainActivity extends Activity {
     if(!"Tagebuch".equals(heading)){title.setPadding(dp(3),dp(9),dp(3),dp(13));page.addView(title);}
 
     LinearLayout nav=new LinearLayout(this);nav.setOrientation(0);
-    final int navLeft=dp(5),navTop=dp(7),navRight=dp(5),navBottom=dp(12);
+    final int navLeft=dp(8),navTop=dp(6),navRight=dp(8),navBottom=dp(6);
     nav.setPadding(navLeft,navTop,navRight,navBottom);
     if(Build.VERSION.SDK_INT>=30){
       nav.setOnApplyWindowInsetsListener((view,insets)->{
@@ -339,19 +347,26 @@ public class MainActivity extends Activity {
       // Legacy fitsSystemWindows keeps the OS button area outside the app.
       frame.setFitsSystemWindows(true);
     }
-    nav.setBackground(shape(surface(),27));nav.setElevation(dp(10));
+    nav.setBackground(shape(surface(),30));nav.setElevation(dp(16));
     String[] labels=FitRocketNavigation.TABS;
     int active=FitRocketNavigation.selectedTab(heading);
     for(int i=0;i<labels.length;i++){
       final int index=i;
-      TextView tab=label(labels[i],18);tab.setGravity(Gravity.CENTER);
-      tab.setSingleLine(false);tab.setMinLines(2);
-      tab.setPadding(dp(1),dp(5),dp(1),dp(5));
+      LinearLayout tab=new LinearLayout(this);tab.setOrientation(1);tab.setGravity(Gravity.CENTER);
+      String[] symbols={"🚀","🔎","👨‍🍳","📊","👤"};
+      String[] names={"Tagebuch","Suche","Kochbuch","Fortschritt","Profil"};
+      TextView icon=label(symbols[i],29);icon.setGravity(Gravity.CENTER);icon.setIncludeFontPadding(false);
+      TextView name=label(names[i],11);name.setSingleLine(true);
+      name.setGravity(Gravity.CENTER);name.setIncludeFontPadding(false);
+      name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+      name.setTextColor(new int[]{Color.rgb(236,96,55),Color.rgb(56,112,210),Color.rgb(222,121,45),Color.rgb(23,155,111),Color.rgb(120,84,210)}[i]);
+      tab.addView(icon);tab.addView(name);
+      tab.setPadding(dp(1),dp(6),dp(1),dp(6));
       if(i==active){
-        tab.setTypeface(null,1);
+        name.setTypeface(null,1);
         tab.setBackground(shape(dark()?Color.rgb(75,58,85):Color.rgb(255,232,214),22));
-      }else tab.setTextColor(new int[]{Color.rgb(236,96,55),Color.rgb(56,112,210),Color.rgb(222,121,45),Color.rgb(23,155,111),Color.rgb(120,84,210)}[i]);
-      nav.addView(tab,new LinearLayout.LayoutParams(0,dp(88),1));
+      }
+      nav.addView(tab,new LinearLayout.LayoutParams(0,dp(75),1));
       tab.setOnClickListener(v->{
         bookingDate=null;bookingGroup=null;bookingReturn=null;
         switch(index){
@@ -363,7 +378,8 @@ public class MainActivity extends Activity {
         }
       });
     }
-    frame.addView(nav);
+    LinearLayout navDock=new LinearLayout(this);navDock.setPadding(dp(10),dp(3),dp(10),dp(8));navDock.addView(nav,new LinearLayout.LayoutParams(-1,-2));
+    frame.addView(navDock);
     if(Build.VERSION.SDK_INT>=30){
       frame.requestApplyInsets();
       nav.requestApplyInsets();
@@ -1692,7 +1708,17 @@ public class MainActivity extends Activity {
                 draft.put("name",recipe.optString("name"));draft.put("manualIngredients",ingredientText.toString());
                 draft.put("instructions",directionsText);draft.put("minutes",25);draft.put("servings",2);
                 draft.put("sourceUrl",url);draft.put("manualPoints",0);
-                editOwnRecipe(draft);
+                if(FitRocketAiSecrets.configured(this,selectedAiProvider())){
+                  String details="Analysiere dieses extern importierte Rezept und schätze die Nährwerte pro 100 g jeder Zutat. " +
+                    "Übernimm die Zutatenmengen, erfinde keine zusätzlichen Zutaten. " +
+                    "Rezept: "+draft.optString("name")+"; Zutaten: "+draft.optString("manualIngredients")+
+                    "; Zubereitung: "+draft.optString("instructions");
+                  if(details.length()>1400)details=details.substring(0,1400);
+                  aiSubmit("recipe",details);
+                }else{
+                  msg("Keine KI eingerichtet: Rezept wird zur manuellen Prüfung geöffnet.");
+                  editOwnRecipe(draft);
+                }
               }catch(Exception e){msg("Rezeptdaten konnten nicht übernommen werden.");}
             });
           }catch(Exception error){runOnUiThread(()->msg("Import nicht möglich: "+error.getMessage()));}
