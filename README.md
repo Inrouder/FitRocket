@@ -6,6 +6,19 @@
 
 > Wenn GitHub Pages noch nicht aktiviert ist, funktioniert der APK-Download trotzdem direkt über GitHub Releases. Für die Website unter **Settings → Pages → Build and deployment → Source: GitHub Actions** auswählen.
 
+## 📚 Technische Dokumentation (Entwickler & KI-Agenten)
+
+| Einstieg | Zweck |
+| --- | --- |
+| [Architektur & Datenflüsse](docs/ARCHITECTURE.md) | Projektaufbau, Kernklassen, Speicherung, Rezept-/Foto- und Backup-System |
+| [Entwicklerhandbuch](docs/DEVELOPMENT.md) | Einrichtung, Builds, Tests, Definition of Done und Releasekontrolle |
+| [Regeln für KI-Agenten](AGENTS.md) | Verbindliche Hinweise für spätere KI-Updates und sichere Änderungen |
+| [Punkteformeln](docs/FORMULAS.md) | Verbindliche Berechnungen für Nahrung, Bewegung und Wochenkonto |
+| [Signierung](docs/SIGNING.md) | Release-Keystore, GitHub Actions und Update-Kompatibilität |
+| [Versionshistorie](CHANGELOG.md) | Bisherige Änderungen und Entwicklungsschritte |
+
+**Aktueller Quellcode:** v0.16.1. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+
 ## FitRocket v0.15.7 – Auch als 2×1-Widget
 
 Ab sofort gibt es neben den bestehenden Größen auch **FitRocket – Kompakt 2×1**. Das schmale Querformat zeigt die Restpunkte und die getrunkene Wassermenge über einer dezenten Rakete.
