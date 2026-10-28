@@ -339,7 +339,7 @@ public class MainActivity extends Activity {
         android.graphics.Insets bars=insets.getInsets(
           WindowInsets.Type.navigationBars()|WindowInsets.Type.systemGestures());
         // Some 3-button OEM implementations report no nav inset until after layout.
-        int bottom=Math.max(bars.bottom,dp(8));
+        int bottom=dp(6);
         view.setPadding(navLeft,navTop,navRight,navBottom+bottom);
         return insets;
       });
@@ -356,17 +356,18 @@ public class MainActivity extends Activity {
       String[] symbols={"🚀","🔎","👨‍🍳","📊","👤"};
       String[] names={"Tagebuch","Suche","Kochbuch","Fortschritt","Profil"};
       TextView icon=label(symbols[i],29);icon.setGravity(Gravity.CENTER);icon.setIncludeFontPadding(false);
-      TextView name=label(names[i],11);name.setSingleLine(true);
+      TextView name=label(names[i],10);name.setSingleLine(true);
       name.setGravity(Gravity.CENTER);name.setIncludeFontPadding(false);
       name.setEllipsize(android.text.TextUtils.TruncateAt.END);
       name.setTextColor(new int[]{Color.rgb(236,96,55),Color.rgb(56,112,210),Color.rgb(222,121,45),Color.rgb(23,155,111),Color.rgb(120,84,210)}[i]);
-      tab.addView(icon);tab.addView(name);
+      tab.addView(icon,new LinearLayout.LayoutParams(-1,dp(43)));
+      tab.addView(name,new LinearLayout.LayoutParams(-1,dp(28)));
       tab.setPadding(dp(1),dp(6),dp(1),dp(6));
       if(i==active){
         name.setTypeface(null,1);
         tab.setBackground(shape(dark()?Color.rgb(75,58,85):Color.rgb(255,232,214),22));
       }
-      nav.addView(tab,new LinearLayout.LayoutParams(0,dp(75),1));
+      nav.addView(tab,new LinearLayout.LayoutParams(0,dp(92),1));
       tab.setOnClickListener(v->{
         bookingDate=null;bookingGroup=null;bookingReturn=null;
         switch(index){
@@ -378,7 +379,8 @@ public class MainActivity extends Activity {
         }
       });
     }
-    LinearLayout navDock=new LinearLayout(this);navDock.setPadding(dp(10),dp(3),dp(10),dp(8));navDock.addView(nav,new LinearLayout.LayoutParams(-1,-2));
+    LinearLayout navDock=new LinearLayout(this);navDock.setClipChildren(false);navDock.setClipToPadding(false);
+    navDock.setPadding(dp(10),dp(4),dp(10),dp(14));navDock.addView(nav,new LinearLayout.LayoutParams(-1,-2));
     frame.addView(navDock);
     if(Build.VERSION.SDK_INT>=30){
       frame.requestApplyInsets();
@@ -1598,7 +1600,11 @@ public class MainActivity extends Activity {
     if(uri==null||uri.isEmpty())return;
     try{
       ImageView picture=new ImageView(this);
-      picture.setImageURI(Uri.parse(uri));
+      if(uri.startsWith("content:"))picture.setImageURI(Uri.parse(uri));
+      else{
+        byte[] image=android.util.Base64.decode(uri,android.util.Base64.DEFAULT);
+        picture.setImageBitmap(android.graphics.BitmapFactory.decodeByteArray(image,0,image.length));
+      }
       picture.setScaleType(ImageView.ScaleType.CENTER_CROP);
       parent.addView(picture,new LinearLayout.LayoutParams(-1,dp(150)));
     }catch(Exception ignored){}
@@ -1657,9 +1663,45 @@ public class MainActivity extends Activity {
   }
   private void selectRecipePhoto(String id){
     pendingRecipeImageId=id;
-    Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT);
-    pick.setType("image/*");pick.addCategory(Intent.CATEGORY_OPENABLE);
-    startActivityForResult(pick,84);
+    new AlertDialog.Builder(this).setTitle("Rezeptfoto hinzufügen")
+      .setItems(new String[]{"📷 Foto mit Kamera aufnehmen","🖼 Bild aus Galerie wählen"},(dialog,choice)->{
+        if(choice==0){
+          Intent camera=new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+          try{startActivityForResult(camera,85);}catch(Exception e){msg("Keine Kamera-App gefunden.");}
+        }else{
+          Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+          pick.setType("image/*");pick.addCategory(Intent.CATEGORY_OPENABLE);
+          startActivityForResult(pick,84);
+        }
+      }).show();
+  }
+  private String encodedRecipePhoto(InputStream stream) throws IOException {
+    android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeStream(stream);
+    if(bitmap==null)throw new IOException("Ungültiges Bild");
+    int width=bitmap.getWidth(),height=bitmap.getHeight();
+    float scale=Math.min(1f,960f/Math.max(width,height));
+    if(scale<1f)bitmap=android.graphics.Bitmap.createScaledBitmap(bitmap,
+        Math.max(1,Math.round(width*scale)),Math.max(1,Math.round(height*scale)),true);
+    ByteArrayOutputStream bytes=new ByteArrayOutputStream();
+    if(!bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,72,bytes))
+      throw new IOException("Bild konnte nicht komprimiert werden");
+    if(bytes.size()>850000)throw new IOException("Bild zu groß");
+    return android.util.Base64.encodeToString(bytes.toByteArray(),android.util.Base64.NO_WRAP);
+  }
+  private void applyRecipePhoto(String encoded){
+    try{
+      JSONArray saved=new JSONArray(prefs.getString("savedAiRecipes","[]"));
+      boolean found=false;
+      for(int i=0;i<saved.length();i++){
+        JSONObject item=saved.optJSONObject(i);
+        if(item!=null&&item.optString("id").equals(pendingRecipeImageId)){
+          item.put("imageData",encoded);item.remove("imageUri");found=true;
+        }
+      }
+      if(!found)throw new IllegalArgumentException("Rezept nicht gefunden");
+      prefs.edit().putString("savedAiRecipes",saved.toString()).apply();
+      pendingRecipeImageId=null;loadRecipes();recipeScreen();
+    }catch(Exception e){msg("Rezeptfoto konnte nicht gespeichert werden.");}
   }
   private void importRecipeLink(){
     EditText link=edit("https://...","",1);
@@ -1763,7 +1805,8 @@ public class MainActivity extends Activity {
       int points;
       try{points=recipe.has("manualPoints")?recipe.optInt("manualPoints"):FitRocketRecipe.pointsPerServing(recipe,foods);}catch(Exception e){continue;}
       LinearLayout row=card(Color.WHITE);
-      if(recipe.has("imageUri"))showRecipeImage(row,recipe.optString("imageUri"));
+      if(recipe.has("imageData"))showRecipeImage(row,recipe.optString("imageData"));
+      else if(recipe.has("imageUri"))showRecipeImage(row,recipe.optString("imageUri"));
       LinearLayout nameRow=new LinearLayout(this);nameRow.setOrientation(0);nameRow.setGravity(Gravity.CENTER_VERTICAL);
       TextView name=label(recipe.optString("emoji","🍽")+"  "+recipe.optString("name"),17);name.setTypeface(null,1);
       nameRow.addView(name,new LinearLayout.LayoutParams(0,-2,1));
@@ -3138,19 +3181,21 @@ public class MainActivity extends Activity {
   private void startImport(){Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType("application/json");startActivityForResult(i,IMPORT_REQUEST);}
   @Override protected void onActivityResult(int request,int result,Intent data){
     super.onActivityResult(request,result,data);
-    if(result!=RESULT_OK||data==null||data.getData()==null)return;
+    if(result!=RESULT_OK||data==null)return;
+    if(request==85){
+      android.graphics.Bitmap bitmap=(android.graphics.Bitmap)data.getExtras().get("data");
+      if(bitmap==null){msg("Die Kamera hat kein Foto geliefert.");return;}
+      ByteArrayOutputStream bytes=new ByteArrayOutputStream();
+      bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,80,bytes);
+      applyRecipePhoto(android.util.Base64.encodeToString(bytes.toByteArray(),android.util.Base64.NO_WRAP));
+      return;
+    }
+    if(data.getData()==null)return;
     Uri uri=data.getData();
     if(request==84){
-      try{
-        getContentResolver().takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        JSONArray saved=new JSONArray(prefs.getString("savedAiRecipes","[]"));
-        for(int i=0;i<saved.length();i++){
-          JSONObject item=saved.optJSONObject(i);
-          if(item!=null&&item.optString("id").equals(pendingRecipeImageId))item.put("imageUri",uri.toString());
-        }
-        prefs.edit().putString("savedAiRecipes",saved.toString()).apply();
-        pendingRecipeImageId=null;loadRecipes();recipeScreen();
-      }catch(Exception e){msg("Bild konnte nicht gespeichert werden.");}
+      try(InputStream photo=getContentResolver().openInputStream(uri)){
+        applyRecipePhoto(encodedRecipePhoto(photo));
+      }catch(Exception e){msg("Bild konnte nicht geladen werden.");}
       return;
     }
     if(request==EXPORT_REQUEST){
@@ -3170,7 +3215,17 @@ public class MainActivity extends Activity {
         payload.put("waterGoal",waterGoal());
         payload.put("scannedProducts",new JSONArray(prefs.getString("scannedProducts","[]")));
         payload.put("aiFoods",new JSONArray(prefs.getString("aiFoods","[]")));
-        payload.put("savedAiRecipes",new JSONArray(prefs.getString("savedAiRecipes","[]")));
+        JSONArray backedRecipes=new JSONArray(prefs.getString("savedAiRecipes","[]"));
+        for(int i=0;i<backedRecipes.length();i++){
+          JSONObject recipe=backedRecipes.optJSONObject(i);
+          if(recipe!=null && !recipe.has("imageData") && recipe.has("imageUri")){
+            try(InputStream photo=getContentResolver().openInputStream(Uri.parse(recipe.optString("imageUri")))){
+              recipe.put("imageData",encodedRecipePhoto(photo));
+              recipe.remove("imageUri");
+            }catch(Exception ignored){/* Old missing photos cannot be recovered */ }
+          }
+        }
+        payload.put("savedAiRecipes",backedRecipes);
         payload.put("favoriteMeals",favoriteItems());
         payload.put("waterReminderEnabled",prefs.getBoolean("waterReminderEnabled",false));
         payload.put("waterReminderStart",prefs.getInt("waterReminderStart",9));
