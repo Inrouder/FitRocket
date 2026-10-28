@@ -1866,6 +1866,33 @@ public class MainActivity extends Activity {
         recipeFilter=choices.get(which);d.dismiss();recipeScreen();
       }).setNegativeButton("Abbrechen",null).show();
   }
+  /** Delete only user-owned recipes. Bundled recipe assets are never changed. */
+  private void confirmDeleteOwnRecipe(JSONObject recipe){
+    final String id=recipe.optString("id","");
+    if(!(id.startsWith("OWN")||id.startsWith("AIRECIPE")))return;
+    new AlertDialog.Builder(this).setTitle("Eigenes Rezept löschen?")
+      .setMessage("„"+recipe.optString("name")+"“ dauerhaft aus deinem Kochbuch entfernen? "+
+        "Bereits gebuchte Tagebucheinträge bleiben erhalten.")
+      .setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Löschen",(dialog,which)->{
+        try{
+          JSONArray saved=new JSONArray(prefs.getString("savedAiRecipes","[]"));
+          JSONArray remaining=new JSONArray();boolean found=false;
+          for(int i=0;i<saved.length();i++){
+            JSONObject entry=saved.optJSONObject(i);
+            if(entry==null)continue;
+            if(id.equals(entry.optString("id"))){found=true;continue;}
+            remaining.put(entry);
+          }
+          if(!found){msg("Rezept wurde nicht gefunden.");return;}
+          if(!prefs.edit().putString("savedAiRecipes",remaining.toString()).commit()){
+            msg("Rezept konnte nicht gelöscht werden.");return;
+          }
+          loadRecipes();recipeScreen();msg("Rezept gelöscht.");
+        }catch(Exception error){msg("Rezept konnte nicht gelöscht werden.");}
+      }).show();
+  }
+
   private void recipeScreen(){
     shell("Kochbuch");
     LinearLayout intro=card(Color.rgb(255,249,239));
@@ -1906,6 +1933,11 @@ public class MainActivity extends Activity {
       if(recipe.optString("id").startsWith("OWN"))action(row,"✏️ Bearbeiten",()->editOwnRecipe(recipe));
       if(recipe.optString("id").startsWith("OWN")||recipe.optString("id").startsWith("AIRECIPE"))
         action(row,"📷 Rezeptfoto wählen / ändern",()->selectRecipePhoto(recipe.optString("id")));
+      if(recipe.optString("id").startsWith("OWN")||recipe.optString("id").startsWith("AIRECIPE")){
+        row.setContentDescription(recipe.optString("name")+
+          ". Nach links wischen zum Löschen, anschließend bestätigen.");
+        attachSwipeDelete(row,()->confirmDeleteOwnRecipe(recipe));
+      }
       page.addView(row);count++;
     }
     if(count==0)page.addView(label("Für diese Kategorie sind noch keine Rezeptideen vorhanden.",14));
