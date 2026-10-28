@@ -50,7 +50,7 @@ public class MainActivity extends Activity {
   private LinearLayout card(int color){
     LinearLayout l=new LinearLayout(this);
     l.setOrientation(1);l.setPadding(dp(14),dp(13),dp(14),dp(13));
-    l.setBackground(shape(color,18));l.setElevation(dp(dark()?0:1));
+    l.setBackground(shape(color,24));l.setElevation(dp(6));
     LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
     lp.setMargins(0,0,0,dp(11));l.setLayoutParams(lp);return l;
   }
@@ -298,7 +298,9 @@ public class MainActivity extends Activity {
     currentScreen=heading;
     lastRenderedDate=today();
     LinearLayout frame=new LinearLayout(this);frame.setOrientation(1);
-    frame.setBackgroundColor(FitRocketTheme.background(this));
+    frame.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+      dark()?new int[]{Color.rgb(12,24,51),Color.rgb(35,44,73),Color.rgb(57,48,77)}:
+             new int[]{Color.rgb(210,226,249),Color.rgb(247,234,228),Color.rgb(231,237,252)}));
     // Android 15+ draws content edge-to-edge. Give the header the top inset
     // and the bottom navigation its own bottom inset (never overlap 3-button
     // controls or the gesture handle). Return unconsumed insets to children.
@@ -317,9 +319,9 @@ public class MainActivity extends Activity {
     page.setPadding(dp(17),dp(12),dp(17),dp(26));
     scroll.addView(page);frame.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
 
-    TextView title=label("Tagebuch".equals(heading)?"🚀 FitRocket · Tagebuch":heading,23);
+    TextView title=label("Tagebuch".equals(heading)?"":heading,23);
     title.setTypeface(null,1);
-    title.setPadding(dp(3),dp(9),dp(3),dp(13));page.addView(title);
+    if(!"Tagebuch".equals(heading)){title.setPadding(dp(3),dp(9),dp(3),dp(13));page.addView(title);}
 
     LinearLayout nav=new LinearLayout(this);nav.setOrientation(0);
     final int navLeft=dp(5),navTop=dp(7),navRight=dp(5),navBottom=dp(12);
@@ -337,25 +339,26 @@ public class MainActivity extends Activity {
       // Legacy fitsSystemWindows keeps the OS button area outside the app.
       frame.setFitsSystemWindows(true);
     }
-    nav.setBackground(shape(surface(),17));
+    nav.setBackground(shape(surface(),27));nav.setElevation(dp(10));
     String[] labels=FitRocketNavigation.TABS;
     int active=FitRocketNavigation.selectedTab(heading);
     for(int i=0;i<labels.length;i++){
       final int index=i;
-      TextView tab=label(labels[i],16);tab.setGravity(Gravity.CENTER);
+      TextView tab=label(labels[i],18);tab.setGravity(Gravity.CENTER);
       tab.setSingleLine(false);tab.setMinLines(2);
-      tab.setPadding(dp(1),dp(7),dp(1),dp(7));
+      tab.setPadding(dp(1),dp(5),dp(1),dp(5));
       if(i==active){
         tab.setTypeface(null,1);
-        tab.setBackground(shape(dark()?Color.rgb(69,53,72):Color.rgb(248,228,220),13));
-      }else tab.setTextColor(muted());
-      nav.addView(tab,new LinearLayout.LayoutParams(0,dp(83),1));
+        tab.setBackground(shape(dark()?Color.rgb(75,58,85):Color.rgb(255,232,214),22));
+      }else tab.setTextColor(new int[]{Color.rgb(236,96,55),Color.rgb(56,112,210),Color.rgb(222,121,45),Color.rgb(23,155,111),Color.rgb(120,84,210)}[i]);
+      nav.addView(tab,new LinearLayout.LayoutParams(0,dp(88),1));
       tab.setOnClickListener(v->{
         bookingDate=null;bookingGroup=null;bookingReturn=null;
         switch(index){
           case 0:diaryDate=LocalDate.now();history();break;
           case 1:searchScreen();break;
-          case 2:progressPage();break;
+          case 2:recipeScreen();break;
+          case 3:progressPage();break;
           default:profilePage();
         }
       });
@@ -1574,11 +1577,13 @@ public class MainActivity extends Activity {
   }
 
   private void recipeScreen(){
-    shell("Rezepte");
+    shell("Kochbuch");
     LinearLayout intro=card(Color.rgb(255,249,239));
     intro.addView(label("🍲 Heute etwas Leckeres kochen?",19));
     intro.addView(label("FitRocket-Rezepte und deine selbst gespeicherten KI-Rezepte – mit Zutaten und geschätzten Punkten.",13));
     action(intro,"✨ Neues Rezept mit KI erstellen",()->aiCompose("recipe"));
+    action(intro,"📝 Eigenes Rezept anlegen",()->editOwnRecipe(null));
+    action(intro,"🔗 Rezept aus einem Link importieren",()->importRecipeLink());
     page.addView(intro);
     LinearLayout filters=new LinearLayout(this);filters.setOrientation(0);
     String[] tabs={"Alle","Frühstück","Mittagessen","Abendessen","Snacks"};
@@ -1597,6 +1602,7 @@ public class MainActivity extends Activity {
       int points;
       try{points=FitRocketRecipe.pointsPerServing(recipe,foods);}catch(Exception e){continue;}
       LinearLayout row=card(Color.WHITE);
+      if(recipe.has("imageUri"))showRecipeImage(row,recipe.optString("imageUri"));
       LinearLayout nameRow=new LinearLayout(this);nameRow.setOrientation(0);nameRow.setGravity(Gravity.CENTER_VERTICAL);
       TextView name=label(recipe.optString("emoji","🍽")+"  "+recipe.optString("name"),17);name.setTypeface(null,1);
       nameRow.addView(name,new LinearLayout.LayoutParams(0,-2,1));
@@ -1605,19 +1611,20 @@ public class MainActivity extends Activity {
       row.addView(label(category+" · "+recipe.optInt("minutes")+" Min. · "+
           recipe.optInt("servings")+" Portion(en)",13));
       action(row,"Rezept & Zutaten ansehen ›",()->recipeDialog(recipe));
+      if(recipe.optString("id").startsWith("OWN"))action(row,"✏️ Bearbeiten / Foto ändern",()->editOwnRecipe(recipe));
       page.addView(row);count++;
     }
     if(count==0)page.addView(label("Für diese Kategorie sind noch keine Rezeptideen vorhanden.",14));
   }
   private void recipeDialog(JSONObject recipe){
     int points;
-    try{points=FitRocketRecipe.pointsPerServing(recipe,foods);}
+    try{points=recipe.has("manualPoints")?recipe.optInt("manualPoints"):FitRocketRecipe.pointsPerServing(recipe,foods);}
     catch(Exception e){msg("Für dieses Rezept fehlen Nährwerte.");return;}
     LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(8),dp(20),dp(8));
     content.addView(label(recipe.optString("emoji","🍽")+" "+
         recipe.optString("name")+" · ca. "+points+" P pro Portion",18));
     content.addView(label("Zutaten für "+recipe.optInt("servings")+" Portion(en):",15));
-    content.addView(label(FitRocketRecipe.ingredients(recipe,foods),14));
+    content.addView(label(recipe.has("manualIngredients")?recipe.optString("manualIngredients"):FitRocketRecipe.ingredients(recipe,foods),14));
     content.addView(label("Zubereitung",16));
     content.addView(label(recipe.optString("instructions"),14));
     content.addView(label("Wie viele Portionen möchtest du eintragen?",13));
