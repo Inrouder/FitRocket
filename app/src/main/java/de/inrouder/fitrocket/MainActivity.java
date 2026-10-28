@@ -1682,12 +1682,12 @@ public class MainActivity extends Activity {
               try{
                 JSONArray raw=recipe.optJSONArray("recipeIngredient");
                 StringBuilder ingredientText=new StringBuilder();
-                if(raw!=null)for(int i=0;i<raw.length();i++)ingredientText.append(raw.optString(i)).append("\\n");
+                if(raw!=null)for(int i=0;i<raw.length();i++)ingredientText.append(raw.optString(i)).append("\n");
                 Object directions=recipe.opt("recipeInstructions");
                 String directionsText=directions instanceof String?(String)directions:"";
                 if(directions instanceof JSONArray){JSONArray arr=(JSONArray)directions;StringBuilder b=new StringBuilder();
                   for(int i=0;i<arr.length();i++){JSONObject step=arr.optJSONObject(i);
-                    b.append(step!=null?step.optString("text"):arr.optString(i)).append("\\n");}directionsText=b.toString();}
+                    b.append(step!=null?step.optString("text"):arr.optString(i)).append("\n");}directionsText=b.toString();}
                 JSONObject draft=new JSONObject();
                 draft.put("name",recipe.optString("name"));draft.put("manualIngredients",ingredientText.toString());
                 draft.put("instructions",directionsText);draft.put("minutes",25);draft.put("servings",2);
@@ -1735,7 +1735,7 @@ public class MainActivity extends Activity {
       String category=recipe.optString("group");
       if(!"Alle".equals(recipeFilter) && !("Snacks".equals(recipeFilter)?"Snack":recipeFilter).equals(category))continue;
       int points;
-      try{points=FitRocketRecipe.pointsPerServing(recipe,foods);}catch(Exception e){continue;}
+      try{points=recipe.has("manualPoints")?recipe.optInt("manualPoints"):FitRocketRecipe.pointsPerServing(recipe,foods);}catch(Exception e){continue;}
       LinearLayout row=card(Color.WHITE);
       if(recipe.has("imageUri"))showRecipeImage(row,recipe.optString("imageUri"));
       LinearLayout nameRow=new LinearLayout(this);nameRow.setOrientation(0);nameRow.setGravity(Gravity.CENTER_VERTICAL);
