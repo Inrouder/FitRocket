@@ -153,7 +153,13 @@ public class MainActivity extends Activity {
       ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buffer=new byte[4096];int count;
       while((count=in.read(buffer))!=-1){out.write(buffer,0,count);if(out.size()>250000)throw new IOException("Rezeptliste zu groß");}
       JSONArray list=new JSONArray(new String(out.toByteArray(),StandardCharsets.UTF_8));
-      for(int i=0;i<list.length();i++)recipes.add(list.getJSONObject(i));
+      JSONArray hidden=new JSONArray(prefs.getString("hiddenStandardRecipes","[]"));
+      java.util.HashSet<String> hiddenIds=new java.util.HashSet<>();
+      for(int i=0;i<hidden.length();i++)hiddenIds.add(hidden.optString(i));
+      for(int i=0;i<list.length();i++){
+        JSONObject recipe=list.getJSONObject(i);
+        if(!hiddenIds.contains(recipe.optString("id")))recipes.add(recipe);
+      }
       try{
         JSONArray saved=new JSONArray(prefs.getString("savedAiRecipes","[]"));
         for(int i=0;i<saved.length();i++){
@@ -1652,6 +1658,10 @@ public class MainActivity extends Activity {
     Spinner category=groupSpinner();form.addView(category);
     String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
     for(int i=0;i<groups.length;i++)if(groups[i].equals(source.optString("group")))category.setSelection(i);
+    EditText cookbookFolder=edit("Kochbuch-Kategorie",
+      source.optString("cookbookCategory",source.optString("group","Sonstiges")),1);
+    form.addView(label("Kochbuch-Kategorie, z. B. Vegetarisch oder Lieblingsrezepte",13));
+    form.addView(cookbookFolder);
     form.addView(label("Eigene Rezepte: Punkte bitte anhand der verwendeten Zutaten prüfen.",12));
     ScrollView scroll=new ScrollView(this);scroll.addView(form);
     AlertDialog dialog=new AlertDialog.Builder(this).setTitle(existing==null?"Eigenes Rezept erstellen":"Rezept bearbeiten")
@@ -1668,6 +1678,9 @@ public class MainActivity extends Activity {
         recipe.put("id",source.optString("id","").isEmpty()?"OWN"+UUID.randomUUID().toString().replace("-",""):source.optString("id"));
         recipe.put("name",title);recipe.put("manualIngredients",items);
         recipe.put("instructions",instructions);recipe.put("minutes",time);recipe.put("servings",portion);
+        String folder=cookbookFolder.getText().toString().trim();
+        if(folder.length()<1||folder.length()>40)throw new IllegalArgumentException();
+        recipe.put("cookbookCategory",folder);
         recipe.put("manualPoints",score);recipe.put("group",groups[category.getSelectedItemPosition()]);
         recipe.put("emoji","🍽");recipe.put("ingredients",new JSONArray());
         dialog.dismiss();saveOwnRecipe(recipe);
@@ -1796,6 +1809,63 @@ public class MainActivity extends Activity {
     return null;
   }
 
+  private JSONObject recipeCategoryOverrides(){
+    try{return new JSONObject(prefs.getString("recipeCategoryOverrides","{}"));}
+    catch(Exception e){return new JSONObject();}
+  }
+  private String cookbookCategory(JSONObject recipe){
+    String id=recipe.optString("id");
+    if(recipe.has("cookbookCategory"))return recipe.optString("cookbookCategory","Sonstiges");
+    return recipeCategoryOverrides().optString(id,recipe.optString("group","Sonstiges"));
+  }
+  private void assignRecipeCategory(JSONObject recipe){
+    EditText input=edit("Kategorie, z. B. Low Carb",cookbookCategory(recipe),1);
+    new AlertDialog.Builder(this).setTitle("Rezeptkategorie festlegen").setView(input)
+      .setNegativeButton("Abbrechen",null).setPositiveButton("Speichern",(d,w)->{
+        String category=input.getText().toString().trim();
+        if(category.isEmpty()||category.length()>40){msg("Kategorie muss 1 bis 40 Zeichen haben.");return;}
+        try{
+          String id=recipe.optString("id");
+          if(id.startsWith("OWN")||id.startsWith("AIRECIPE")){
+            JSONObject edited=new JSONObject(recipe.toString());
+            edited.put("cookbookCategory",category);
+            saveOwnRecipe(edited);
+          }else{
+            JSONObject mapping=recipeCategoryOverrides();
+            mapping.put(id,category);
+            prefs.edit().putString("recipeCategoryOverrides",mapping.toString()).apply();
+            recipeScreen();
+          }
+        }catch(Exception e){msg("Kategorie konnte nicht gespeichert werden.");}
+      }).show();
+  }
+  private void hideStandardRecipe(JSONObject recipe){
+    new AlertDialog.Builder(this).setTitle("Standardrezept entfernen?")
+      .setMessage("Dieses Rezept wird aus deinem Kochbuch ausgeblendet. Du kannst alle Standardrezepte später wiederherstellen.")
+      .setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Ausblenden",(d,w)->{
+        try{
+          JSONArray hidden=new JSONArray(prefs.getString("hiddenStandardRecipes","[]"));
+          String id=recipe.optString("id");
+          boolean exists=false;
+          for(int i=0;i<hidden.length();i++)if(id.equals(hidden.optString(i)))exists=true;
+          if(!exists)hidden.put(id);
+          prefs.edit().putString("hiddenStandardRecipes",hidden.toString()).apply();
+          loadRecipes();recipeScreen();
+        }catch(Exception e){msg("Rezept konnte nicht ausgeblendet werden.");}
+      }).show();
+  }
+  private void chooseCookbookCategory(){
+    java.util.TreeSet<String> categories=new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    for(JSONObject recipe:recipes)categories.add(cookbookCategory(recipe));
+    java.util.ArrayList<String> choices=new java.util.ArrayList<>();
+    choices.add("Alle");
+    choices.addAll(categories);
+    new AlertDialog.Builder(this).setTitle("Kochbuch filtern")
+      .setSingleChoiceItems(choices.toArray(new String[0]),choices.indexOf(recipeFilter),(d,which)->{
+        recipeFilter=choices.get(which);d.dismiss();recipeScreen();
+      }).setNegativeButton("Abbrechen",null).show();
+  }
   private void recipeScreen(){
     shell("Kochbuch");
     LinearLayout intro=card(Color.rgb(255,249,239));
@@ -1805,20 +1875,18 @@ public class MainActivity extends Activity {
     action(intro,"📝 Eigenes Rezept anlegen",()->editOwnRecipe(null));
     action(intro,"🔗 Rezept aus einem Link importieren",()->importRecipeLink());
     page.addView(intro);
-    LinearLayout filters=new LinearLayout(this);filters.setOrientation(0);
-    String[] tabs={"Alle","Frühstück","Mittagessen","Abendessen","Snacks"};
-    for(String tab:tabs){
-      TextView item=chip(tab.equals("Frühstück")?"Morgens":tab.equals("Mittagessen")?"Mittags":tab.equals("Abendessen")?"Abends":tab,
-             tab.equals(recipeFilter)?MINT:Color.WHITE);
-      item.setTextSize(11);item.setGravity(Gravity.CENTER);
-      filters.addView(item,new LinearLayout.LayoutParams(0,-2,1));
-      item.setOnClickListener(v->{recipeFilter=tab;recipeScreen();});
-    }
+    LinearLayout filters=card(dark()?Color.rgb(35,42,59):Color.rgb(240,246,255));
+    action(filters,"🗂 Kategorie: "+recipeFilter+" · Filter auswählen",()->chooseCookbookCategory());
+    action(filters,"↩ Standardrezepte wiederherstellen",()->new AlertDialog.Builder(this)
+      .setTitle("Alle Standardrezepte wiederherstellen?")
+      .setPositiveButton("Wiederherstellen",(d,w)->{
+        prefs.edit().remove("hiddenStandardRecipes").apply();loadRecipes();recipeScreen();
+      }).setNegativeButton("Abbrechen",null).show());
     page.addView(filters);
     int count=0;
     for(JSONObject recipe:recipes){
-      String category=recipe.optString("group");
-      if(!"Alle".equals(recipeFilter) && !("Snacks".equals(recipeFilter)?"Snack":recipeFilter).equals(category))continue;
+      String category=cookbookCategory(recipe);
+      if(!"Alle".equals(recipeFilter)&&!recipeFilter.equalsIgnoreCase(category))continue;
       int points;
       try{points=recipe.has("manualPoints")?recipe.optInt("manualPoints"):FitRocketRecipe.pointsPerServing(recipe,foods);}catch(Exception e){continue;}
       LinearLayout row=card(Color.WHITE);
@@ -1832,6 +1900,9 @@ public class MainActivity extends Activity {
       row.addView(label(category+" · "+recipe.optInt("minutes")+" Min. · "+
           recipe.optInt("servings")+" Portion(en)",13));
       action(row,"Rezept & Zutaten ansehen ›",()->recipeDialog(recipe));
+      action(row,"🗂 Kategorie ändern",()->assignRecipeCategory(recipe));
+      if(!recipe.optString("id").startsWith("OWN")&&!recipe.optString("id").startsWith("AIRECIPE"))
+        action(row,"🗑 Standardrezept ausblenden",()->hideStandardRecipe(recipe));
       if(recipe.optString("id").startsWith("OWN"))action(row,"✏️ Bearbeiten",()->editOwnRecipe(recipe));
       if(recipe.optString("id").startsWith("OWN")||recipe.optString("id").startsWith("AIRECIPE"))
         action(row,"📷 Rezeptfoto wählen / ändern",()->selectRecipePhoto(recipe.optString("id")));
@@ -3244,6 +3315,8 @@ public class MainActivity extends Activity {
           }
         }
         payload.put("savedAiRecipes",backedRecipes);
+        payload.put("hiddenStandardRecipes",new JSONArray(prefs.getString("hiddenStandardRecipes","[]")));
+        payload.put("recipeCategoryOverrides",recipeCategoryOverrides());
         payload.put("favoriteMeals",favoriteItems());
         payload.put("waterReminderEnabled",prefs.getBoolean("waterReminderEnabled",false));
         payload.put("waterReminderStart",prefs.getInt("waterReminderStart",9));
@@ -3307,6 +3380,14 @@ public class MainActivity extends Activity {
         if(recipeProducts==null)recipeProducts=new JSONArray();
         if(recipeProducts.length()>80)throw new IllegalArgumentException("Zu viele Rezepte");
         final JSONArray importedAiRecipes=recipeProducts;
+        JSONArray importedHidden=payload.optJSONArray("hiddenStandardRecipes");
+        if(importedHidden==null)importedHidden=new JSONArray();
+        if(importedHidden.length()>500)throw new IllegalArgumentException("Zu viele ausgeblendete Rezepte");
+        final JSONArray restoreHidden=importedHidden;
+        JSONObject importedCategories=payload.optJSONObject("recipeCategoryOverrides");
+        if(importedCategories==null)importedCategories=new JSONObject();
+        if(importedCategories.length()>500)throw new IllegalArgumentException("Zu viele Kategorien");
+        final JSONObject restoreCategories=importedCategories;
         JSONArray favoriteBackup=payload.optJSONArray("favoriteMeals");
         if(favoriteBackup==null)favoriteBackup=new JSONArray();
         final JSONArray importedFavorites=favoriteBackup;
@@ -3359,6 +3440,8 @@ public class MainActivity extends Activity {
                 .putString("scannedProducts",importedScanned.toString())
                 .putString("aiFoods",importedAiFoods.toString())
                 .putString("savedAiRecipes",importedAiRecipes.toString())
+                .putString("hiddenStandardRecipes",restoreHidden.toString())
+                .putString("recipeCategoryOverrides",restoreCategories.toString())
                 .putString("favoriteMeals",importedFavorites.toString())
                 .putBoolean("waterReminderEnabled",importedReminderEnabled)
                 .putInt("waterReminderStart",importedReminderStart)
