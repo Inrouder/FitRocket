@@ -1576,6 +1576,141 @@ public class MainActivity extends Activity {
     page.addView(content);
   }
 
+
+  private String pendingRecipeImageId=null;
+  private void showRecipeImage(LinearLayout parent,String uri){
+    if(uri==null||uri.isEmpty())return;
+    try{
+      ImageView picture=new ImageView(this);
+      picture.setImageURI(Uri.parse(uri));
+      picture.setScaleType(ImageView.ScaleType.CENTER_CROP);
+      parent.addView(picture,new LinearLayout.LayoutParams(-1,dp(150)));
+    }catch(Exception ignored){}
+  }
+  private void saveOwnRecipe(JSONObject recipe){
+    try{
+      JSONArray saved=new JSONArray(prefs.getString("savedAiRecipes","[]")),next=new JSONArray();
+      next.put(recipe);
+      for(int i=0;i<saved.length();i++){
+        JSONObject item=saved.optJSONObject(i);
+        if(item!=null&&!item.optString("id").equals(recipe.optString("id")))next.put(item);
+      }
+      prefs.edit().putString("savedAiRecipes",next.toString()).apply();
+      loadRecipes();recipeScreen();
+    }catch(Exception e){msg("Rezept konnte nicht gespeichert werden.");}
+  }
+  private void editOwnRecipe(JSONObject existing){
+    final JSONObject source=existing==null?new JSONObject():existing;
+    LinearLayout form=new LinearLayout(this);form.setOrientation(1);form.setPadding(dp(17),dp(9),dp(17),dp(9));
+    EditText name=edit("Rezeptname",source.optString("name"),1);form.addView(name);
+    EditText ingredients=edit("Zutaten mit Mengenangaben (eine pro Zeile)",source.optString("manualIngredients"),1);
+    ingredients.setSingleLine(false);ingredients.setMinLines(5);form.addView(ingredients);
+    EditText steps=edit("Zubereitung",source.optString("instructions"),1);
+    steps.setSingleLine(false);steps.setMinLines(5);form.addView(steps);
+    EditText minutes=edit("Zubereitungszeit in Minuten",String.valueOf(source.optInt("minutes",25)),2);form.addView(minutes);
+    EditText servings=edit("Portionen",String.valueOf(source.optInt("servings",2)),2);form.addView(servings);
+    EditText points=edit("Punkte je Portion (manuell prüfen)",String.valueOf(source.optInt("manualPoints",0)),2);form.addView(points);
+    Spinner category=groupSpinner();form.addView(category);
+    String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
+    for(int i=0;i<groups.length;i++)if(groups[i].equals(source.optString("group")))category.setSelection(i);
+    form.addView(label("Eigene Rezepte: Punkte bitte anhand der verwendeten Zutaten prüfen.",12));
+    ScrollView scroll=new ScrollView(this);scroll.addView(form);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle(existing==null?"Eigenes Rezept erstellen":"Rezept bearbeiten")
+       .setView(scroll).setNegativeButton("Abbrechen",null).setPositiveButton("Speichern",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(button->{
+      try{
+        String title=name.getText().toString().trim(),items=ingredients.getText().toString().trim(),
+            instructions=steps.getText().toString().trim();
+        int time=Integer.parseInt(minutes.getText().toString().trim()),portion=Integer.parseInt(servings.getText().toString().trim()),
+            score=Integer.parseInt(points.getText().toString().trim());
+        if(title.isEmpty()||items.isEmpty()||instructions.isEmpty()||time<1||time>1440||portion<1||portion>100||score<0||score>1000)
+          throw new IllegalArgumentException();
+        JSONObject recipe=new JSONObject(source.toString());
+        recipe.put("id",source.optString("id","").isEmpty()?"OWN"+UUID.randomUUID().toString().replace("-",""):source.optString("id"));
+        recipe.put("name",title);recipe.put("manualIngredients",items);
+        recipe.put("instructions",instructions);recipe.put("minutes",time);recipe.put("servings",portion);
+        recipe.put("manualPoints",score);recipe.put("group",groups[category.getSelectedItemPosition()]);
+        recipe.put("emoji","🍽");recipe.put("ingredients",new JSONArray());
+        dialog.dismiss();saveOwnRecipe(recipe);
+        new AlertDialog.Builder(this).setTitle("Gerichtfoto").setMessage("Möchtest du ein Foto für dieses Rezept auswählen?")
+          .setPositiveButton("Foto auswählen",(d,w)->selectRecipePhoto(recipe.optString("id")))
+          .setNegativeButton("Später",null).show();
+      }catch(Exception e){msg("Bitte Name, Zutaten, Zubereitung, Zeit, Portionen und Punkte gültig eingeben.");}
+    }));
+    dialog.show();
+  }
+  private void selectRecipePhoto(String id){
+    pendingRecipeImageId=id;
+    Intent pick=new Intent(Intent.ACTION_OPEN_DOCUMENT);
+    pick.setType("image/*");pick.addCategory(Intent.CATEGORY_OPENABLE);
+    startActivityForResult(pick,84);
+  }
+  private void importRecipeLink(){
+    EditText link=edit("https://...","",1);
+    new AlertDialog.Builder(this).setTitle("Rezept über URL importieren")
+      .setMessage("Unterstützt Rezeptseiten mit Recipe-JSON-LD. Angaben vor dem Speichern überprüfen.")
+      .setView(link).setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Abrufen",(d,w)->{
+        String url=link.getText().toString().trim();
+        if(!url.startsWith("https://")){msg("Bitte eine HTTPS-Rezeptadresse eingeben.");return;}
+        new Thread(()->{
+          try{
+            java.net.HttpURLConnection conn=(java.net.HttpURLConnection)new java.net.URL(url).openConnection();
+            conn.setConnectTimeout(8000);conn.setReadTimeout(8000);conn.setInstanceFollowRedirects(false);
+            conn.setRequestProperty("User-Agent","FitRocket/0.15.9 (Recipe Import)");
+            if(conn.getResponseCode()!=200)throw new IOException("HTTP "+conn.getResponseCode());
+            String html;
+            try(InputStream stream=conn.getInputStream()){
+              byte[] buffer=new byte[4096];ByteArrayOutputStream out=new ByteArrayOutputStream();int len;
+              while((len=stream.read(buffer))!=-1){out.write(buffer,0,len);if(out.size()>750000)throw new IOException("Seite zu groß");}
+              html=new String(out.toByteArray(),StandardCharsets.UTF_8);
+            }finally{conn.disconnect();}
+            java.util.regex.Matcher matches=java.util.regex.Pattern.compile(
+              "<script[^>]*type=[\\\"']application/ld\\+json[\\\"'][^>]*>([\\s\\S]*?)</script>",
+              java.util.regex.Pattern.CASE_INSENSITIVE).matcher(html);
+            JSONObject found=null;
+            while(matches.find()&&found==null){
+              try{
+                String raw=matches.group(1).trim();
+                Object obj=raw.startsWith("[")?new JSONArray(raw):new JSONObject(raw);
+                found=findLinkedRecipe(obj);
+              }catch(Exception ignored){}
+            }
+            if(found==null)throw new IOException("Keine strukturierten Rezeptdaten gefunden");
+            JSONObject recipe=found;
+            runOnUiThread(()->{
+              try{
+                JSONArray raw=recipe.optJSONArray("recipeIngredient");
+                StringBuilder ingredientText=new StringBuilder();
+                if(raw!=null)for(int i=0;i<raw.length();i++)ingredientText.append(raw.optString(i)).append("\\n");
+                Object directions=recipe.opt("recipeInstructions");
+                String directionsText=directions instanceof String?(String)directions:"";
+                if(directions instanceof JSONArray){JSONArray arr=(JSONArray)directions;StringBuilder b=new StringBuilder();
+                  for(int i=0;i<arr.length();i++){JSONObject step=arr.optJSONObject(i);
+                    b.append(step!=null?step.optString("text"):arr.optString(i)).append("\\n");}directionsText=b.toString();}
+                JSONObject draft=new JSONObject();
+                draft.put("name",recipe.optString("name"));draft.put("manualIngredients",ingredientText.toString());
+                draft.put("instructions",directionsText);draft.put("minutes",25);draft.put("servings",2);
+                draft.put("sourceUrl",url);draft.put("manualPoints",0);
+                editOwnRecipe(draft);
+              }catch(Exception e){msg("Rezeptdaten konnten nicht übernommen werden.");}
+            });
+          }catch(Exception error){runOnUiThread(()->msg("Import nicht möglich: "+error.getMessage()));}
+        }).start();
+      }).show();
+  }
+  private JSONObject findLinkedRecipe(Object node){
+    if(node instanceof JSONArray){
+      JSONArray arr=(JSONArray)node;
+      for(int i=0;i<arr.length();i++){JSONObject r=findLinkedRecipe(arr.opt(i));if(r!=null)return r;}
+    }else if(node instanceof JSONObject){
+      JSONObject obj=(JSONObject)node;Object type=obj.opt("@type");
+      if("Recipe".equalsIgnoreCase(String.valueOf(type))||(type instanceof JSONArray&&((JSONArray)type).toString().contains("Recipe")))return obj;
+      JSONObject r=findLinkedRecipe(obj.opt("@graph"));if(r!=null)return r;
+    }
+    return null;
+  }
+
   private void recipeScreen(){
     shell("Kochbuch");
     LinearLayout intro=card(Color.rgb(255,249,239));
@@ -2977,6 +3112,19 @@ public class MainActivity extends Activity {
     super.onActivityResult(request,result,data);
     if(result!=RESULT_OK||data==null||data.getData()==null)return;
     Uri uri=data.getData();
+    if(request==84){
+      try{
+        getContentResolver().takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        JSONArray saved=new JSONArray(prefs.getString("savedAiRecipes","[]"));
+        for(int i=0;i<saved.length();i++){
+          JSONObject item=saved.optJSONObject(i);
+          if(item!=null&&item.optString("id").equals(pendingRecipeImageId))item.put("imageUri",uri.toString());
+        }
+        prefs.edit().putString("savedAiRecipes",saved.toString()).apply();
+        pendingRecipeImageId=null;loadRecipes();recipeScreen();
+      }catch(Exception e){msg("Bild konnte nicht gespeichert werden.");}
+      return;
+    }
     if(request==EXPORT_REQUEST){
       try(OutputStream os=getContentResolver().openOutputStream(uri)){
         JSONObject payload=new JSONObject();
