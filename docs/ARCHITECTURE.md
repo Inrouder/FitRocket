@@ -64,3 +64,6 @@ Die Methode `searchScreen()` gruppiert Textsuche, Barcode-Funktionen, KI-Küchen
 
 ## Löschgeste für persönliche Kochbuchrezepte (v0.16.5)
 Nur Rezepte mit IDs `OWN*` und `AIRECIPE*` dürfen über `attachSwipeDelete` und `confirmDeleteOwnRecipe` aus `savedAiRecipes` gelöscht werden; Standardrezepte nutzen weiter `hiddenStandardRecipes`. Nach Bestätigung wird die Liste neu geladen. Bestehende Tagebucheinträge bleiben unangetastet. Im Kochbuch muss die Wischgeste auf verschiedenen Android-Geräten und bei verschachtelten Buttons getestet werden.
+
+## Gewichtsdiagramm (v0.16.6)
+`FitRocketWeightChart` rendert offline. Horizontal werden Messpunkte nach tatsächlichem Datum positioniert, nicht nach Listeneintrag-Index. Die vertikale Skala schließt das Zielgewicht ein und berücksichtigt Sicherheitsabstand. Hell/Dunkel nutzen explizite kontrastreiche Farben. Die Kurve verbindet tatsächliche Messwerte ohne Interpolation; bei nur einer Messung wird nur ein Punkt dargestellt. Achsenbeschriftungen, Zielstrich und der jüngste Messpunkt sind gesondert lesbar. Bestehende Daten bleiben unverändert. Bei visuellen Tests auf kleinen Displays und mit großer Systemschrift prüfen.
