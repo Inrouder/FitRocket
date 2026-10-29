@@ -1,5 +1,10 @@
 # FitRocket – Versionshinweise
 
+## 0.16.6 – Gewichtsdiagramm besser lesbar
+- Dunkle, klare Verbindungslinie mit kreisförmigen Messpunkten und Datumsachse entsprechend tatsächlicher Messzeitpunkte.
+- Gestrichelte Zielgewichtslinie mit Gewichtsangabe und vier bis fünf gut verteilten Datumsmarkierungen.
+- Angepasste Kontraste für helles und dunkles Design; Vorschau in Fortschritt vergrößert.
+
 ## 0.16.5 – Eigene Rezepte per Wischen löschen
 - Selbst angelegte und gespeicherte KI-Rezepte im Kochbuch nach links wischen, Löschung anschließend bestätigen.
 - Mitgelieferte Standardrezepte bleiben geschützt und können weiterhin nur ausgeblendet werden.
