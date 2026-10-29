@@ -2378,7 +2378,7 @@ public class MainActivity extends Activity {
        "Monatsvergleich (7-Tage-Mittel): %+.1f kg",change),13));
     if(!weights.isEmpty())
       weightCard.addView(new FitRocketWeightChart(this,weights,goal>0?goal:null),
-          new LinearLayout.LayoutParams(-1,dp(185)));
+          new LinearLayout.LayoutParams(-1,dp(255)));
     settingsRow(weightCard,"Gewichtsverlauf ansehen","Messung eintragen und Ziel festlegen",()->weightScreen());
     page.addView(weightCard);
 
