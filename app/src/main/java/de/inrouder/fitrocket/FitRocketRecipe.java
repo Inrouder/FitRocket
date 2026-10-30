@@ -18,7 +18,7 @@ public final class FitRocketRecipe {
         for(JSONObject food:foods)byId.put(food.optString("id"),food);
         JSONArray ingredients=recipe.optJSONArray("ingredients");
         if(ingredients==null||ingredients.length()==0)throw new IllegalArgumentException("Keine Zutaten");
-        int total=0;
+        double kcal=0,saturated=0,sugar=0,protein=0;
         for(int i=0;i<ingredients.length();i++){
             JSONObject part=ingredients.optJSONObject(i);
             if(part==null)throw new IllegalArgumentException("Zutat");
@@ -32,11 +32,12 @@ public final class FitRocketRecipe {
             if(n==null||!n.has("kcal")||!n.has("saturatedFat_g")||!n.has("sugar_g")||!n.has("protein_g"))
                 throw new IllegalArgumentException("Nährwerte fehlen");
             double factor=grams/100.0;
-            total+=FitRocketMath.foodPoints(
-                n.optDouble("kcal")*factor,n.optDouble("saturatedFat_g")*factor,
-                n.optDouble("sugar_g")*factor,n.optDouble("protein_g")*factor);
+            kcal+=n.optDouble("kcal")*factor;
+            saturated+=n.optDouble("saturatedFat_g")*factor;
+            sugar+=n.optDouble("sugar_g")*factor;
+            protein+=n.optDouble("protein_g")*factor;
         }
-        return total;
+        // Round once per serving, not once for every ingredient.\n        return FitRocketMath.foodPoints(kcal,saturated,sugar,protein);
     }
 
     public static String ingredients(JSONObject recipe,List<JSONObject> foods){
