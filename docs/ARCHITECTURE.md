@@ -67,3 +67,6 @@ Nur Rezepte mit IDs `OWN*` und `AIRECIPE*` dürfen über `attachSwipeDelete` und
 
 ## Gewichtsdiagramm (v0.16.6)
 `FitRocketWeightChart` rendert offline. Horizontal werden Messpunkte nach tatsächlichem Datum positioniert, nicht nach Listeneintrag-Index. Die vertikale Skala schließt das Zielgewicht ein und berücksichtigt Sicherheitsabstand. Hell/Dunkel nutzen explizite kontrastreiche Farben. Die Kurve verbindet tatsächliche Messwerte ohne Interpolation; bei nur einer Messung wird nur ein Punkt dargestellt. Achsenbeschriftungen, Zielstrich und der jüngste Messpunkt sind gesondert lesbar. Bestehende Daten bleiben unverändert. Bei visuellen Tests auf kleinen Displays und mit großer Systemschrift prüfen.
+
+## Tageszeit einer Buchung nachträglich ändern (v0.16.7)
+`mealRow()` bietet die Aktion „Tageszeit ändern“. `changeMealGroup()` schreibt ausschließlich `group` des vorhandenen JSON-Eintrags aus `meals` und speichert anschließend die Liste über `persist`. Datum und Punkte werden nicht geändert. Die Tagebuchgruppen rendern nach `refreshMealContext()` neu. Dies gilt für manuelle, Katalog- und KI-Mahlzeiten.
