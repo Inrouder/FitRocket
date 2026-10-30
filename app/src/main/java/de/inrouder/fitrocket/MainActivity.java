@@ -135,13 +135,21 @@ public class MainActivity extends Activity {
       catch(Exception ignored){diaryDate=LocalDate.now();}
       if(diaryDate.isAfter(LocalDate.now()))diaryDate=LocalDate.now();
     }
-    if(saved!=null && "Profil".equals(saved.getString("fitrocketScreen")))profilePage();
-    else if(saved!=null && "Fortschritt".equals(saved.getString("fitrocketScreen")))progressPage();
-    else history();
+    if(saved!=null){
+      pendingRecipeImageId=saved.getString("fitrocketPendingRecipePhoto");
+      String previous=saved.getString("fitrocketScreen","Tagebuch");
+      if("Profil".equals(previous))profilePage();
+      else if("Fortschritt".equals(previous))progressPage();
+      else if("Kochbuch".equals(previous)||"Rezepte".equals(previous))recipeScreen();
+      else if("Lebensmittel".equals(previous))searchScreen();
+      else if("Aktivität".equals(previous))activityPage();
+      else history();
+    }else history();
   }
   @Override protected void onSaveInstanceState(Bundle out){
     out.putString("fitrocketScreen",currentScreen);
     out.putString("fitrocketDiaryDate",diaryDate.toString());
+    out.putString("fitrocketPendingRecipePhoto",pendingRecipeImageId);
     super.onSaveInstanceState(out);
   }
   private void readArray(String key,ArrayList<JSONObject> into){into.clear();try{JSONArray arr=new JSONArray(prefs.getString(key,"[]"));for(int i=0;i<arr.length();i++)into.add(arr.getJSONObject(i));}catch(Exception ignored){}}
@@ -1303,8 +1311,10 @@ public class MainActivity extends Activity {
 
     AiIngredientEditor(JSONObject source,boolean forcedManual,LinearLayout target){
       original=source;
-      matched=forcedManual?null:FitRocketAiRules.matchCatalog(
+      JSONObject match=forcedManual?null:FitRocketAiRules.matchCatalog(
           source.optString("food_id"),source.optString("name"),foods);
+      if(match==null&&!forcedManual)match=FitRocketAiRules.existingByName(source.optString("name"),foods);
+      matched=match;
       container=card(Color.WHITE);
       name=edit("Zutat",source.optString("name"),1);container.addView(name);
       grams=edit("Gramm",String.format(Locale.GERMAN,"%.0f",source.optDouble("grams",100)),8194);
@@ -1348,6 +1358,7 @@ public class MainActivity extends Activity {
       String newName=forceNewName?targetName:name.getText().toString().trim();
       JSONObject x=new JSONObject();
       x.put("name",newName);
+      x.put("catalogOptOut",useCatalog!=null&&!useCatalog.isChecked());
       x.put("food_id",useCatalog!=null&&useCatalog.isChecked()?original.optString("food_id"):"");
       x.put("grams",forceNewName?100:num(grams.getText().toString()));
       x.put("kcal_100g",num(kcal.getText().toString()));
@@ -1531,7 +1542,7 @@ public class MainActivity extends Activity {
               +"Möchtest du es nach Prüfung in deine persönliche Lebensmittelliste aufnehmen?")
             .setPositiveButton("Speichern",(d,w)->{
               try{JSONObject food=FitRocketAiRules.newFood(ingredient,"AI");
-                saveAiFood(food);msg("Lebensmittel wurde hinzugefügt.");foodDialog(food);
+                JSONObject savedFood=saveAiFood(food);msg("Lebensmittel verfügbar.");foodDialog(savedFood);
               }catch(Exception err){msg("Lebensmittel konnte nicht gespeichert werden.");}
             }).setNegativeButton("Abbrechen",null).show();
         }catch(Exception e){msg("Bitte die Nährwerte prüfen: "+e.getMessage());}
@@ -1540,7 +1551,9 @@ public class MainActivity extends Activity {
     page.addView(checkout);
   }
 
-  private void saveAiFood(JSONObject food) throws JSONException{
+  private JSONObject saveAiFood(JSONObject food) throws JSONException{
+    JSONObject existing=FitRocketAiRules.existingByName(food.optString("name"),foods);
+    if(existing!=null){msg("Bereits vorhanden: "+existing.optString("name"));return existing;}
     JSONArray old=new JSONArray(prefs.getString("aiFoods","[]"));
     if(old.length()>=250)throw new IllegalStateException("Maximal 250 eigene KI-Lebensmittel");
     JSONArray newer=new JSONArray();newer.put(food);
@@ -1548,6 +1561,7 @@ public class MainActivity extends Activity {
     if(!prefs.edit().putString("aiFoods",newer.toString()).commit())
       throw new IllegalStateException("Speicherfehler");
     foods.add(0,food);
+    return food;
   }
 
   private void saveAiRecipe(JSONObject edited) throws JSONException{
@@ -1565,11 +1579,20 @@ public class MainActivity extends Activity {
           component.optString("food_id"),component.optString("name"),available);
       if(existing==null)existing=FitRocketAiRules.existingByName(
           component.optString("name"),available);
+      boolean override=component.optBoolean("catalogOptOut",false);
       JSONObject linked=existing==null?FitRocketAiRules.newFood(component,"AI"):existing;
       if(existing==null){additions.put(linked);available.add(linked);}
       JSONObject line=new JSONObject();
       line.put("id",linked.getString("id"));
       line.put("grams",component.getDouble("grams"));
+      if(override){
+        JSONObject n=new JSONObject();
+        n.put("kcal",component.getDouble("kcal_100g"));
+        n.put("saturatedFat_g",component.getDouble("saturated_fat_100g"));
+        n.put("sugar_g",component.getDouble("sugar_100g"));
+        n.put("protein_g",component.getDouble("protein_100g"));
+        line.put("nutritionOverride",n);
+      }
       links.put(line);
     }
     if(priorFoods.length()+additions.length()>250)
@@ -1634,9 +1657,9 @@ public class MainActivity extends Activity {
         JSONObject food=FitRocketAiRules.newFood(item,"OWN");
         food.put("source","Deine Nährwertangaben");
         food.put("notes","Selbst eingetragene Nährwerte. Herstellerangaben prüfen.");
-        saveAiFood(food);
-        msg("Eigenes Lebensmittel gespeichert.");
-        foodDialog(food);
+        JSONObject savedFood=saveAiFood(food);
+        msg("Lebensmittel verfügbar.");
+        foodDialog(savedFood);
       }catch(Exception error){msg("Bitte den Namen und alle vier Nährwerte korrekt eingeben.");}
     });
     page.addView(content);
@@ -1679,7 +1702,8 @@ public class MainActivity extends Activity {
     steps.setSingleLine(false);steps.setMinLines(5);form.addView(steps);
     EditText minutes=edit("Zubereitungszeit in Minuten",String.valueOf(source.optInt("minutes",25)),2);form.addView(minutes);
     EditText servings=edit("Portionen",String.valueOf(source.optInt("servings",2)),2);form.addView(servings);
-    EditText points=edit("Punkte je Portion (manuell prüfen)",String.valueOf(source.optInt("manualPoints",0)),2);form.addView(points);
+    EditText points=edit("Punkte je Portion (nur falls Zutat unbekannt)",
+      source.has("manualPoints")?String.valueOf(source.optDouble("manualPoints")):"",8194);form.addView(points);
     Spinner category=groupSpinner();form.addView(category);
     String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
     for(int i=0;i<groups.length;i++)if(groups[i].equals(source.optString("group")))category.setSelection(i);
@@ -1687,7 +1711,7 @@ public class MainActivity extends Activity {
       source.optString("cookbookCategory",source.optString("group","Sonstiges")),1);
     form.addView(label("Kochbuch-Kategorie, z. B. Vegetarisch oder Lieblingsrezepte",13));
     form.addView(cookbookFolder);
-    form.addView(label("Eigene Rezepte: Punkte bitte anhand der verwendeten Zutaten prüfen.",12));
+    form.addView(label("Schreibe z. B. 250 g Tomaten. Katalog-Zutaten werden automatisch pro Portion berechnet; echte ZeroPoints bleiben 0.",12));
     ScrollView scroll=new ScrollView(this);scroll.addView(form);
     AlertDialog dialog=new AlertDialog.Builder(this).setTitle(existing==null?"Eigenes Rezept erstellen":"Rezept bearbeiten")
        .setView(scroll).setNegativeButton("Abbrechen",null).setPositiveButton("Speichern",null).create();
@@ -1695,9 +1719,8 @@ public class MainActivity extends Activity {
       try{
         String title=name.getText().toString().trim(),items=ingredients.getText().toString().trim(),
             instructions=steps.getText().toString().trim();
-        int time=Integer.parseInt(minutes.getText().toString().trim()),portion=Integer.parseInt(servings.getText().toString().trim()),
-            score=Integer.parseInt(points.getText().toString().trim());
-        if(title.isEmpty()||items.isEmpty()||instructions.isEmpty()||time<1||time>1440||portion<1||portion>100||score<0||score>1000)
+        int time=Integer.parseInt(minutes.getText().toString().trim()),portion=Integer.parseInt(servings.getText().toString().trim());
+        if(title.isEmpty()||items.isEmpty()||instructions.isEmpty()||time<1||time>1440||portion<1||portion>20)
           throw new IllegalArgumentException();
         JSONObject recipe=new JSONObject(source.toString());
         recipe.put("id",source.optString("id","").isEmpty()?"OWN"+UUID.randomUUID().toString().replace("-",""):source.optString("id"));
@@ -1706,8 +1729,23 @@ public class MainActivity extends Activity {
         String folder=cookbookFolder.getText().toString().trim();
         if(folder.length()<1||folder.length()>40)throw new IllegalArgumentException();
         recipe.put("cookbookCategory",folder);
-        recipe.put("manualPoints",score);recipe.put("group",groups[category.getSelectedItemPosition()]);
-        recipe.put("emoji","🍽");recipe.put("ingredients",new JSONArray());
+        recipe.put("group",groups[category.getSelectedItemPosition()]);
+        recipe.put("emoji","🍽");
+        try{
+          JSONArray linked=FitRocketRecipe.linkManualIngredients(items,foods);
+          recipe.put("ingredients",linked);
+          recipe.remove("manualPoints");
+          FitRocketRecipe.pointsPerServingPrecise(recipe,foods);
+        }catch(IllegalArgumentException missing){
+          if(points.getText().toString().trim().isEmpty()){
+            msg(missing.getMessage()+". Ergänze die Zutat im Katalog oder gib geprüfte Punkte pro Portion ein.");
+            return;
+          }
+          double score=FitRocketPointLedger.validPoints(num(points.getText().toString().trim()));
+          recipe.put("manualPoints",score);
+          recipe.put("ingredients",new JSONArray());
+          recipe.put("notes","Manuelle Punkte: "+missing.getMessage());
+        }
         dialog.dismiss();saveOwnRecipe(recipe);
         new AlertDialog.Builder(this).setTitle("Gerichtfoto").setMessage("Möchtest du ein Foto für dieses Rezept auswählen?")
           .setPositiveButton("Foto auswählen",(d,w)->selectRecipePhoto(recipe.optString("id")))
@@ -1939,23 +1977,28 @@ public class MainActivity extends Activity {
     for(JSONObject recipe:recipes){
       String category=cookbookCategory(recipe);
       if(!"Alle".equals(recipeFilter)&&!recipeFilter.equalsIgnoreCase(category))continue;
-      int points;
-      try{points=recipe.has("manualPoints")?recipe.optInt("manualPoints"):FitRocketRecipe.pointsPerServing(recipe,foods);}catch(Exception e){continue;}
+      double points=Double.NaN;
+      String recipeError="";
+      try{points=recipe.has("manualPoints")?FitRocketPointLedger.validPoints(recipe.optDouble("manualPoints")):FitRocketRecipe.pointsPerServingPrecise(recipe,foods);}
+      catch(Exception e){recipeError=e.getMessage()==null?"Zutaten prüfen":e.getMessage();}
       LinearLayout row=card(Color.WHITE);
       if(recipe.has("imageData"))showRecipeImage(row,recipe.optString("imageData"));
       else if(recipe.has("imageUri"))showRecipeImage(row,recipe.optString("imageUri"));
       LinearLayout nameRow=new LinearLayout(this);nameRow.setOrientation(0);nameRow.setGravity(Gravity.CENTER_VERTICAL);
       TextView name=label(recipe.optString("emoji","🍽")+"  "+recipe.optString("name"),17);name.setTypeface(null,1);
       nameRow.addView(name,new LinearLayout.LayoutParams(0,-2,1));
-      nameRow.addView(chip("ca. "+points+" P",points==0?MINT:PEACH));
+      nameRow.addView(chip(Double.isFinite(points)?"ca. "+pt(points)+" P":"Prüfen",points==0?MINT:PEACH));
       row.addView(nameRow);
       row.addView(label(category+" · "+recipe.optInt("minutes")+" Min. · "+
           recipe.optInt("servings")+" Portion(en)",13));
+      if(!recipeError.isEmpty())row.addView(label("⚠ Nicht berechenbar: "+recipeError,12));
       action(row,"Rezept & Zutaten ansehen ›",()->recipeDialog(recipe));
       action(row,"🗂 Kategorie ändern",()->assignRecipeCategory(recipe));
       if(!recipe.optString("id").startsWith("OWN")&&!recipe.optString("id").startsWith("AIRECIPE"))
         action(row,"🗑 Standardrezept ausblenden",()->hideStandardRecipe(recipe));
       if(recipe.optString("id").startsWith("OWN"))action(row,"✏️ Bearbeiten",()->editOwnRecipe(recipe));
+      if(recipe.optString("id").startsWith("OWN")||recipe.optString("id").startsWith("AIRECIPE"))
+        action(row,"🗑 Eigenes Rezept löschen",()->confirmDeleteOwnRecipe(recipe));
       if(recipe.optString("id").startsWith("OWN")||recipe.optString("id").startsWith("AIRECIPE"))
         action(row,"📷 Rezeptfoto wählen / ändern",()->selectRecipePhoto(recipe.optString("id")));
       if(recipe.optString("id").startsWith("OWN")||recipe.optString("id").startsWith("AIRECIPE")){
@@ -1968,12 +2011,12 @@ public class MainActivity extends Activity {
     if(count==0)page.addView(label("Für diese Kategorie sind noch keine Rezeptideen vorhanden.",14));
   }
   private void recipeDialog(JSONObject recipe){
-    int points;
-    try{points=recipe.has("manualPoints")?recipe.optInt("manualPoints"):FitRocketRecipe.pointsPerServing(recipe,foods);}
+    double points;
+    try{points=recipe.has("manualPoints")?FitRocketPointLedger.validPoints(recipe.optDouble("manualPoints")):FitRocketRecipe.pointsPerServingPrecise(recipe,foods);}
     catch(Exception e){msg("Für dieses Rezept fehlen Nährwerte.");return;}
     LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(8),dp(20),dp(8));
     content.addView(label(recipe.optString("emoji","🍽")+" "+
-        recipe.optString("name")+" · ca. "+points+" P pro Portion",18));
+        recipe.optString("name")+" · ca. "+pt(points)+" P pro Portion",18));
     content.addView(label("Zutaten für "+recipe.optInt("servings")+" Portion(en):",15));
     content.addView(label(recipe.has("manualIngredients")?recipe.optString("manualIngredients"):FitRocketRecipe.ingredients(recipe,foods),14));
     content.addView(label("Zubereitung",16));
@@ -1985,7 +2028,7 @@ public class MainActivity extends Activity {
     content.addView(label("Mahlzeit",13));content.addView(meal);
     content.addView(label("Die Zutaten und Portionen sind Vorschläge. Ergänzungen wie weitere Soßen, Butter oder Öl separat eintragen.",12));
     ScrollView scroll=new ScrollView(this);scroll.addView(content);
-    final int pts=points;
+    final double pts=points;
     AlertDialog d=new AlertDialog.Builder(this).setTitle("Rezeptvorschlag").setView(scroll)
       .setPositiveButton("Zum Tagebuch",null).setNegativeButton("Schließen",null).create();
     d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{
@@ -2942,7 +2985,9 @@ public class MainActivity extends Activity {
   private int totalStepPointsWeek(){
     int n=0;for(int i=0;i<7;i++)n+=stepPointsFor(weekStart().plusDays(i).toString());return n;
   }
-  private int pointsOfActivity(JSONObject a){return a.has("calories")?FitRocketMath.points(a.optDouble("calories"),prefs.getInt("kcalPerPoint",65)):a.optInt("points");}
+  private int pointsOfActivity(JSONObject a){
+    return a.has("points")?a.optInt("points"):FitRocketMath.points(a.optDouble("calories"),prefs.getInt("kcalPerPoint",65));
+  }
   private int workoutPointsWeek(){
     int sum=0;String start=weekStart().toString(),end=weekStart().plusDays(7).toString();
     for(JSONObject a:activities){String date=a.optString("date");if(date.compareTo(start)>=0&&date.compareTo(end)<0)sum+=pointsOfActivity(a);}
