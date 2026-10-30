@@ -34,6 +34,22 @@ public final class FitRocketAiRules {
         return null;
     }
 
+    /**
+     * Reuse an existing food on an exact normalized NAME match. This prevents
+     * duplicate catalog rows when AI omits food_id. A valid ID/name match wins.
+     * Never match vague substrings (e.g. wheat vs wholegrain pasta).
+     */
+    public static JSONObject existingByName(String proposedName,List<JSONObject> foods){
+        String wanted=normalize(proposedName);
+        if(wanted.isEmpty()||foods==null)return null;
+        for(JSONObject food:foods){
+            if(wanted.equals(normalize(food.optString("name")))
+                && ("basic".equals(food.optString("status"))||
+                    "nutrition".equals(food.optString("status"))))return food;
+        }
+        return null;
+    }
+
     public static double required(double value,double upper){
         if(!Double.isFinite(value)||value<0||value>upper)
             throw new IllegalArgumentException("Nährwert oder Menge außerhalb des gültigen Bereichs");
