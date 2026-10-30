@@ -50,6 +50,36 @@ public final class FitRocketRecipe {
         return FitRocketMath.foodPointsPrecise(kcal,saturated,sugar,protein);
     }
 
+    /** Resolve manually entered lines to canonical catalogue foods.
+     * Format: "250 g Tomaten" or "Tomaten 250 g". No fuzzy mapping:
+     * choosing the wrong food would silently change calculated points.
+     */
+    public static JSONArray linkManualIngredients(String text,List<JSONObject> foods){
+        if(text==null||text.trim().isEmpty())throw new IllegalArgumentException("Zutaten fehlen");
+        JSONArray result=new JSONArray();
+        java.util.regex.Pattern front=java.util.regex.Pattern.compile(
+            "^([0-9]+(?:[.,][0-9]+)?)\\s*(g|ml)\\s+(.+)$",java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Pattern back=java.util.regex.Pattern.compile(
+            "^(.+?)\\s+([0-9]+(?:[.,][0-9]+)?)\\s*(g|ml)$",java.util.regex.Pattern.CASE_INSENSITIVE);
+        for(String line:text.split("\\r?\\n")){
+            line=line.trim();if(line.isEmpty())continue;
+            java.util.regex.Matcher a=front.matcher(line),b=back.matcher(line);
+            String name,amount;
+            if(a.matches()){amount=a.group(1);name=a.group(3).trim();}
+            else if(b.matches()){amount=b.group(2);name=b.group(1).trim();}
+            else throw new IllegalArgumentException("Zutatenmenge fehlt: "+line);
+            JSONObject food=FitRocketAiRules.existingByName(name,foods);
+            if(food==null)throw new IllegalArgumentException("Nicht im Katalog: "+name);
+            double grams=Double.parseDouble(amount.replace(',','.'));
+            if(!Double.isFinite(grams)||grams<=0||grams>10000)
+                throw new IllegalArgumentException("Ungültige Menge: "+line);
+            try{result.put(new JSONObject().put("id",food.optString("id")).put("grams",grams));}
+            catch(Exception e){throw new IllegalArgumentException("Zutat ungültig",e);}
+        }
+        if(result.length()==0)throw new IllegalArgumentException("Zutaten fehlen");
+        return result;
+    }
+
     public static String ingredients(JSONObject recipe,List<JSONObject> foods){
         StringBuilder text=new StringBuilder();
         JSONArray arr=recipe.optJSONArray("ingredients");
