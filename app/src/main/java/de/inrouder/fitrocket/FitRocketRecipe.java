@@ -80,6 +80,13 @@ public final class FitRocketRecipe {
         return result;
     }
 
+    /** Preserve the total points of a manually scored dish when the serving count changes. */
+    public static double rescaleManualPoints(double oldPoints,int oldServings,int newServings){
+        if(oldServings<1||newServings<1||newServings>20)
+            throw new IllegalArgumentException("Portionen");
+        return FitRocketPointLedger.validPoints(oldPoints*oldServings/(double)newServings);
+    }
+
     public static String ingredients(JSONObject recipe,List<JSONObject> foods){
         StringBuilder text=new StringBuilder();
         JSONArray arr=recipe.optJSONArray("ingredients");
