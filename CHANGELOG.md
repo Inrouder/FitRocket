@@ -1,5 +1,11 @@
 # FitRocket – Versionshinweise
 
+## 0.16.8 – Lebensmittel-Duplikate und Rezeptportionen
+- KI-Rezepte referenzieren vorhandene Lebensmittel anhand validierter ID oder exakt normalisiertem Namen, statt dieselben erneut anzulegen.
+- Innerhalb eines Rezepts neu angelegte Zutaten werden ebenfalls wiederverwendet.
+- Punkte je Portion: Mengen aller Zutaten auf die Portionsanzahl teilen, Nährwerte aufsummieren und einmal je Portion runden.
+- Die KI-Vorschau verwendet ebenfalls bestehende Katalogwerte, wenn passende Lebensmittel vorhanden sind.
+
 ## 0.16.7 – Gebuchte Mahlzeiten verschieben
 - Bereits gebuchte Lebensmittel über die Eintragsoption „Tageszeit ändern“ zwischen Frühstück, Mittagessen, Abendessen, Snack und Getränke verschieben.
 - Datum, Portion und Punkte bleiben unverändert; die Tagesübersicht wird sofort aktualisiert.
