@@ -69,6 +69,43 @@ public class FitRocketFavoriteMathTest {
         assertEquals(75,FitRocketFavoriteMath.referenceQuantity(meal,food),0.01);
     }
 
+    @Test public void noteCanBeSavedEditedAndIncludedInJsonBackup() throws Exception {
+        JSONObject favorite=new JSONObject().put("favoriteId","FAV-1")
+            .put("name","Lieblingsessen").put("points",4)
+            .put("referenceQuantity",200);
+        favorite.put("note",FitRocketFavoriteMath.normalizeNote(
+            "  Wenig Salz verwenden.\nMit frischen Kräutern.  "));
+        JSONArray saved=new JSONArray().put(favorite);
+        JSONArray restored=new JSONArray(saved.toString());
+        JSONObject entry=restored.getJSONObject(0);
+        assertEquals("Wenig Salz verwenden.\nMit frischen Kräutern.",
+            entry.getString("note"));
+        assertEquals(4,entry.getInt("points"));
+        entry.put("note",FitRocketFavoriteMath.normalizeNote("Beim nächsten Mal mehr Kräuter"));
+        assertEquals("Beim nächsten Mal mehr Kräuter",entry.getString("note"));
+        entry.remove("note");
+        assertEquals("",entry.optString("note",""));
+    }
+
+    @Test public void addingNoteNeverChangesFavoritePoints() throws Exception {
+        JSONObject food=pasta();
+        JSONObject favorite=new JSONObject().put("name","Vollkornnudeln")
+            .put("foodId","CALC001").put("points",6).put("referenceQuantity",150);
+        double before=FitRocketFavoriteMath.scaledPointsPrecise(favorite,food,
+            150,200,Arrays.asList(food));
+        favorite.put("note","Ein wenig Pfeffer, aber kein zusätzliches Öl.");
+        double after=FitRocketFavoriteMath.scaledPointsPrecise(favorite,food,
+            150,200,Arrays.asList(food));
+        assertEquals(before,after,0.00001);
+    }
+
+    @Test(expected=IllegalArgumentException.class)
+    public void noteLongerThan600CharactersIsRejected() {
+        char[] input=new char[601];
+        Arrays.fill(input,'a');
+        FitRocketFavoriteMath.normalizeNote(new String(input));
+    }
+
     @Test(expected=IllegalArgumentException.class)
     public void zeroQuantityIsRejected()throws Exception{
         FitRocketFavoriteMath.scaledPoints(new JSONObject().put("points",5),null,
