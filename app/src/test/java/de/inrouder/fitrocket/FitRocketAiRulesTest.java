@@ -74,6 +74,16 @@ public class FitRocketAiRulesTest {
         assertEquals(0,FitRocketAiRules.pointsPerServing(x,Arrays.asList(basis)));
     }
 
+    @Test public void rejectingCatalogMatchKeepsOriginalZeroPointFoodUntouched()throws Exception{
+        JSONObject zero=food("ZP214","Tomaten","basic",0);
+        JSONObject overridden=item("Tomaten","ZP214",100,140)
+            .put("catalogOptOut",true);
+        JSONObject custom=proposal(1,overridden);
+        assertTrue(FitRocketAiRules.pointsPerServingPrecise(custom,Arrays.asList(zero))>0);
+        assertEquals(0,FitRocketAiRules.pointsPerServingPrecise(
+            proposal(1,item("Tomaten","ZP214",250,400)),Arrays.asList(zero)),0.0001);
+    }
+
     @Test public void namesMustMatchExactlyNotBySubstring()throws Exception{
         JSONObject basis=food("N1","Vollkornnudeln gekocht","nutrition",140);
         assertNull(FitRocketAiRules.existingByName("Nudeln gekocht",Arrays.asList(basis)));
