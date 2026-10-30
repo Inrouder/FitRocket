@@ -1707,6 +1707,19 @@ public class MainActivity extends Activity {
     }
     return filename;
   }
+  private void pruneRecipePhotos(){
+    try{
+      HashSet<String> keep=new HashSet<>();
+      JSONArray saved=new JSONArray(prefs.getString("savedAiRecipes","[]"));
+      for(int i=0;i<saved.length();i++){
+        JSONObject recipe=saved.optJSONObject(i);
+        if(recipe!=null&&recipe.has("imageFile"))keep.add(recipe.optString("imageFile"));
+      }
+      File[] all=new File(getFilesDir(),"recipe_photos").listFiles();
+      if(all!=null)for(File image:all)
+        if(image.isFile()&&!keep.contains(image.getName()))image.delete();
+    }catch(Exception ignored){}
+  }
   private void migrateRecipePhotos(){
     try{
       JSONArray saved=new JSONArray(prefs.getString("savedAiRecipes","[]"));boolean changed=false;
@@ -1879,7 +1892,7 @@ public class MainActivity extends Activity {
       }
       if(!found)throw new IllegalArgumentException("Rezept nicht gefunden");
       if(!prefs.edit().putString("savedAiRecipes",saved.toString()).commit())throw new IOException("Speichern fehlgeschlagen");
-      pendingRecipeImageId=null;loadRecipes();recipeScreen();
+      pendingRecipeImageId=null;pruneRecipePhotos();loadRecipes();recipeScreen();
     }catch(Exception e){msg("Rezeptfoto konnte nicht gespeichert werden.");}
   }
   private void importRecipeLink(){
@@ -2060,8 +2073,7 @@ public class MainActivity extends Activity {
           if(!prefs.edit().putString("savedAiRecipes",remaining.toString()).commit()){
             msg("Rezept konnte nicht gelöscht werden.");return;
           }
-          if(recipe.has("imageFile"))recipePhotoFile(recipe.optString("imageFile")).delete();
-          loadRecipes();recipeScreen();msg("Rezept gelöscht.");
+          pruneRecipePhotos();loadRecipes();recipeScreen();msg("Rezept gelöscht.");
         }catch(Exception error){msg("Rezept konnte nicht gelöscht werden.");}
       }).show();
   }
@@ -3729,7 +3741,7 @@ public class MainActivity extends Activity {
               else e.remove("weightGoal");
               e.apply();budget=bb;weekly=importedWeekly;
               readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
-              foods.clear();loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();
+              foods.clear();loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();pruneRecipePhotos();
               FitRocketWaterReminder.schedule(this);
               history();msg("Backup importiert.");
             }catch(Exception e){msg("Import konnte nicht abgeschlossen werden.");}
