@@ -65,6 +65,17 @@ public final class FitRocketMath {
                 + 0.10 * sugar - 0.07 * protein));
     }
 
+    /** One decimal point precision for portion-aware food scoring.
+     * ZeroPoint foods are handled by the catalog's status=basic before this function.
+     */
+    public static double foodPointsPrecise(double kcal,double saturatedFat,double sugar,double protein){
+        if(!Double.isFinite(kcal)||!Double.isFinite(saturatedFat)||!Double.isFinite(sugar)||
+           !Double.isFinite(protein)||kcal<0||saturatedFat<0||sugar<0||protein<0)
+            throw new IllegalArgumentException("food");
+        double score=Math.max(0,0.026*kcal+0.25*saturatedFat+0.10*sugar-0.07*protein);
+        return Math.round(score*10.0)/10.0;
+    }
+
     public static int credit(int earnedPoints, int percent) {
         if (earnedPoints < 0 || !((percent == 0) || (percent == 50) || (percent == 100)))
             throw new IllegalArgumentException("share");
