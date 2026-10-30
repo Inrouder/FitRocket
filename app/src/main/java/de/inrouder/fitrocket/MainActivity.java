@@ -1556,12 +1556,17 @@ public class MainActivity extends Activity {
     JSONArray priorRecipes=new JSONArray(prefs.getString("savedAiRecipes","[]"));
     if(priorRecipes.length()>=80)throw new IllegalStateException("Maximal 80 eigene Rezepte");
     JSONArray additions=new JSONArray(),links=new JSONArray();
+    ArrayList<JSONObject> available=new ArrayList<>(foods);
     for(int i=0;i<ingredients.length();i++){
       JSONObject component=ingredients.getJSONObject(i);
+      // The catalog is authoritative. Prefer a verified ID and then exact
+      // normalized food name, including foods created earlier in this recipe.
       JSONObject existing=FitRocketAiRules.matchCatalog(
-          component.optString("food_id"),component.optString("name"),foods);
+          component.optString("food_id"),component.optString("name"),available);
+      if(existing==null)existing=FitRocketAiRules.existingByName(
+          component.optString("name"),available);
       JSONObject linked=existing==null?FitRocketAiRules.newFood(component,"AI"):existing;
-      if(existing==null)additions.put(linked);
+      if(existing==null){additions.put(linked);available.add(linked);}
       JSONObject line=new JSONObject();
       line.put("id",linked.getString("id"));
       line.put("grams",component.getDouble("grams"));
