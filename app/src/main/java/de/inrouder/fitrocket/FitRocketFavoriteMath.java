@@ -108,7 +108,8 @@ public final class FitRocketFavoriteMath {
                                              double refQuantity,double quantity,
                                              List<JSONObject> foods) {
         positive(refQuantity);positive(quantity);
-        if(food!=null && "nutrition".equals(food.optString("status")))
+        if(food!=null && ("nutrition".equals(food.optString("status"))||
+                            "basic".equals(food.optString("status"))))
             return FitRocketPointLedger.food(food,quantity);
         JSONArray ingredients=favorite.optJSONArray("aiIngredients");
         if(ingredients!=null&&ingredients.length()>0) {
@@ -119,7 +120,9 @@ public final class FitRocketFavoriteMath {
                     double grams=positive(item.getDouble("grams")*quantity/refQuantity);
                     JSONObject matched=FitRocketAiRules.matchCatalog(
                         item.optString("food_id"),item.optString("name"),foods);
-                    if(matched!=null&&"basic".equals(matched.optString("status")))continue;
+                    if(matched==null&&!item.optBoolean("catalogOptOut",false))
+                        matched=FitRocketAiRules.existingByName(item.optString("name"),foods);
+                    if(matched!=null&&"basic".equals(matched.optString("status"))&&!item.optBoolean("catalogOptOut",false))continue;
                     if(matched!=null&&"nutrition".equals(matched.optString("status")))
                         total+=FitRocketPointLedger.food(matched,grams);
                     else
