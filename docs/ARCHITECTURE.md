@@ -1,5 +1,5 @@
 # FitRocket – Architektur und technische Orientierung
-Stand: 2026-10-28, Codebasis v0.16.1. Dies ist eine Beschreibung des aktuellen Quellcodes, keine Garantie für getestetes Laufzeitverhalten.
+Stand: 2026-10-30, Codebasis v0.16.9. Dies ist eine Beschreibung des aktuellen Quellcodes, keine Garantie für getestetes Laufzeitverhalten.
 
 ## Systemüberblick
 Native Android-Anwendung in Java 17 (minSdk 26, target/compileSdk 35), Gradle Kotlin DSL. Keine zentrale Datenbank und kein eigener Server. Persistenz überwiegend Android SharedPreferences mit JSON-Strings; die Lebensmittel- und Rezeptgrunddaten werden aus gebündelten Assets geladen.
@@ -73,3 +73,13 @@ Nur Rezepte mit IDs `OWN*` und `AIRECIPE*` dürfen über `attachSwipeDelete` und
 
 ## Rezeptzutaten und Portionen (v0.16.8)
 Beim Speichern von KI-Rezepten zuerst `FitRocketAiRules.matchCatalog` (ID und Name), dann `existingByName` mit exakt normalisiertem Namen und schließlich nur bei keinem Treffer `newFood` verwenden. Im selben Rezept neu erzeugte Lebensmittel gehören sofort zur Lookup-Liste. Keine unscharfen Ähnlichkeitstreffer zwischen Sorten. `FitRocketRecipe.pointsPerServing` und `FitRocketAiRules.pointsPerServing` teilen Zutatenmengen durch `servings`, addieren Nährwerte je Portion und runden erst das Gesamtergebnis. Bestehende historische Duplikate werden bei dieser Änderung nicht automatisch gelöscht.
+
+## Refactoring und Audit-Korrekturen (v0.16.9)
+- **ZeroPoints**: Nur `status=basic` ergibt unabhängig von der Menge 0. Alle `nutrition`-Lebensmittel werden aus den Nährwerten der tatsächlichen Menge mit `FitRocketMath.foodPointsPrecise` gerundet auf Zehntelpunkte berechnet.
+- **Rezept-Pipeline**: `FitRocketRecipe.pointsPerServingPrecise` aggregiert alle Zutaten inklusive Portionsdivision, `FitRocketAiRules.pointsPerServingPrecise` macht dies bereits in der KI-Vorschau. Eine explizite `nutritionOverride` ist eine **Rezept-Eigenschaft**, nicht die Änderung eines ZeroPoints-Katalogprodukts.
+- **Eigene Rezepte**: Freitext-Zeilen im Format `250 g Tomaten` oder `Tomaten 250 g` werden exakt auf eine bestehende ID abgebildet. Unbekannte Zutaten erfordern einen Katalogeintrag oder eine explizite manuelle Bewertung; automatische 0-Punkte-Annahme ist verboten.
+- **Duplikate**: Neue Einträge gleichen normalisierte Namen exakt ab. Historische Dubletten werden im Suchergebnis zusammengeführt, aber nie automatisch im Speicher gelöscht, da Rezepte alte IDs referenzieren.
+- **Schutz vor defekten Rezepten**: Das Entfernen eines referenzierten persönlichen Lebensmittels wird verweigert. Fehlerhafte Rezepte bleiben sichtbar mit einer Fehlermeldung.
+- **Medien**: JSON-Rezepte speichern `imageFile` als sicheren Dateinamen; die Datei liegt privat in `files/recipe_photos`. Beim Backup exportieren die Rezeptdaten zusätzlich temporär Base64 `imageData`; beim Import wird daraus erneut eine private Datei. Alte `imageData`-Datensätze werden lazily migriert.
+- **Bewegung**: Workouts bevorzugen den einmal gespeicherten `points`-Wert. `stepPointHistory` speichert Tages-Snapshots einschließlich Export/Import; Health Connect berechnet sie nach Synchronisierung neu und bereinigt sie beim Trennen.
+- **Grenzen**: Unbekannte historische Daten und Differenzen zwischen Produkt-Namen und Sorten werden nicht per fuzzy matching zusammengelegt. Kamera-Intent liefert weiterhin ein Vorschaubild; volle Kameraauflösung bleibt ein eigenständiges UX-Feature.
