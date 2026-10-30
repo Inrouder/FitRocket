@@ -18,6 +18,13 @@ public final class FitRocketFavoriteMath {
         "(\\d+(?:[.,]\\d+)?)\\s*(g|ml)\\b",
         Pattern.CASE_INSENSITIVE);
 
+    /** Optional local note on a favorite. Notes never affect nutrition or points. */
+    public static String normalizeNote(String raw) {
+        String note=raw==null?"":raw.trim();
+        if(note.length()>600)throw new IllegalArgumentException("Notizen dürfen maximal 600 Zeichen enthalten.");
+        return note;
+    }
+
     public static double positive(double value) {
         if (!Double.isFinite(value) || value<=0 || value>10000)
             throw new IllegalArgumentException("Bitte 0,1 bis 10000 g/ml eingeben.");
