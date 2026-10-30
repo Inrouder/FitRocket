@@ -110,11 +110,11 @@ public class FitRocketAiRulesTest {
             item("Milch","",120,65),
             item("Butter","",10,750));
         FitRocketAiRules.validateResponse(pancake,"meal");
-        int sum=FitRocketAiRules.points(80,360,0,0,0)
-               +FitRocketAiRules.points(120,65,0,0,0)
-               +FitRocketAiRules.points(10,750,0,0,0);
-        assertEquals(sum,FitRocketAiRules.pointsPerServing(pancake,Arrays.asList(egg)));
-        assertTrue(sum>FitRocketAiRules.points(80,360,0,0,0));
+        // Add all actual nutrients, skip the explicit ZeroPoints egg and round ONCE.
+        double totalKcal=80*360/100.0+120*65/100.0+10*750/100.0;
+        int expected=FitRocketMath.foodPoints(totalKcal,0,0,0);
+        assertEquals(expected,FitRocketAiRules.pointsPerServing(pancake,Arrays.asList(egg)));
+        assertTrue(expected>FitRocketAiRules.points(80,360,0,0,0));
     }
 
     @Test public void portionsScaleTotalRecipeButMealsRemainSingleServing()throws Exception{
