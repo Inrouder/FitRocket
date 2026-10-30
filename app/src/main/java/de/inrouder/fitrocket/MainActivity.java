@@ -533,14 +533,15 @@ public class MainActivity extends Activity {
     item.setOnClickListener(v->{
       boolean hasComposition=m.optJSONArray("aiIngredients")!=null;
       String[] choices=hasComposition?
-          new String[]{"Zutaten & Berechnung ansehen","★ Als Favorit speichern","Punkte ändern","Eintrag löschen"}:
-          new String[]{"★ Als Favorit speichern","Punkte ändern","Eintrag löschen"};
+          new String[]{"Zutaten & Berechnung ansehen","★ Als Favorit speichern","Punkte ändern","Tageszeit ändern","Eintrag löschen"}:
+          new String[]{"★ Als Favorit speichern","Punkte ändern","Tageszeit ändern","Eintrag löschen"};
       new AlertDialog.Builder(this).setTitle(m.optString("name"))
         .setItems(choices,(d,which)->{
           if(hasComposition && which==0){showAiMealDetails(m);return;}
           int actionIndex=hasComposition?which-1:which;
           if(actionIndex==0){saveFavorite(m);return;}
           if(actionIndex==1)editMeal(m);
+          else if(actionIndex==2)changeMealGroup(m);
           else new AlertDialog.Builder(this).setMessage("Eintrag wirklich löschen?")
             .setPositiveButton("Löschen",(dd,w)->{
               meals.remove(m);persist("meals",meals);refreshMealContext();
@@ -549,6 +550,25 @@ public class MainActivity extends Activity {
     });
     // Swipe left to delete one mistaken diary entry. A tap still opens options.
     attachSwipeDelete(item,()->confirmDeleteMeal(m));
+  }
+
+  /** Move an existing diary booking between meal sections without changing its date or points. */
+  private void changeMealGroup(JSONObject meal){
+    final String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
+    int selected=0;
+    for(int i=0;i<groups.length;i++)if(groups[i].equals(mealGroup(meal)))selected=i;
+    new AlertDialog.Builder(this).setTitle("Tageszeit ändern · "+meal.optString("name"))
+      .setSingleChoiceItems(groups,selected,(dialog,which)->{
+        dialog.dismiss();
+        String newGroup=groups[which];
+        if(newGroup.equals(mealGroup(meal)))return;
+        try{
+          meal.put("group",newGroup);
+          persist("meals",meals);
+          refreshMealContext();
+          msg("Eintrag nach "+newGroup+" verschoben.");
+        }catch(Exception e){msg("Tageszeit konnte nicht geändert werden.");}
+      }).setNegativeButton("Abbrechen",null).show();
   }
 
   private void confirmDeleteMeal(JSONObject meal){
