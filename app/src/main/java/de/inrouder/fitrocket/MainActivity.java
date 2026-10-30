@@ -2227,7 +2227,7 @@ public class MainActivity extends Activity {
     return "Getränke".equals(favorite.optString("group"))?"ml":"g";
   }
 
-  private void actuallySaveFavorite(JSONObject meal,double reference,String unit){
+  private void actuallySaveFavorite(JSONObject meal,double reference,String unit,String note){
     try{
       FitRocketFavoriteMath.positive(reference);
       JSONArray all=favoriteItems();
@@ -2255,6 +2255,7 @@ public class MainActivity extends Activity {
       if(meal.has("referencePoints"))favorite.put("referencePoints",
           meal.optDouble("referencePoints"));
       favorite.put("quantityUnit",unit);
+      favorite.put("note",FitRocketFavoriteMath.normalizeNote(note));
       if(meal.has("aiIngredients"))favorite.put("aiIngredients",
         new JSONArray(meal.getJSONArray("aiIngredients").toString()));
       if(meal.has("aiUncertainty"))favorite.put("aiUncertainty",
@@ -2266,30 +2267,97 @@ public class MainActivity extends Activity {
     }catch(Exception e){msg("Favorit konnte nicht gespeichert werden.");}
   }
 
+  /** Favorites have a separate, editable free-text note; it never changes points. */
   private void saveFavorite(JSONObject meal){
     JSONObject food=findFoodById(meal.optString("foodId"));
     double reference=FitRocketFavoriteMath.referenceQuantity(meal,food);
+    boolean missing=!(Double.isFinite(reference)&&reference>0);
     String unit=favoriteUnit(meal,food);
-    if(Double.isFinite(reference)&&reference>0){
-      actuallySaveFavorite(meal,reference,unit);return;
+    LinearLayout form=new LinearLayout(this);
+    form.setOrientation(1);form.setPadding(dp(20),dp(10),dp(20),dp(10));
+    form.addView(label("★ "+FitRocketFavoriteMath.cleanName(meal.optString("name")),17));
+    EditText quantity=null;
+    if(missing){
+      form.addView(label("Welche Menge hatte dieser Eintrag ursprünglich? Damit können die Punkte später an die Menge angepasst werden.",13));
+      quantity=edit("Ursprüngliche Menge in "+unit,"",8194);
+      form.addView(quantity);
+    }else{
+      form.addView(label("Referenzmenge: "+String.format(Locale.GERMAN,"%.1f",reference)+" "+unit+
+          " · "+pt(pts(meal))+" P",13));
     }
-    // Old diary entries without quantity must never silently become "100 g".
-    LinearLayout box=new LinearLayout(this);box.setOrientation(1);
-    box.setPadding(dp(20),dp(10),dp(20),dp(10));
-    box.addView(label("Welche Menge hatte dieser Eintrag ursprünglich?",15));
-    box.addView(label("Diese Referenzmenge wird zusammen mit den "+
-      pt(pts(meal))+" Punkten gespeichert. Bei der nächsten Verwendung "+
-      "kannst du die Menge frei wählen.",13));
-    EditText quantity=edit("Ursprüngliche Menge in "+unit,"",8194);
-    box.addView(quantity);
-    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Favorit mit variabler Menge")
-      .setView(box).setPositiveButton("Speichern",null)
+    form.addView(label("Persönliche Notiz (optional)",14));
+    EditText note=new EditText(this);
+    note.setHint("z. B. Marke, Zubereitung oder persönliche Hinweise");
+    note.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+        android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE |
+        android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+    note.setMinLines(3);note.setMaxLines(6);
+    note.setGravity(Gravity.TOP|Gravity.START);
+    note.setTextColor(ink());note.setHintTextColor(muted());
+    note.setBackground(shape(dark()?Color.rgb(40,45,59):Color.rgb(248,247,249),17));
+    note.setPadding(dp(12),dp(12),dp(12),dp(12));
+    form.addView(note,new LinearLayout.LayoutParams(-1,-2));
+    form.addView(label("Maximal 600 Zeichen. Die Notiz wird im FitRocket-Backup gesichert.",12));
+    ScrollView scroll=new ScrollView(this);scroll.addView(form);
+    EditText amountField=quantity;
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Favorit speichern")
+      .setView(scroll).setPositiveButton("Speichern",null)
       .setNegativeButton("Abbrechen",null).create();
     dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
       try{
-        double amount=FitRocketFavoriteMath.positive(num(quantity.getText().toString()));
-        actuallySaveFavorite(meal,amount,unit);dialog.dismiss();
-      }catch(Exception e){msg("Bitte eine gültige ursprüngliche Menge eingeben.");}
+        double amount=missing?
+          FitRocketFavoriteMath.positive(num(amountField.getText().toString())):reference;
+        String text=FitRocketFavoriteMath.normalizeNote(note.getText().toString());
+        actuallySaveFavorite(meal,amount,unit,text);
+        dialog.dismiss();
+      }catch(Exception e){msg("Bitte Menge und Notiz prüfen: "+e.getMessage());}
+    }));
+    dialog.show();
+  }
+
+  /** Update a note by stable favoriteId, with a legacy-data fallback. */
+  private void editFavoriteNote(JSONObject favorite){
+    EditText field=new EditText(this);
+    field.setHint("Persönliche Notiz eingeben …");
+    field.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+      android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE |
+      android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+    field.setMinLines(4);field.setMaxLines(8);
+    field.setGravity(Gravity.TOP|Gravity.START);
+    field.setText(favorite.optString("note",""));
+    field.setTextColor(ink());field.setHintTextColor(muted());
+    field.setBackground(shape(dark()?Color.rgb(40,45,59):Color.rgb(248,247,249),18));
+    field.setPadding(dp(14),dp(12),dp(14),dp(12));
+    LinearLayout content=new LinearLayout(this);
+    content.setOrientation(1);content.setPadding(dp(18),dp(12),dp(18),dp(8));
+    content.addView(field,new LinearLayout.LayoutParams(-1,-2));
+    content.addView(label("Maximal 600 Zeichen · leer lassen, um die Notiz zu entfernen.",12));
+    AlertDialog dialog=new AlertDialog.Builder(this)
+      .setTitle("Notiz · "+favorite.optString("name"))
+      .setView(content).setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Speichern",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        String note=FitRocketFavoriteMath.normalizeNote(field.getText().toString());
+        JSONArray all=favoriteItems();
+        boolean updated=false;
+        for(int i=0;i<all.length();i++){
+          JSONObject item=all.optJSONObject(i);
+          if(item==null)continue;
+          String id=favorite.optString("favoriteId","");
+          boolean match=!id.isEmpty()?id.equals(item.optString("favoriteId")):
+            favorite.toString().equals(item.toString());
+          if(!match)continue;
+          if(note.isEmpty())item.remove("note");
+          else item.put("note",note);
+          updated=true;break;
+        }
+        if(!updated)throw new IllegalStateException("Favorit wurde nicht gefunden");
+        if(!prefs.edit().putString("favoriteMeals",all.toString()).commit())
+          throw new IllegalStateException("Speichern fehlgeschlagen");
+        dialog.dismiss();favoritesScreen();
+        msg("Notiz gespeichert.");
+      }catch(Exception e){msg("Notiz konnte nicht gespeichert werden: "+e.getMessage());}
     }));
     dialog.show();
   }
@@ -2345,6 +2413,9 @@ public class MainActivity extends Activity {
     LinearLayout form=new LinearLayout(this);form.setOrientation(1);
     form.setPadding(dp(20),dp(10),dp(20),dp(10));
     form.addView(label(fav.optString("name"),18));
+    if(!fav.optString("note","").isEmpty()){
+      form.addView(label("📝 "+fav.optString("note"),13));
+    }
     if(missing)form.addView(label("Alter Favorit ohne gespeicherte Menge: "+
       "Bitte einmal angeben, auf wie viel "+unit+" sich die "+
       pt(pts(fav))+" Punkte ursprünglich bezogen.",13));
@@ -2418,7 +2489,7 @@ public class MainActivity extends Activity {
     LinearLayout intro=card(LAV);
     intro.addView(label("★ Deine gespeicherten Mahlzeiten",19));
     intro.addView(label("Wähle bei jedem Eintrag erneut die Menge in Gramm oder "+
-      "Millilitern. Die Punkte werden automatisch angepasst.",13));
+      "Millilitern. Die Punkte werden automatisch angepasst. Du kannst zu jedem Favoriten eine Notiz speichern.",13));
     page.addView(intro);
     JSONArray list=favoriteItems();
     if(list.length()==0){
@@ -2438,6 +2509,13 @@ public class MainActivity extends Activity {
       box.addView(label(fav.optString("group","Snack")+
         (Double.isFinite(ref)?" · bisher "+String.format(Locale.GERMAN,"%.0f",ref)+
           " "+unit+" / "+pt(pts(fav))+" P":" · Referenzmenge einmal festlegen"),12));
+      if(!fav.optString("note","").isEmpty()){
+        TextView savedNote=label("📝 "+fav.optString("note"),13);
+        savedNote.setMaxLines(5);
+        box.addView(savedNote);
+      }
+      action(box,fav.optString("note","").isEmpty()?"📝 Notiz hinzufügen":"📝 Notiz bearbeiten",
+        ()->editFavoriteNote(fav));
       action(box,"Menge wählen und eintragen",()->bookFavoriteDialog(fav));
       action(box,"Aus Favoriten entfernen",()->new AlertDialog.Builder(this)
         .setTitle("Favorit entfernen?")
