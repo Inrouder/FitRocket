@@ -1701,8 +1701,7 @@ public class MainActivity extends Activity {
   private String storeRecipePhoto(JSONObject recipe,String encoded) throws IOException{
     byte[] bytes=android.util.Base64.decode(encoded,android.util.Base64.DEFAULT);
     if(bytes.length<20||bytes.length>900000)throw new IOException("Ungültige Bildgröße");
-    String filename="r"+UUID.nameUUIDFromBytes(recipe.optString("id").getBytes(StandardCharsets.UTF_8))
-      .toString().replace("-","")+".jpg";
+    String filename="r"+UUID.randomUUID().toString().replace("-","")+".jpg";
     try(FileOutputStream out=new FileOutputStream(recipePhotoFile(filename))){
       out.write(bytes);out.getFD().sync();
     }
@@ -1829,17 +1828,43 @@ public class MainActivity extends Activity {
       }).show();
   }
   private String encodedRecipePhoto(InputStream stream) throws IOException {
-    android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeStream(stream);
-    if(bitmap==null)throw new IOException("Ungültiges Bild");
-    int width=bitmap.getWidth(),height=bitmap.getHeight();
-    float scale=Math.min(1f,960f/Math.max(width,height));
-    if(scale<1f)bitmap=android.graphics.Bitmap.createScaledBitmap(bitmap,
-        Math.max(1,Math.round(width*scale)),Math.max(1,Math.round(height*scale)),true);
-    ByteArrayOutputStream bytes=new ByteArrayOutputStream();
-    if(!bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,72,bytes))
-      throw new IOException("Bild konnte nicht komprimiert werden");
-    if(bytes.size()>850000)throw new IOException("Bild zu groß");
-    return android.util.Base64.encodeToString(bytes.toByteArray(),android.util.Base64.NO_WRAP);
+    // Cap encoded input before decoding to prevent out-of-memory on large camera photos.
+    ByteArrayOutputStream raw=new ByteArrayOutputStream();
+    byte[] block=new byte[8192];int read;
+    while((read=stream.read(block))!=-1){
+      raw.write(block,0,read);
+      if(raw.size()>16*1024*1024)throw new IOException("Bild zu groß (max. 16 MB)");
+    }
+    byte[] source=raw.toByteArray();
+    android.graphics.BitmapFactory.Options options=new android.graphics.BitmapFactory.Options();
+    options.inJustDecodeBounds=true;
+    android.graphics.BitmapFactory.decodeByteArray(source,0,source.length,options);
+    if(options.outWidth<1||options.outHeight<1)throw new IOException("Ungültiges Bild");
+    options.inJustDecodeBounds=false;
+    options.inSampleSize=1;
+    while(Math.max(options.outWidth,options.outHeight)/options.inSampleSize>1400)
+      options.inSampleSize*=2;
+    android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeByteArray(source,0,source.length,options);
+    if(bitmap==null)throw new IOException("Bild konnte nicht geöffnet werden");
+    float scale=Math.min(1f,960f/Math.max(bitmap.getWidth(),bitmap.getHeight()));
+    if(scale<1f){
+      android.graphics.Bitmap reduced=android.graphics.Bitmap.createScaledBitmap(bitmap,
+          Math.max(1,Math.round(bitmap.getWidth()*scale)),
+          Math.max(1,Math.round(bitmap.getHeight()*scale)),true);
+      if(reduced!=bitmap)bitmap.recycle();
+      bitmap=reduced;
+    }
+    ByteArrayOutputStream encoded=new ByteArrayOutputStream();
+    int quality=75;
+    do{
+      encoded.reset();
+      if(!bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,quality,encoded))
+        throw new IOException("Bild konnte nicht komprimiert werden");
+      quality-=10;
+    }while(encoded.size()>850000&&quality>=35);
+    bitmap.recycle();
+    if(encoded.size()>850000)throw new IOException("Bild zu groß");
+    return android.util.Base64.encodeToString(encoded.toByteArray(),android.util.Base64.NO_WRAP);
   }
   private void applyRecipePhoto(String encoded){
     try{
