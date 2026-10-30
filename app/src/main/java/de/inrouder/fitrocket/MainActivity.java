@@ -1895,6 +1895,21 @@ public class MainActivity extends Activity {
       pendingRecipeImageId=null;pruneRecipePhotos();loadRecipes();recipeScreen();
     }catch(Exception e){msg("Rezeptfoto konnte nicht gespeichert werden.");}
   }
+  private java.net.URL validatedRecipeUrl(String raw) throws Exception{
+    java.net.URL url=new java.net.URL(raw);
+    if(!"https".equalsIgnoreCase(url.getProtocol())||url.getUserInfo()!=null||
+       (url.getPort()!=-1&&url.getPort()!=443))
+      throw new IllegalArgumentException("Nur öffentliche HTTPS-Adressen erlaubt");
+    String host=url.getHost().toLowerCase(Locale.ROOT);
+    if(host.isEmpty()||host.equals("localhost")||host.endsWith(".local")||host.endsWith(".internal"))
+      throw new IllegalArgumentException("Lokale Adressen werden nicht importiert");
+    for(java.net.InetAddress address:java.net.InetAddress.getAllByName(host)){
+      if(address.isAnyLocalAddress()||address.isLoopbackAddress()||address.isLinkLocalAddress()||
+         address.isSiteLocalAddress()||address.isMulticastAddress())
+        throw new IllegalArgumentException("Private Netzwerkadresse nicht zulässig");
+    }
+    return url;
+  }
   private void importRecipeLink(){
     EditText link=edit("https://...","",1);
     new AlertDialog.Builder(this).setTitle("Rezept über URL importieren")
@@ -1905,7 +1920,7 @@ public class MainActivity extends Activity {
         if(!url.startsWith("https://")){msg("Bitte eine HTTPS-Rezeptadresse eingeben.");return;}
         new Thread(()->{
           try{
-            java.net.HttpURLConnection conn=(java.net.HttpURLConnection)new java.net.URL(url).openConnection();
+            java.net.HttpURLConnection conn=(java.net.HttpURLConnection)validatedRecipeUrl(url).openConnection();
             conn.setConnectTimeout(8000);conn.setReadTimeout(8000);conn.setInstanceFollowRedirects(false);
             conn.setRequestProperty("User-Agent","FitRocket/0.15.9 (Recipe Import)");
             if(conn.getResponseCode()!=200)throw new IOException("HTTP "+conn.getResponseCode());
@@ -2078,6 +2093,17 @@ public class MainActivity extends Activity {
       }).show();
   }
 
+  /** Refuse silently imported legacy 0-point recipes with unverified ingredients. */
+  private double recipePoints(JSONObject recipe){
+    if(recipe.has("manualPoints")){
+      double score=FitRocketPointLedger.validPoints(recipe.optDouble("manualPoints",Double.NaN));
+      JSONArray lines=recipe.optJSONArray("ingredients");
+      if(score==0&&(lines==null||lines.length()==0))
+        throw new IllegalArgumentException("Alt-Rezept mit ungeprüften 0 Punkten – bitte bearbeiten");
+      return score;
+    }
+    return FitRocketRecipe.pointsPerServingPrecise(recipe,foods);
+  }
   private void recipeScreen(){
     shell("Kochbuch");
     LinearLayout intro=card(Color.rgb(255,249,239));
@@ -2101,7 +2127,7 @@ public class MainActivity extends Activity {
       if(!"Alle".equals(recipeFilter)&&!recipeFilter.equalsIgnoreCase(category))continue;
       double points=Double.NaN;
       String recipeError="";
-      try{points=recipe.has("manualPoints")?FitRocketPointLedger.validPoints(recipe.optDouble("manualPoints")):FitRocketRecipe.pointsPerServingPrecise(recipe,foods);}
+      try{points=recipePoints(recipe);}
       catch(Exception e){recipeError=e.getMessage()==null?"Zutaten prüfen":e.getMessage();}
       LinearLayout row=card(Color.WHITE);
       if(recipe.has("imageFile"))showRecipeImage(row,"local:"+recipe.optString("imageFile"));
@@ -2135,7 +2161,7 @@ public class MainActivity extends Activity {
   }
   private void recipeDialog(JSONObject recipe){
     double points;
-    try{points=recipe.has("manualPoints")?FitRocketPointLedger.validPoints(recipe.optDouble("manualPoints")):FitRocketRecipe.pointsPerServingPrecise(recipe,foods);}
+    try{points=recipePoints(recipe);}
     catch(Exception e){msg("Für dieses Rezept fehlen Nährwerte.");return;}
     LinearLayout content=new LinearLayout(this);content.setOrientation(1);content.setPadding(dp(20),dp(8),dp(20),dp(8));
     content.addView(label(recipe.optString("emoji","🍽")+" "+
