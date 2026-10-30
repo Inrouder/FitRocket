@@ -9,7 +9,8 @@ public final class FitRocketSyncRules {
         if (savedDay == null || !savedDay.equals(importedDay)) return false;
         if (savedMinutes <= 0 || importedMinutes <= 0) return false;
         if (savedStartMs > 0 && importedStartMs > 0) {
-            return Math.abs(savedStartMs - importedStartMs) < 12L * 60_000
+            return savedType == importedType
+                    && Math.abs(savedStartMs - importedStartMs) < 12L * 60_000
                     && Math.abs(savedMinutes - importedMinutes) < 12;
         }
         return savedType == importedType && Math.abs(savedMinutes - importedMinutes) <= 5;
