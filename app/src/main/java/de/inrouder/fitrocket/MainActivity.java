@@ -1462,8 +1462,8 @@ public class MainActivity extends Activity {
     Runnable update=()->{
       try{
         JSONObject draft=buildAiReview(mode,output,title,servings,group,editors);
-        int pp=FitRocketAiRules.pointsPerServing(draft,foods);
-        points.setText(("recipe".equals(mode)?"Pro Portion: ca. ":"Geschätzt: ca. ")+pp+" FitRocket-Punkte");
+        double pp=FitRocketAiRules.pointsPerServingPrecise(draft,foods);
+        points.setText(("recipe".equals(mode)?"Pro Portion: ca. ":"Geschätzt: ca. ")+pt(pp)+" FitRocket-Punkte");
       }catch(Exception error){points.setText("Angaben prüfen – Punkte aktuell nicht berechenbar.");}
     };
     TextWatcher watcher=new TextWatcher(){
@@ -1518,7 +1518,7 @@ public class MainActivity extends Activity {
       action(checkout,"🍽 Als Mahlzeit eintragen",()->{
         try{
           JSONObject draft=buildAiReview(mode,output,title,servings,group,editors);
-          int score=FitRocketAiRules.pointsPerServing(draft,foods);
+          double score=FitRocketAiRules.pointsPerServingPrecise(draft,foods);
           addMeal(draft.optString("title")+( "recipe".equals(mode)?" (1 Portion)":""),score,
               "AI_MEAL","KI-Schätzung · überprüft",draft.optString("group"));
           // Preserve the reviewed composition for later inspection in the diary.
@@ -1901,15 +1901,19 @@ public class MainActivity extends Activity {
                     b.append(step!=null?step.optString("text"):arr.optString(i)).append("\n");}directionsText=b.toString();}
                 JSONObject draft=new JSONObject();
                 draft.put("name",recipe.optString("name"));draft.put("manualIngredients",ingredientText.toString());
-                draft.put("instructions",directionsText);draft.put("minutes",25);draft.put("servings",2);
-                draft.put("sourceUrl",url);draft.put("manualPoints",0);
+                draft.put("instructions",directionsText);
+                draft.put("minutes",recipeMinutes(recipe));
+                draft.put("servings",recipeServings(recipe));
+                draft.put("sourceUrl",url);
                 if(FitRocketAiSecrets.configured(this,selectedAiProvider())){
                   String details="Analysiere dieses extern importierte Rezept und schätze die Nährwerte pro 100 g jeder Zutat. " +
                     "Übernimm die Zutatenmengen, erfinde keine zusätzlichen Zutaten. " +
                     "Rezept: "+draft.optString("name")+"; Zutaten: "+draft.optString("manualIngredients")+
                     "; Zubereitung: "+draft.optString("instructions");
-                  if(details.length()>1400)details=details.substring(0,1400);
-                  aiSubmit("recipe",details);
+                  if(details.length()>1400){
+                    msg("Für die KI ist dieses Rezept zu lang. Der vollständige Import bleibt in der Bearbeitungsmaske erhalten.");
+                    editOwnRecipe(draft);
+                  }else aiSubmit("recipe",details);
                 }else{
                   msg("Keine KI eingerichtet: Rezept wird zur manuellen Prüfung geöffnet.");
                   editOwnRecipe(draft);
@@ -1919,6 +1923,25 @@ public class MainActivity extends Activity {
           }catch(Exception error){runOnUiThread(()->msg("Import nicht möglich: "+error.getMessage()));}
         }).start();
       }).show();
+  }
+  /** Read schema.org quantities without inventing 2 portions / 25 minutes. */
+  private int recipeServings(JSONObject recipe){
+    String text=recipe.optString("recipeYield","1");
+    JSONArray array=recipe.optJSONArray("recipeYield");
+    if(array!=null&&array.length()>0)text=array.optString(0,"1");
+    java.util.regex.Matcher match=java.util.regex.Pattern.compile("\\d+").matcher(text);
+    if(match.find())try{return Math.max(1,Math.min(20,Integer.parseInt(match.group())));}
+    catch(Exception ignored){}
+    return 1;
+  }
+  private int recipeMinutes(JSONObject recipe){
+    String value=recipe.optString("totalTime","");
+    if(value.isEmpty())value=recipe.optString("cookTime",recipe.optString("prepTime",""));
+    try{
+      long minutes=java.time.Duration.parse(value).toMinutes();
+      if(minutes>0&&minutes<=1440)return (int)minutes;
+    }catch(Exception ignored){}
+    return 25; // fallback only when source has no parseable duration
   }
   private JSONObject findLinkedRecipe(Object node){
     if(node instanceof JSONArray){
