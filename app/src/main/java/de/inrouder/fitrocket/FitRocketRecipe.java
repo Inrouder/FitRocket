@@ -11,8 +11,15 @@ public final class FitRocketRecipe {
     private FitRocketRecipe(){}
 
     public static int pointsPerServing(JSONObject recipe,List<JSONObject> foods){
+        return (int)Math.round(pointsPerServingPrecise(recipe,foods));
+    }
+
+    /** Always respect actual catalog zero-point (basic) foods.
+     * A recipe-local nutrient override is allowed without modifying catalog entries.
+     */
+    public static double pointsPerServingPrecise(JSONObject recipe,List<JSONObject> foods){
         if(recipe==null||foods==null)throw new IllegalArgumentException("Rezept fehlt");
-        int servings=recipe.optInt("servings",1);
+        int servings=recipe.optInt("servings",0);
         if(servings<1||servings>20)throw new IllegalArgumentException("Portionen");
         Map<String,JSONObject> byId=new HashMap<>();
         for(JSONObject food:foods)byId.put(food.optString("id"),food);
@@ -24,20 +31,23 @@ public final class FitRocketRecipe {
             if(part==null)throw new IllegalArgumentException("Zutat");
             JSONObject food=byId.get(part.optString("id"));
             double grams=part.optDouble("grams",Double.NaN)/servings;
-            if(food==null||!Double.isFinite(grams)||grams<=0||grams>10000)throw new IllegalArgumentException("Fehlende Zutat");
-            String status=food.optString("status");
-            if("basic".equals(status))continue;
-            if(!"nutrition".equals(status))throw new IllegalArgumentException("Ungeprüfte Zutat");
-            JSONObject n=food.optJSONObject("nutrition");
-            if(n==null||!n.has("kcal")||!n.has("saturatedFat_g")||!n.has("sugar_g")||!n.has("protein_g"))
-                throw new IllegalArgumentException("Nährwerte fehlen");
+            if(!Double.isFinite(grams)||grams<=0||grams>10000)throw new IllegalArgumentException("Menge");
+            JSONObject n=part.optJSONObject("nutritionOverride");
+            if(n==null){
+                if(food==null)throw new IllegalArgumentException("Fehlende Zutat "+part.optString("id"));
+                if("basic".equals(food.optString("status")))continue; // immutable ZeroPoints
+                if(!"nutrition".equals(food.optString("status")))throw new IllegalArgumentException("Ungeprüfte Zutat");
+                n=food.optJSONObject("nutrition");
+            }
+            if(n==null)throw new IllegalArgumentException("Nährwerte fehlen");
+            double k=n.optDouble("kcal",Double.NaN),fat=n.optDouble("saturatedFat_g",Double.NaN);
+            double su=n.optDouble("sugar_g",Double.NaN),pro=n.optDouble("protein_g",Double.NaN);
+            FitRocketAiRules.required(k,1000);FitRocketAiRules.required(fat,100);
+            FitRocketAiRules.required(su,100);FitRocketAiRules.required(pro,100);
             double factor=grams/100.0;
-            kcal+=n.optDouble("kcal")*factor;
-            saturated+=n.optDouble("saturatedFat_g")*factor;
-            sugar+=n.optDouble("sugar_g")*factor;
-            protein+=n.optDouble("protein_g")*factor;
+            kcal+=k*factor;saturated+=fat*factor;sugar+=su*factor;protein+=pro*factor;
         }
-        // Round once per serving, not once for every ingredient.\n        return FitRocketMath.foodPoints(kcal,saturated,sugar,protein);
+        return FitRocketMath.foodPointsPrecise(kcal,saturated,sugar,protein);
     }
 
     public static String ingredients(JSONObject recipe,List<JSONObject> foods){
