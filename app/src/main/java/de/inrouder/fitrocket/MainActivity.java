@@ -195,6 +195,11 @@ public class MainActivity extends Activity {
   }
   private void saveScannedFood(JSONObject food){
     try{
+      JSONObject existing=FitRocketAiRules.existingByName(food.optString("name"),foods);
+      if(existing!=null&&!existing.optString("id").equals(food.optString("id"))){
+        msg("Dieses Lebensmittel ist bereits in der Liste vorhanden und wird nicht doppelt gespeichert.");
+        return;
+      }
       JSONArray original=new JSONArray(prefs.getString("scannedProducts","[]"));
       JSONArray saved=new JSONArray();
       saved.put(food);
@@ -718,8 +723,13 @@ public class MainActivity extends Activity {
     LinearLayout results=new LinearLayout(this);results.setOrientation(1);page.addView(results);
     Runnable filter=()->{results.removeAllViews();String q=search.getText().toString().toLowerCase(Locale.ROOT).trim();
       if(q.length()<2){LinearLayout hint=card(Color.WHITE);hint.addView(label("Tippe oben mindestens zwei Buchstaben ein, um Lebensmittel zu finden.",15));results.addView(hint);return;}
-      int count=0;for(JSONObject f:foods){String value=(f.optString("name")+" "+f.optString("alias")+" "+f.optString("category")).toLowerCase(Locale.ROOT);
-        if(!value.contains(q))continue;count++;
+      int count=0;
+      HashSet<String> displayedNames=new HashSet<>();
+      for(JSONObject f:foods){String value=(f.optString("name")+" "+f.optString("alias")+" "+f.optString("category")).toLowerCase(Locale.ROOT);
+        if(!value.contains(q))continue;
+        // Hide historic duplicate rows without changing their IDs (used by old recipes).
+        if(!displayedNames.add(FitRocketAiRules.normalize(f.optString("name"))))continue;
+        count++;
         LinearLayout item=card(Color.WHITE);
         LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.HORIZONTAL);top.setGravity(Gravity.CENTER_VERTICAL);
         TextView name=label(f.optString("name"),16);name.setTypeface(null,1);top.addView(name,new LinearLayout.LayoutParams(0,-2,1));
@@ -765,11 +775,24 @@ public class MainActivity extends Activity {
     return false;
   }
 
+  private boolean recipeUsesFood(String foodId){
+    for(JSONObject recipe:recipes){
+      JSONArray lines=recipe.optJSONArray("ingredients");
+      for(int i=0;lines!=null&&i<lines.length();i++){
+        JSONObject part=lines.optJSONObject(i);
+        if(part!=null&&foodId.equals(part.optString("id")))return true;
+      }
+    }
+    return false;
+  }
   private void confirmDeletePersonalFood(JSONObject food){
+    if(recipeUsesFood(food.optString("id"))){
+      msg("Dieses Lebensmittel wird in einem Rezept verwendet und kann nicht gelöscht werden.");
+      return;
+    }
     new AlertDialog.Builder(this).setTitle("Eigenes Lebensmittel löschen?")
       .setMessage("„"+food.optString("name")+"“ aus deiner Lebensmittelliste löschen? "
-       +"Bereits gebuchte Tagebucheinträge bleiben erhalten. Bei gespeicherten "
-       +"Rezepten kann die Zutatenverknüpfung danach fehlen.")
+       +"Bereits gebuchte Tagebucheinträge bleiben erhalten. Lebensmittel aus aktiven Rezepten sind vor dem Löschen geschützt.")
       .setPositiveButton("Löschen",(dialog,which)->{
         String id=food.optString("id","");
         String key=id.startsWith("SCAN")?"scannedProducts":"aiFoods";
@@ -1951,6 +1974,7 @@ public class MainActivity extends Activity {
           if(!prefs.edit().putString("savedAiRecipes",remaining.toString()).commit()){
             msg("Rezept konnte nicht gelöscht werden.");return;
           }
+          if(recipe.has("imageFile"))recipePhotoFile(recipe.optString("imageFile")).delete();
           loadRecipes();recipeScreen();msg("Rezept gelöscht.");
         }catch(Exception error){msg("Rezept konnte nicht gelöscht werden.");}
       }).show();
