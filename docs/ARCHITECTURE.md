@@ -70,3 +70,6 @@ Nur Rezepte mit IDs `OWN*` und `AIRECIPE*` dürfen über `attachSwipeDelete` und
 
 ## Tageszeit einer Buchung nachträglich ändern (v0.16.7)
 `mealRow()` bietet die Aktion „Tageszeit ändern“. `changeMealGroup()` schreibt ausschließlich `group` des vorhandenen JSON-Eintrags aus `meals` und speichert anschließend die Liste über `persist`. Datum und Punkte werden nicht geändert. Die Tagebuchgruppen rendern nach `refreshMealContext()` neu. Dies gilt für manuelle, Katalog- und KI-Mahlzeiten.
+
+## Rezeptzutaten und Portionen (v0.16.8)
+Beim Speichern von KI-Rezepten zuerst `FitRocketAiRules.matchCatalog` (ID und Name), dann `existingByName` mit exakt normalisiertem Namen und schließlich nur bei keinem Treffer `newFood` verwenden. Im selben Rezept neu erzeugte Lebensmittel gehören sofort zur Lookup-Liste. Keine unscharfen Ähnlichkeitstreffer zwischen Sorten. `FitRocketRecipe.pointsPerServing` und `FitRocketAiRules.pointsPerServing` teilen Zutatenmengen durch `servings`, addieren Nährwerte je Portion und runden erst das Gesamtergebnis. Bestehende historische Duplikate werden bei dieser Änderung nicht automatisch gelöscht.
