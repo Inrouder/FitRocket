@@ -72,6 +72,10 @@ public class FitRocketRecipeTest {
       new JSONObject().put("servings",2).put("ingredients",items),
       Arrays.asList(tomato)),0.0001);
   }
+  @Test public void editingOldManualRecipeFromTwoToFourPortionsHalvesPoints() {
+    assertEquals(6.0,FitRocketRecipe.rescaleManualPoints(12,2,4),0.0001);
+    assertEquals(24.0,FitRocketRecipe.rescaleManualPoints(12,2,1),0.0001);
+  }
   @Test(expected=IllegalArgumentException.class)
   public void unknownManualIngredientMustNotDefaultToZero()throws Exception{
     FitRocketRecipe.linkManualIngredients("300 g Mysteriöse Zutat",Arrays.asList(
