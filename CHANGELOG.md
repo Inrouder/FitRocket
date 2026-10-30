@@ -1,5 +1,9 @@
 # FitRocket – Versionshinweise
 
+## 0.16.7 – Gebuchte Mahlzeiten verschieben
+- Bereits gebuchte Lebensmittel über die Eintragsoption „Tageszeit ändern“ zwischen Frühstück, Mittagessen, Abendessen, Snack und Getränke verschieben.
+- Datum, Portion und Punkte bleiben unverändert; die Tagesübersicht wird sofort aktualisiert.
+
 ## 0.16.6 – Gewichtsdiagramm besser lesbar
 - Dunkle, klare Verbindungslinie mit kreisförmigen Messpunkten und Datumsachse entsprechend tatsächlicher Messzeitpunkte.
 - Gestrichelte Zielgewichtslinie mit Gewichtsangabe und vier bis fünf gut verteilten Datumsmarkierungen.
