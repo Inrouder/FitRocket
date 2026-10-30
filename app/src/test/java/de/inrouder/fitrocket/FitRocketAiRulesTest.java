@@ -67,10 +67,23 @@ public class FitRocketAiRulesTest {
             FitRocketAiRules.pointsPerServing(x,Arrays.asList(rice)));
     }
 
-    @Test public void missingFoodIdCanNeverUseZeroRule()throws Exception{
+    @Test public void exactNameWithoutIdReusesExistingBasicFood()throws Exception{
         JSONObject basis=food("ZP214","Tomaten","basic",0);
         JSONObject x=proposal(1,item("Tomaten","",200,100));
-        assertTrue(FitRocketAiRules.pointsPerServing(x,Arrays.asList(basis))>0);
+        assertSame(basis,FitRocketAiRules.existingByName("tomaten",Arrays.asList(basis)));
+        assertEquals(0,FitRocketAiRules.pointsPerServing(x,Arrays.asList(basis)));
+    }
+
+    @Test public void namesMustMatchExactlyNotBySubstring()throws Exception{
+        JSONObject basis=food("N1","Vollkornnudeln gekocht","nutrition",140);
+        assertNull(FitRocketAiRules.existingByName("Nudeln gekocht",Arrays.asList(basis)));
+    }
+
+    @Test public void missingIdUsesExistingNutritionInsteadOfAiEstimate()throws Exception{
+        JSONObject rice=food("R1","Basmatireis gekocht","nutrition",130);
+        JSONObject x=proposal(4,item("basmatireis gekocht","",400,900));
+        assertEquals(FitRocketAiRules.points(100,130,0,0,0),
+            FitRocketAiRules.pointsPerServing(x,Arrays.asList(rice)));
     }
 
     @Test public void recipePointsAreCalculatedPerPortion()throws Exception{
