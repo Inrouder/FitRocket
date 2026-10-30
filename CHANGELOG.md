@@ -1,5 +1,15 @@
 # FitRocket – Versionshinweise
 
+## 0.16.9 – Audit- und ZeroPoints-Korrekturen
+- Der originale ZeroPoints-Katalog bleibt auch bei großen Mengen und Rezepten bei 0 Punkten.
+- Gemeinsame Zehntelpunkt-Berechnung für Lebensmittel, Rezepte, KI-Vorschau und Favoriten.
+- Eigenrezepte verknüpfen kanonische Zutaten-IDs; fehlende Zutaten werden nicht automatisch als Null bewertet.
+- Verhindert neue Dubletten; historische Dubletten im Suchergebnis ausgeblendet ohne IDs zu löschen.
+- Schutz für referenzierte Zutaten, Fehlerhinweise statt verschwundener Rezepte, stabile Bildschirmwiederherstellung.
+- Rezeptfotos aus SharedPreferences in private Dateien ausgelagert; weiterhin mit Backup gesichert.
+- Aktuelle Trainingspunkte und Schritt-Snapshots stabilisiert, Health-Connect-Duplikate nach Sportart unterschieden.
+
+
 ## 0.16.8 – Lebensmittel-Duplikate und Rezeptportionen
 - KI-Rezepte referenzieren vorhandene Lebensmittel anhand validierter ID oder exakt normalisiertem Namen, statt dieselben erneut anzulegen.
 - Innerhalb eines Rezepts neu angelegte Zutaten werden ebenfalls wiederverwendet.
