@@ -3065,7 +3065,25 @@ public class MainActivity extends Activity {
     return FitRocketMath.stepCalories(restDaily(),eligible,cadenceFor(date));
   }
   private int stepPointsFor(String date){
-    return FitRocketMath.points(stepKcalFor(date),prefs.getInt("kcalPerPoint",65));
+    JSONObject snapshots;
+    try{snapshots=new JSONObject(prefs.getString("stepPointHistory","{}"));}
+    catch(Exception e){snapshots=new JSONObject();}
+    if(!date.equals(today())&&snapshots.has(date))return snapshots.optInt(date,0);
+    int points=FitRocketMath.points(stepKcalFor(date),prefs.getInt("kcalPerPoint",65));
+    if(!date.equals(today())){
+      try{snapshots.put(date,points);
+        prefs.edit().putString("stepPointHistory",snapshots.toString()).apply();
+      }catch(Exception ignored){}
+    }
+    return points;
+  }
+  private void saveStepPointSnapshot(String day){
+    if(!profileReady())return;
+    try{
+      JSONObject snapshots=new JSONObject(prefs.getString("stepPointHistory","{}"));
+      snapshots.put(day,FitRocketMath.points(stepKcalFor(day),prefs.getInt("kcalPerPoint",65)));
+      prefs.edit().putString("stepPointHistory",snapshots.toString()).apply();
+    }catch(Exception ignored){}
   }
   private int totalStepPointsWeek(){
     int n=0;for(int i=0;i<7;i++)n+=stepPointsFor(weekStart().plusDays(i).toString());return n;
@@ -3098,6 +3116,7 @@ public class MainActivity extends Activity {
         int[] speeds={80,100,120};JSONObject map=stepMap();JSONObject day=new JSONObject();
         day.put("total",steps);day.put("cadence",speeds[pace.getSelectedItemPosition()]);
         map.put(today(),day);prefs.edit().putString("stepDays",map.toString()).apply();
+        saveStepPointSnapshot(today());
         d.dismiss();activityPage();
       }catch(Exception e){msg("Bitte eine gültige Schrittzahl eingeben.");}
     }));d.show();
@@ -3380,6 +3399,7 @@ public class MainActivity extends Activity {
     prefs.edit().putString("healthStepDays",stepCopy.toString())
       .putString("activities",new JSONArray(nextActivities).toString()).apply();
     activities.clear();activities.addAll(nextActivities);
+    for(String day:result.dailySteps.keySet())saveStepPointSnapshot(day);
     return added;
   }
   private void disconnectHealth(){
@@ -3484,6 +3504,8 @@ public class MainActivity extends Activity {
         payload.put("weights",new JSONArray(prefs.getString("weights","[]")));
         payload.put("activities",new JSONArray(prefs.getString("activities","[]")));
         payload.put("steps",stepMap());
+        try{payload.put("stepPointHistory",new JSONObject(prefs.getString("stepPointHistory","{}")));}
+        catch(Exception ignored){}
         payload.put("healthSteps",healthStepMap());
         payload.put("healthIgnored",new JSONArray(prefs.getString("healthIgnored","[]")));
         payload.put("healthStepsPreferred",prefs.getBoolean("healthStepsPreferred",true));
@@ -3607,6 +3629,10 @@ public class MainActivity extends Activity {
         if(!Double.isFinite(weightTarget)||weightTarget<0||weightTarget>400)throw new IllegalArgumentException();
         final double importedWeightGoal=weightTarget;
         final JSONObject importedSteps=steps;
+        JSONObject importedSnapshot=payload.optJSONObject("stepPointHistory");
+        if(importedSnapshot==null)importedSnapshot=new JSONObject();
+        if(importedSnapshot.length()>2000)throw new IllegalArgumentException("Zu viele Schrittwerte");
+        final JSONObject savedSnapshots=importedSnapshot;
         JSONObject importedHealthSteps=payload.optJSONObject("healthSteps");
         if(importedHealthSteps==null)importedHealthSteps=new JSONObject();
         if(importedHealthSteps.length()>2000)throw new IllegalArgumentException();
@@ -3637,6 +3663,7 @@ public class MainActivity extends Activity {
                android.content.SharedPreferences.Editor e=prefs.edit();
               e.putString("meals",ma.toString()).putString("weights",we.toString())
                 .putString("activities",importedActivities.toString()).putString("stepDays",importedSteps.toString())
+                 .putString("stepPointHistory",savedSnapshots.toString())
                 .putString("waterDays",importedWater.toString()).putInt("waterGoal",importedWaterGoal)
                 .putString("scannedProducts",importedScanned.toString())
                 .putString("aiFoods",importedAiFoods.toString())
