@@ -101,7 +101,14 @@ public final class FitRocketAiRules {
         return root;
     }
 
-    public static int pointsPerServing(JSONObject result,List<JSONObject> catalog) {
+    public static int pointsPerServing(JSONObject result,List<JSONObject> catalog){
+        return (int)Math.round(pointsPerServingPrecise(result,catalog));
+    }
+
+    /** Prefer catalog points including ZeroPoints unless the user explicitly opted out
+     * in the ingredient editor. Such an override applies to this recipe only.
+     */
+    public static double pointsPerServingPrecise(JSONObject result,List<JSONObject> catalog){
         if(result==null||catalog==null)throw new IllegalArgumentException("Daten fehlen");
         int servings=result.optInt("servings",0);
         if(servings<1||servings>12)throw new IllegalArgumentException("Portionen");
@@ -113,13 +120,14 @@ public final class FitRocketAiRules {
             JSONObject item=ingredients.optJSONObject(i);
             if(item==null)throw new IllegalArgumentException("Zutat");
             double grams=item.optDouble("grams",Double.NaN)/servings;
-            JSONObject known=matchCatalog(item.optString("food_id"),item.optString("name"),catalog);
-            if(known==null)known=existingByName(item.optString("name"),catalog);
+            if(!Double.isFinite(grams)||grams<=0||grams>10000)throw new IllegalArgumentException("Menge");
+            boolean optOut=item.optBoolean("catalogOptOut",false);
+            JSONObject known=optOut?null:matchCatalog(item.optString("food_id"),item.optString("name"),catalog);
+            if(known==null&&!optOut)known=existingByName(item.optString("name"),catalog);
             if(known!=null && "basic".equals(known.optString("status")))continue;
             JSONObject macros=known!=null&&"nutrition".equals(known.optString("status"))?
                 known.optJSONObject("nutrition"):null;
             double factor=grams/100.0;
-            if(!Double.isFinite(factor)||factor<=0||factor>100)throw new IllegalArgumentException("Menge");
             double k=macros==null?item.optDouble("kcal_100g",Double.NaN):macros.optDouble("kcal",Double.NaN);
             double sat=macros==null?item.optDouble("saturated_fat_100g",Double.NaN):macros.optDouble("saturatedFat_g",Double.NaN);
             double su=macros==null?item.optDouble("sugar_100g",Double.NaN):macros.optDouble("sugar_g",Double.NaN);
@@ -127,7 +135,7 @@ public final class FitRocketAiRules {
             required(k,1000);required(sat,100);required(su,100);required(pr,100);
             kcal+=k*factor;saturated+=sat*factor;sugar+=su*factor;protein+=pr*factor;
         }
-        return FitRocketMath.foodPoints(kcal,saturated,sugar,protein);
+        return FitRocketMath.foodPointsPrecise(kcal,saturated,sugar,protein);
     }
 
     public static JSONObject newFood(JSONObject item,String prefix) throws JSONException {
