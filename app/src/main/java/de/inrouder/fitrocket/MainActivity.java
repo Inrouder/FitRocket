@@ -30,7 +30,7 @@ public class MainActivity extends Activity {
   private String lastRenderedDate=null;
   private LocalDate diaryDate=LocalDate.now();
   private String bookingDate=null,bookingGroup=null,bookingReturn=null;
-  private String recipeFilter="Alle";
+  private String recipeFilter="Alle",lastFoodQuery="";
   private final int NAVY=Color.rgb(37,46,76), BLUE=Color.rgb(112,117,225), LIGHT=Color.rgb(255,247,242), PEACH=Color.rgb(255,220,204), MINT=Color.rgb(212,242,216), LAV=Color.rgb(240,231,255);
   private int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+0.5f);}
   private boolean dark(){return FitRocketTheme.isDark(this);}
@@ -137,6 +137,8 @@ public class MainActivity extends Activity {
     }
     if(saved!=null){
       pendingRecipeImageId=saved.getString("fitrocketPendingRecipePhoto");
+      recipeFilter=saved.getString("fitrocketRecipeFilter","Alle");
+      lastFoodQuery=saved.getString("fitrocketFoodQuery","");
       String previous=saved.getString("fitrocketScreen","Tagebuch");
       if("Profil".equals(previous))profilePage();
       else if("Fortschritt".equals(previous))progressPage();
@@ -150,6 +152,8 @@ public class MainActivity extends Activity {
     out.putString("fitrocketScreen",currentScreen);
     out.putString("fitrocketDiaryDate",diaryDate.toString());
     out.putString("fitrocketPendingRecipePhoto",pendingRecipeImageId);
+    out.putString("fitrocketRecipeFilter",recipeFilter);
+    out.putString("fitrocketFoodQuery",lastFoodQuery);
     super.onSaveInstanceState(out);
   }
   private void readArray(String key,ArrayList<JSONObject> into){into.clear();try{JSONArray arr=new JSONArray(prefs.getString(key,"[]"));for(int i=0;i<arr.length();i++)into.add(arr.getJSONObject(i));}catch(Exception ignored){}}
@@ -673,7 +677,7 @@ public class MainActivity extends Activity {
     TextView title=label("🔎 Lebensmittel finden",19);title.setTypeface(null,1);
     searchCard.addView(title);
     searchCard.addView(label("Suche nach Namen, Kategorien oder bekannten Zutaten.",13));
-    EditText search=edit("Lebensmittel suchen …","",1);
+    EditText search=edit("Lebensmittel suchen …",lastFoodQuery,1);
     search.setSingleLine(true);
     search.setPadding(dp(17),dp(15),dp(17),dp(15));
     GradientDrawable searchField=new GradientDrawable();
@@ -749,7 +753,7 @@ public class MainActivity extends Activity {
       }
       if(count==0){LinearLayout empty=card(Color.WHITE);empty.addView(label("Keine Treffer – du kannst eine Mahlzeit manuell erfassen.",15));results.addView(empty);}
     };
-    search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int b,int c){}public void onTextChanged(CharSequence s,int a,int b,int c){filter.run();}public void afterTextChanged(Editable s){}});
+    search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int b,int c){}public void onTextChanged(CharSequence s,int a,int b,int c){lastFoodQuery=s.toString();filter.run();}public void afterTextChanged(Editable s){}});
     filter.run();
   }
   private double num(String s) { return Double.parseDouble(s.trim().replace(',','.')); }
