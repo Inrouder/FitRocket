@@ -1801,6 +1801,7 @@ public class MainActivity extends Activity {
             return;
           }
           double score=FitRocketPointLedger.validPoints(num(points.getText().toString().trim()));
+          if(score==0)throw new IllegalArgumentException("Unbekannte Zutaten dürfen nicht pauschal als ZeroPoints bewertet werden.");
           recipe.put("manualPoints",score);
           recipe.put("ingredients",new JSONArray());
           recipe.put("notes","Manuelle Punkte: "+missing.getMessage());
@@ -3404,12 +3405,19 @@ public class MainActivity extends Activity {
   }
   private void disconnectHealth(){
     healthBusy=false;
+    JSONObject previousHealthDays=healthStepMap();
     ArrayList<JSONObject> retained=new ArrayList<>();
     for(JSONObject x:activities)if(!"health_connect".equals(x.optString("source")))retained.add(x);
     activities.clear();activities.addAll(retained);
     prefs.edit().putBoolean("healthUse",false).remove("healthStepDays")
       .remove("healthIgnored").remove("healthLastAttempt").remove("healthLastSuccess").remove("healthStepsPreferred")
       .putString("activities",new JSONArray(activities).toString()).apply();
+    // Rebuild snapshots from the remaining MANUAL steps rather than keeping
+    // credits from a disconnected watch source.
+    for(java.util.Iterator<String> keys=previousHealthDays.keys();keys.hasNext();){
+      String day=keys.next();
+      saveStepPointSnapshot(day);
+    }
     msg("Health-Connect-Daten wurden aus FitRocket entfernt.");
     activityPage();
   }
