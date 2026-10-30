@@ -1813,6 +1813,12 @@ public class MainActivity extends Activity {
             return;
           }
           double score=FitRocketPointLedger.validPoints(num(points.getText().toString().trim()));
+          // If the user changed ONLY the number of portions, preserve total
+          // dish points and recompute the new per-portion value automatically.
+          if(source.has("manualPoints")&&source.optInt("servings",portion)!=portion
+             &&Math.abs(score-source.optDouble("manualPoints"))<0.00001){
+            score=FitRocketRecipe.rescaleManualPoints(score,source.optInt("servings",portion),portion);
+          }
           if(score==0)throw new IllegalArgumentException("Unbekannte Zutaten dürfen nicht pauschal als ZeroPoints bewertet werden.");
           recipe.put("manualPoints",score);
           recipe.put("ingredients",new JSONArray());
