@@ -157,6 +157,7 @@ public class MainActivity extends Activity {
   private void loadFoods(){try(InputStream in=getAssets().open("foods.json")){ByteArrayOutputStream o=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)o.write(b,0,n);JSONArray a=new JSONArray(new String(o.toByteArray(),StandardCharsets.UTF_8));for(int i=0;i<a.length();i++)foods.add(a.getJSONObject(i));}catch(Exception e){msg("Lebensmitteldatenbank konnte nicht geladen werden.");}}
   private void loadRecipes(){
     recipes.clear();
+    migrateRecipePhotos();
     try(InputStream in=getAssets().open("recipes.json")){
       ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buffer=new byte[4096];int count;
       while((count=in.read(buffer))!=-1){out.write(buffer,0,count);if(out.size()>250000)throw new IOException("Rezeptliste zu groß");}
@@ -1689,12 +1690,47 @@ public class MainActivity extends Activity {
   }
 
 
+  /** Private per-recipe images, never user-supplied filesystem paths. */
+  private File recipePhotoFile(String name){
+    if(name==null||!name.matches("[A-Za-z0-9_-]{1,100}\\.jpg"))
+      throw new IllegalArgumentException("Ungültiger Bildname");
+    File dir=new File(getFilesDir(),"recipe_photos");
+    if(!dir.exists()&&!dir.mkdirs())throw new IllegalStateException("Bildordner fehlt");
+    return new File(dir,name);
+  }
+  private String storeRecipePhoto(JSONObject recipe,String encoded) throws IOException{
+    byte[] bytes=android.util.Base64.decode(encoded,android.util.Base64.DEFAULT);
+    if(bytes.length<20||bytes.length>900000)throw new IOException("Ungültige Bildgröße");
+    String filename="r"+UUID.nameUUIDFromBytes(recipe.optString("id").getBytes(StandardCharsets.UTF_8))
+      .toString().replace("-","")+".jpg";
+    try(FileOutputStream out=new FileOutputStream(recipePhotoFile(filename))){
+      out.write(bytes);out.getFD().sync();
+    }
+    return filename;
+  }
+  private void migrateRecipePhotos(){
+    try{
+      JSONArray saved=new JSONArray(prefs.getString("savedAiRecipes","[]"));boolean changed=false;
+      for(int i=0;i<saved.length();i++){
+        JSONObject recipe=saved.optJSONObject(i);
+        if(recipe!=null&&recipe.has("imageData")){
+          try{
+            recipe.put("imageFile",storeRecipePhoto(recipe,recipe.optString("imageData")));
+            recipe.remove("imageData");changed=true;
+          }catch(Exception ignored){}
+        }
+      }
+      if(changed)prefs.edit().putString("savedAiRecipes",saved.toString()).commit();
+    }catch(Exception ignored){}
+  }
   private String pendingRecipeImageId=null;
   private void showRecipeImage(LinearLayout parent,String uri){
     if(uri==null||uri.isEmpty())return;
     try{
       ImageView picture=new ImageView(this);
-      if(uri.startsWith("content:"))picture.setImageURI(Uri.parse(uri));
+      if(uri.startsWith("local:"))picture.setImageBitmap(
+        android.graphics.BitmapFactory.decodeFile(recipePhotoFile(uri.substring(6)).getAbsolutePath()));
+      else if(uri.startsWith("content:"))picture.setImageURI(Uri.parse(uri));
       else{
         byte[] image=android.util.Base64.decode(uri,android.util.Base64.DEFAULT);
         picture.setImageBitmap(android.graphics.BitmapFactory.decodeByteArray(image,0,image.length));
@@ -1811,11 +1847,12 @@ public class MainActivity extends Activity {
       for(int i=0;i<saved.length();i++){
         JSONObject item=saved.optJSONObject(i);
         if(item!=null&&item.optString("id").equals(pendingRecipeImageId)){
-          item.put("imageData",encoded);item.remove("imageUri");found=true;
+          item.put("imageFile",storeRecipePhoto(item,encoded));
+          item.remove("imageData");item.remove("imageUri");found=true;
         }
       }
       if(!found)throw new IllegalArgumentException("Rezept nicht gefunden");
-      prefs.edit().putString("savedAiRecipes",saved.toString()).apply();
+      if(!prefs.edit().putString("savedAiRecipes",saved.toString()).commit())throw new IOException("Speichern fehlgeschlagen");
       pendingRecipeImageId=null;loadRecipes();recipeScreen();
     }catch(Exception e){msg("Rezeptfoto konnte nicht gespeichert werden.");}
   }
@@ -2006,7 +2043,8 @@ public class MainActivity extends Activity {
       try{points=recipe.has("manualPoints")?FitRocketPointLedger.validPoints(recipe.optDouble("manualPoints")):FitRocketRecipe.pointsPerServingPrecise(recipe,foods);}
       catch(Exception e){recipeError=e.getMessage()==null?"Zutaten prüfen":e.getMessage();}
       LinearLayout row=card(Color.WHITE);
-      if(recipe.has("imageData"))showRecipeImage(row,recipe.optString("imageData"));
+      if(recipe.has("imageFile"))showRecipeImage(row,"local:"+recipe.optString("imageFile"));
+      else if(recipe.has("imageData"))showRecipeImage(row,recipe.optString("imageData"));
       else if(recipe.has("imageUri"))showRecipeImage(row,recipe.optString("imageUri"));
       LinearLayout nameRow=new LinearLayout(this);nameRow.setOrientation(0);nameRow.setGravity(Gravity.CENTER_VERTICAL);
       TextView name=label(recipe.optString("emoji","🍽")+"  "+recipe.optString("name"),17);name.setTypeface(null,1);
@@ -3433,6 +3471,11 @@ public class MainActivity extends Activity {
         JSONArray backedRecipes=new JSONArray(prefs.getString("savedAiRecipes","[]"));
         for(int i=0;i<backedRecipes.length();i++){
           JSONObject recipe=backedRecipes.optJSONObject(i);
+          if(recipe!=null&&recipe.has("imageFile")){
+            try(InputStream photo=new FileInputStream(recipePhotoFile(recipe.optString("imageFile")))){
+              recipe.put("imageData",encodedRecipePhoto(photo));recipe.remove("imageFile");
+            }catch(Exception e){throw new IOException("Rezeptfoto fehlt: "+recipe.optString("name"),e);}
+          }
           if(recipe!=null && !recipe.has("imageData") && recipe.has("imageUri")){
             try(InputStream photo=getContentResolver().openInputStream(Uri.parse(recipe.optString("imageUri")))){
               recipe.put("imageData",encodedRecipePhoto(photo));
@@ -3559,7 +3602,16 @@ public class MainActivity extends Activity {
             +"Möchtest du fortfahren?")
           .setPositiveButton("Importieren",(d,w)->{
             try{
-              android.content.SharedPreferences.Editor e=prefs.edit();
+              for(int i=0;i<importedAiRecipes.length();i++){
+                 JSONObject recipe=importedAiRecipes.optJSONObject(i);
+                 if(recipe==null)continue;
+                 recipe.remove("imageFile");
+                 if(recipe.has("imageData")){
+                   recipe.put("imageFile",storeRecipePhoto(recipe,recipe.optString("imageData")));
+                   recipe.remove("imageData");
+                 }
+               }
+               android.content.SharedPreferences.Editor e=prefs.edit();
               e.putString("meals",ma.toString()).putString("weights",we.toString())
                 .putString("activities",importedActivities.toString()).putString("stepDays",importedSteps.toString())
                 .putString("waterDays",importedWater.toString()).putInt("waterGoal",importedWaterGoal)
