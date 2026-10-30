@@ -108,22 +108,26 @@ public final class FitRocketAiRules {
         JSONArray ingredients=result.optJSONArray("ingredients");
         if(ingredients==null||ingredients.length()==0||ingredients.length()>12)
             throw new IllegalArgumentException("Zutaten fehlen");
-        int sum=0;
+        double kcal=0,saturated=0,sugar=0,protein=0;
         for(int i=0;i<ingredients.length();i++){
             JSONObject item=ingredients.optJSONObject(i);
             if(item==null)throw new IllegalArgumentException("Zutat");
             double grams=item.optDouble("grams",Double.NaN)/servings;
             JSONObject known=matchCatalog(item.optString("food_id"),item.optString("name"),catalog);
+            if(known==null)known=existingByName(item.optString("name"),catalog);
             if(known!=null && "basic".equals(known.optString("status")))continue;
             JSONObject macros=known!=null&&"nutrition".equals(known.optString("status"))?
                 known.optJSONObject("nutrition"):null;
-            sum+=points(grams,
-               macros==null?item.optDouble("kcal_100g",Double.NaN):macros.optDouble("kcal",Double.NaN),
-               macros==null?item.optDouble("saturated_fat_100g",Double.NaN):macros.optDouble("saturatedFat_g",Double.NaN),
-               macros==null?item.optDouble("sugar_100g",Double.NaN):macros.optDouble("sugar_g",Double.NaN),
-               macros==null?item.optDouble("protein_100g",Double.NaN):macros.optDouble("protein_g",Double.NaN));
+            double factor=grams/100.0;
+            if(!Double.isFinite(factor)||factor<=0||factor>100)throw new IllegalArgumentException("Menge");
+            double k=macros==null?item.optDouble("kcal_100g",Double.NaN):macros.optDouble("kcal",Double.NaN);
+            double sat=macros==null?item.optDouble("saturated_fat_100g",Double.NaN):macros.optDouble("saturatedFat_g",Double.NaN);
+            double su=macros==null?item.optDouble("sugar_100g",Double.NaN):macros.optDouble("sugar_g",Double.NaN);
+            double pr=macros==null?item.optDouble("protein_100g",Double.NaN):macros.optDouble("protein_g",Double.NaN);
+            required(k,1000);required(sat,100);required(su,100);required(pr,100);
+            kcal+=k*factor;saturated+=sat*factor;sugar+=su*factor;protein+=pr*factor;
         }
-        return sum;
+        return FitRocketMath.foodPoints(kcal,saturated,sugar,protein);
     }
 
     public static JSONObject newFood(JSONObject item,String prefix) throws JSONException {
