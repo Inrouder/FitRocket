@@ -44,10 +44,10 @@ public final class FitRocketPointLedger {
 
     public static double food(JSONObject food,double grams) {
         if(food==null)throw new IllegalArgumentException("Lebensmittel fehlt.");
+        if(!Double.isFinite(grams)||grams<=0||grams>10000)throw new IllegalArgumentException("Menge");
         if("basic".equals(food.optString("status")))return 0.0;
         JSONObject nutrition=food.optJSONObject("nutrition");
         if(nutrition==null)throw new IllegalArgumentException("Nährwerte fehlen.");
-        if(!Double.isFinite(grams)||grams<=0||grams>10000)throw new IllegalArgumentException("Menge");
         double factor=grams/100.0;
         return validPoints(FitRocketMath.foodPointsPrecise(
             nutrition.optDouble("kcal",Double.NaN)*factor,
