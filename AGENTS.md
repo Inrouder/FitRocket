@@ -10,7 +10,8 @@ Diese Datei ist Einstiegspunkt für spätere KI-Änderungen. Zuerst [docs/ARCHIT
 - Keine Build-Erfolge, Uploads, Screenshots oder Gerätetests erfinden.
 
 ## Unveränderliche Qualitätsregeln
-1. **Punkte**: `FitRocketMath`, `FitRocketPointLedger`, `FitRocketAiRules` und `FitRocketRecipe` sind die maßgeblichen Berechnungsstellen. KI-Ausgaben als Schätzungen validieren und **nicht** deren eigene Punktezahlen übernehmen.
+1. **ZeroPoints-Invariante**: Katalogeinträge mit `status=basic` bleiben stets 0 Punkte bei jeder Menge. Änderungen im Rezept dürfen ausschließlich als lokale `nutritionOverride` gespeichert werden und niemals diesen Katalogeintrag modifizieren. Tests für 100 g, 10 kg und Rezepte verpflichtend.
+2. **Punkte**: `FitRocketMath`, `FitRocketPointLedger`, `FitRocketAiRules` und `FitRocketRecipe` sind die maßgeblichen Berechnungsstellen. KI-Ausgaben als Schätzungen validieren und **nicht** deren eigene Punktezahlen übernehmen.
 2. **Wochenkonto**: heutige Aktivität zählt nach gewähltem Anteil sofort; nur ungenutzte Tagespunkte kommen nach Tagesabschluss.
 3. **Navigation**: Tagebuch, Suche, Kochbuch, Fortschritt, Profil; Beschriftung auch bei großen Schriften und 3-Tasten-Navigation sichtbar halten.
 4. **Persistenz**: JSON-Keys und Import/Export rückwärtskompatibel behandeln; vorhandene Mahlzeiten, Rezepte, Favoriten und Bilder dürfen nicht verloren gehen.
