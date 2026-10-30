@@ -1,5 +1,13 @@
 # FitRocket – Versionshinweise
 
+## 0.16.10 – Persönliche Notizen für Favoriten
+- Beim Speichern eines Favoriten eine optionale mehrzeilige Notiz hinzufügen.
+- Notizen in der Favoritenübersicht anzeigen, nachträglich bearbeiten oder entfernen.
+- Die Notiz wird beim erneuten Buchen angezeigt, aber nicht in Punkte oder Nährwerte eingerechnet.
+- Speichern im bestehenden `favoriteMeals`-JSON, inklusive Export und Import; alte Favoriten bleiben kompatibel.
+- Validierung auf maximal 600 Zeichen und Tests für Notizen, Backup-Roundtrip und unveränderte Punkte.
+
+
 ## 0.16.9 – Audit- und ZeroPoints-Korrekturen
 - Der originale ZeroPoints-Katalog bleibt auch bei großen Mengen und Rezepten bei 0 Punkten.
 - Gemeinsame Zehntelpunkt-Berechnung für Lebensmittel, Rezepte, KI-Vorschau und Favoriten.
