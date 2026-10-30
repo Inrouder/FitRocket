@@ -112,29 +112,11 @@ public final class FitRocketFavoriteMath {
                             "basic".equals(food.optString("status"))))
             return FitRocketPointLedger.food(food,quantity);
         JSONArray ingredients=favorite.optJSONArray("aiIngredients");
-        if(ingredients!=null&&ingredients.length()>0) {
-            try {
-                double total=0;
-                for(int i=0;i<ingredients.length();i++) {
-                    JSONObject item=ingredients.getJSONObject(i);
-                    double grams=positive(item.getDouble("grams")*quantity/refQuantity);
-                    JSONObject matched=FitRocketAiRules.matchCatalog(
-                        item.optString("food_id"),item.optString("name"),foods);
-                    if(matched==null&&!item.optBoolean("catalogOptOut",false))
-                        matched=FitRocketAiRules.existingByName(item.optString("name"),foods);
-                    if(matched!=null&&"basic".equals(matched.optString("status"))&&!item.optBoolean("catalogOptOut",false))continue;
-                    if(matched!=null&&"nutrition".equals(matched.optString("status")))
-                        total+=FitRocketPointLedger.food(matched,grams);
-                    else
-                        total+=FitRocketPointLedger.scaled(
-                            FitRocketMath.foodPoints(
-                                item.getDouble("kcal_100g"),
-                                item.getDouble("saturated_fat_100g"),
-                                item.getDouble("sugar_100g"),
-                                item.getDouble("protein_100g")),
-                            100,grams);
-                }
-                return FitRocketPointLedger.validPoints(total);
+        if(ingredients!=null&&ingredients.length()>0){
+            try{
+                JSONArray resized=scaledIngredients(favorite,refQuantity,quantity);
+                JSONObject recipe=new JSONObject().put("servings",1).put("ingredients",resized);
+                return FitRocketAiRules.pointsPerServingPrecise(recipe,foods);
             }catch(Exception error){throw new IllegalArgumentException("Zutatenmengen prüfen.",error);}
         }
         return FitRocketPointLedger.scaled(
