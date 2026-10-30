@@ -112,8 +112,8 @@ public class FitRocketAiRulesTest {
         FitRocketAiRules.validateResponse(pancake,"meal");
         // Add all actual nutrients, skip the explicit ZeroPoints egg and round ONCE.
         double totalKcal=80*360/100.0+120*65/100.0+10*750/100.0;
-        int expected=FitRocketMath.foodPoints(totalKcal,0,0,0);
-        assertEquals(expected,FitRocketAiRules.pointsPerServing(pancake,Arrays.asList(egg)));
+        double expected=FitRocketMath.foodPointsPrecise(totalKcal,0,0,0);
+        assertEquals(expected,FitRocketAiRules.pointsPerServingPrecise(pancake,Arrays.asList(egg)),0.0001);
         assertTrue(expected>FitRocketAiRules.points(80,360,0,0,0));
     }
 
