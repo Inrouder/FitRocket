@@ -995,6 +995,61 @@ public class MainActivity extends Activity {
     return s;
   }
   private void addMeal(String name,double points,String foodId,String quality,String group){try{JSONObject x=new JSONObject();x.put("name",name);x.put("points",FitRocketPointLedger.validPoints(points));x.put("foodId",foodId);x.put("quality",quality);x.put("group",group);x.put("date",bookingDate==null?today():bookingDate);meals.add(x);persist("meals",meals);}catch(Exception e){msg("Speichern fehlgeschlagen.");}}
+  /** Fast one-off diary entry: no catalog write, no changes to actual ZeroPoints foods. */
+  private void quickMealDialog(){
+    LinearLayout form=new LinearLayout(this);
+    form.setOrientation(1);form.setPadding(dp(18),dp(8),dp(18),dp(8));
+    form.addView(label("Gericht oder Lebensmittel",14));
+    EditText name=edit("z. B. Lasagne vom Restaurant","",1);
+    form.addView(name);
+    form.addView(label("Punkte je Portion",14));
+    EditText per=edit("z. B. 5,5","",8194);
+    form.addView(per);
+    form.addView(label("Wie viele Portionen hast du gegessen?",14));
+    EditText portions=edit("Anzahl Portionen","1",8194);
+    form.addView(portions);
+    form.addView(label("Tageszeit",14));
+    Spinner group=groupSpinner();
+    if(bookingGroup!=null){
+      String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
+      for(int i=0;i<groups.length;i++)
+        if(groups[i].equals(bookingGroup))group.setSelection(i);
+    }
+    form.addView(group);
+    TextView preview=label("Gesamtpunkte werden automatisch berechnet.",16);
+    form.addView(preview);
+    Runnable refresh=()->{
+      try{
+        double each=FitRocketPointLedger.validPoints(num(per.getText().toString()));
+        double quantity=num(portions.getText().toString());
+        if(!Double.isFinite(quantity)||quantity<=0||quantity>100)throw new IllegalArgumentException();
+        double total=FitRocketPointLedger.validPoints(each*quantity);
+        preview.setText(pt(each)+" P × "+pt(quantity)+" Portion(en) = "+pt(total)+" P gesamt");
+      }catch(Exception e){preview.setText("Bitte Punkte und Portionen eingeben.");}
+    };
+    per.addTextChangedListener(valueWatcher(refresh));
+    portions.addTextChangedListener(valueWatcher(refresh));
+    refresh.run();
+    form.addView(label("Dieser Eintrag wird nur im Tagebuch gespeichert; die Lebensmittelliste und ZeroPoints bleiben unverändert.",12));
+    ScrollView scroll=new ScrollView(this);scroll.addView(form);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Spontanes Lebensmittel")
+      .setView(scroll).setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Eintragen",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        String day=bookingDate==null?diaryDate.toString():bookingDate;
+        JSONObject meal=FitRocketQuickMeal.create(name.getText().toString(),
+          num(per.getText().toString()),num(portions.getText().toString()),
+          day,group.getSelectedItem().toString());
+        meals.add(meal);
+        persist("meals",meals);
+        dialog.dismiss();
+        afterMealAdded();
+      }catch(Exception e){msg("Bitte Eingaben prüfen: "+e.getMessage());}
+    }));
+    dialog.show();
+  }
+
   private void manual(){LinearLayout l=new LinearLayout(this);l.setPadding(22,4,22,4);l.setOrientation(1);EditText name=edit("Lebensmittel / Gericht","",1),points=edit("Punkte (manuell, z. B. 0,5)",null,8194);l.addView(name);l.addView(points);Spinner g=groupSpinner();l.addView(g);AlertDialog d=new AlertDialog.Builder(this).setTitle("Manuell erfassen").setView(l).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{String n=name.getText().toString().trim();double p=FitRocketPointLedger.validPoints(num(points.getText().toString()));if(n.length()<2)throw new Exception();addMeal(n,p,"","Manuell",g.getSelectedItem().toString());d.dismiss();history();}catch(Exception ex){msg("Bitte Name und gültige Punkte angeben.");}}));d.show();}
   private void textHelper(){EditText input=new EditText(this);input.setMinLines(3);input.setHint("Beispiel: Ich hatte eine Banane und einen Apfel");new AlertDialog.Builder(this).setTitle("Offline-Texterfassung (keine KI)").setMessage("Erkennt eindeutige Lebensmittelnamen aus deiner Datenbank. Mengen und Zutaten müssen vor dem Eintragen geprüft werden.").setView(input).setPositiveButton("Analysieren",(d,w)->interpret(input.getText().toString())).setNegativeButton("Abbrechen",null).show();}
   private void interpret(String source){String q=source.toLowerCase(Locale.ROOT);ArrayList<JSONObject> matches=new ArrayList<>();for(JSONObject f:foods){String name=f.optString("name").toLowerCase(Locale.ROOT);if(name.length()>=5&&q.contains(name))matches.add(f);}if(matches.size()!=1){new AlertDialog.Builder(this).setTitle("Bitte Lebensmittel auswählen").setMessage(matches.isEmpty()?"Keine eindeutige Übereinstimmung gefunden. Bitte suche das Lebensmittel manuell.":"Mehrere Lebensmittel erkannt. Bitte erfasse die Zutaten einzeln über die Suche.").setPositiveButton("Zur Suche",(d,w)->searchScreen()).show();return;}foodDialog(matches.get(0));}
@@ -1079,6 +1134,7 @@ public class MainActivity extends Activity {
     food.setOnClickListener(v->searchScreen());
     saved.setOnClickListener(v->favoritesScreen());
     shortcuts.addView(row);
+    action(shortcuts,"✏️ Spontanes Lebensmittel · Punkte selbst eingeben",()->quickMealDialog());
     page.addView(shortcuts);
 
     heading("Mahlzeiten");
