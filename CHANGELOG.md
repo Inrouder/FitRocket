@@ -1,5 +1,12 @@
 # FitRocket – Versionshinweise
 
+## 0.16.11 – Spontanes Lebensmittel im Tagebuch
+- „Schnell hinzufügen“ hat nun eine eigene Schaltfläche „Spontanes Lebensmittel“.
+- Eingabe von Gerichtname, Punkte je Portion, Anzahl Portionen (auch 0,5), und Tageszeit.
+- Live-Vorschau der Gesamtpunkte, danach direkte Buchung am ausgewählten Tagebuchdatum.
+- Kein neuer Eintrag im Lebensmittelskatalog; ursprüngliche ZeroPoints-Lebensmittel bleiben unberührt.
+- Die Einträge bleiben wie andere Mahlzeiten im Tagebuch und Gesamt-Backup gespeichert.
+
 ## 0.16.10 – Persönliche Notizen für Favoriten
 - Beim Speichern eines Favoriten eine optionale mehrzeilige Notiz hinzufügen.
 - Notizen in der Favoritenübersicht anzeigen, nachträglich bearbeiten oder entfernen.
