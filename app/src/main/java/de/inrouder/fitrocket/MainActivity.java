@@ -557,15 +557,15 @@ public class MainActivity extends Activity {
     item.setOnClickListener(v->{
       boolean hasComposition=m.optJSONArray("aiIngredients")!=null;
       String[] choices=hasComposition?
-          new String[]{"Zutaten & Berechnung ansehen","★ Als Favorit speichern","Punkte ändern","Tageszeit ändern","Eintrag löschen"}:
-          new String[]{"★ Als Favorit speichern","Punkte ändern","Tageszeit ändern","Eintrag löschen"};
+          new String[]{"Zutaten & Berechnung ansehen","★ Als Favorit speichern","Punkte ändern","Datum und Tageszeit ändern","Eintrag löschen"}:
+          new String[]{"★ Als Favorit speichern","Punkte ändern","Datum und Tageszeit ändern","Eintrag löschen"};
       new AlertDialog.Builder(this).setTitle(m.optString("name"))
         .setItems(choices,(d,which)->{
           if(hasComposition && which==0){showAiMealDetails(m);return;}
           int actionIndex=hasComposition?which-1:which;
           if(actionIndex==0){saveFavorite(m);return;}
           if(actionIndex==1)editMeal(m);
-          else if(actionIndex==2)changeMealGroup(m);
+          else if(actionIndex==2)moveMealDialog(m);
           else new AlertDialog.Builder(this).setMessage("Eintrag wirklich löschen?")
             .setPositiveButton("Löschen",(dd,w)->{
               meals.remove(m);persist("meals",meals);refreshMealContext();
@@ -576,23 +576,40 @@ public class MainActivity extends Activity {
     attachSwipeDelete(item,()->confirmDeleteMeal(m));
   }
 
-  /** Move an existing diary booking between meal sections without changing its date or points. */
-  private void changeMealGroup(JSONObject meal){
+  /** Move the existing object rather than creating a second diary booking. */
+  private void moveMealDialog(JSONObject meal){
     final String[] groups={"Frühstück","Mittagessen","Abendessen","Snack","Getränke"};
-    int selected=0;
-    for(int i=0;i<groups.length;i++)if(groups[i].equals(mealGroup(meal)))selected=i;
-    new AlertDialog.Builder(this).setTitle("Tageszeit ändern · "+meal.optString("name"))
-      .setSingleChoiceItems(groups,selected,(dialog,which)->{
-        dialog.dismiss();
-        String newGroup=groups[which];
-        if(newGroup.equals(mealGroup(meal)))return;
-        try{
-          meal.put("group",newGroup);
-          persist("meals",meals);
-          refreshMealContext();
-          msg("Eintrag nach "+newGroup+" verschoben.");
-        }catch(Exception e){msg("Tageszeit konnte nicht geändert werden.");}
-      }).setNegativeButton("Abbrechen",null).show();
+    final LocalDate[] destination={LocalDate.parse(meal.optString("date"))};
+    LinearLayout form=new LinearLayout(this);form.setOrientation(1);
+    form.setPadding(dp(18),dp(8),dp(18),dp(8));
+    form.addView(label("Zieldatum",14));
+    Button date=button(pretty(destination[0].toString()));form.addView(date);
+    date.setOnClickListener(v->{
+      LocalDate selected=destination[0];
+      android.app.DatePickerDialog picker=new android.app.DatePickerDialog(this,(view,y,m,d)->{
+        destination[0]=LocalDate.of(y,m+1,d);
+        date.setText(pretty(destination[0].toString()));
+      },selected.getYear(),selected.getMonthValue()-1,selected.getDayOfMonth());
+      picker.getDatePicker().setMaxDate(System.currentTimeMillis());picker.show();
+    });
+    form.addView(label("Tageszeit",14));
+    Spinner group=groupSpinner();
+    for(int i=0;i<groups.length;i++)if(groups[i].equals(mealGroup(meal)))group.setSelection(i);
+    form.addView(group);
+    form.addView(label("Punkte, Menge und Zutaten bleiben erhalten.",13));
+    AlertDialog dialog=new AlertDialog.Builder(this)
+      .setTitle("Datum und Tageszeit ändern")
+      .setView(form).setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Verschieben",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        FitRocketDiary.move(meal,destination[0],group.getSelectedItem().toString(),LocalDate.now());
+        persist("meals",meals);
+        diaryDate=destination[0];dialog.dismiss();refreshMealContext();
+        msg("Eintrag nach "+pretty(destination[0].toString())+" · "+mealGroup(meal)+" verschoben.");
+      }catch(Exception e){msg("Bitte ein gültiges Datum bis heute und eine Tageszeit wählen.");}
+    }));
+    dialog.show();
   }
 
   private void confirmDeleteMeal(JSONObject meal){

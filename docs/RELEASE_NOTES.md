@@ -1,9 +1,8 @@
-# FitRocket v0.16.12 – Vergangene Tage bearbeiten
+# FitRocket v0.16.13 – Mahlzeiten auf einen anderen Tag verschieben
 
-- Im Tagebuch ein früheres Datum antippen oder mit den Pfeilen wechseln und dort Lebensmittel nachtragen.
-- Suche, Barcode, Offline-Text, KI-Gerichte, Kochbuch, Favoriten und spontane Mahlzeiten verwenden einheitlich den ausgewählten Tag.
-- Der Tag bleibt beim Wechsel der Hauptreiter erhalten; „Zurück zu heute“ wechselt ausdrücklich auf heute.
-- Buchungsdatum wird auf den Eingabeseiten angezeigt, Tageszeit und Datum bleiben bei Bildschirmwiederherstellung erhalten.
-- Bereits gebuchte Einträge antippen und „Punkte ändern“ wählen. Ungültige Eingaben bleiben zur Korrektur geöffnet; Tages- und Wochenwerte werden neu berechnet.
-- ZeroPoints-Kataloglebensmittel bleiben auch bei manueller Punktkorrektur bei 0. Zusätze separat erfassen.
-- Bestehende Daten und Backup-Felder bleiben erhalten; keine Datenmigration erforderlich.
+- Bereits gebuchte Mahlzeit im Tagebuch antippen und „Datum und Tageszeit ändern“ auswählen.
+- Zieldatum bis einschließlich heute und Tageszeit wählen, dann „Verschieben“ bestätigen.
+- Der bestehende Eintrag wird verschoben, nicht kopiert; Punkte, Mengen, Zutaten und weitere gespeicherte Angaben bleiben erhalten.
+- Das Tagebuch zeigt anschließend den Zieltag. Tages- und Wochenwerte beider betroffenen Tage werden aus den Einträgen neu berechnet.
+- „Abbrechen“ lässt den Eintrag unverändert. ZeroPoints bleiben 0.
+- Keine Datenmigration und kein neues Backup-Schema.
