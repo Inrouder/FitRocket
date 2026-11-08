@@ -18,7 +18,13 @@ public class FitRocketDiaryTest {
         FitRocketDiary.move(meal,LocalDate.of(2024,2,29),"Abendessen",LocalDate.of(2026,11,8));
         assertSame(meal,meals.get(0));
         assertEquals(1,meals.size());
-        assertTrue(expected.similar(new JSONObject(meal.toString())));
+        JSONObject restored=new JSONObject(meal.toString());
+        assertEquals(expected.length(),restored.length());
+        java.util.Iterator<String> keys=expected.keys();
+        while(keys.hasNext()) {
+            String key=keys.next();
+            assertEquals(key,expected.get(key).toString(),restored.get(key).toString());
+        }
         assertEquals(0,FitRocketPointLedger.used(meals,"2026-11-08"),0);
         assertEquals(11,FitRocketPointLedger.used(meals,"2024-02-29"),0);
     }
@@ -117,3 +123,4 @@ public class FitRocketDiaryTest {
         }
     }
 }
+
