@@ -1,17 +1,9 @@
-# FitRocket v0.16.3 – Korrekte Update-Informationen
+# FitRocket v0.16.12 – Vergangene Tage bearbeiten
 
-Dieses Update verbessert die Veröffentlichung der Versionshinweise. Im Update-Dialog werden künftig die **Neuerungen der tatsächlich angebotenen Version** angezeigt und nicht mehr die veraltete Beschreibung von v0.15.7.
-
-## Was ist neu?
-- Release Notes und Versionsnummer werden beim GitHub-Release-Build miteinander abgeglichen.
-- Fehlende Änderungen seit v0.15.8 sind in der Versionshistorie dokumentiert.
-- Bei nicht passenden Release Notes schlägt der Release-Build fehl, statt eine irreführende Beschreibung auszuliefern.
-
-## Zuletzt hinzugekommene Funktionen
-- Klarer gegliederte Lebensmittelsuche mit separatem Barcode- und KI-Bereich (v0.16.2).
-- Rezeptfotos über Galerie/Kamera und Rezeptbilder im Backup (v0.16.1).
-- Dezent integrierter Raketenhintergrund und neu gestaltete Navigation (v0.16.0).
-- Neues Kochbuch für eigene und KI-generierte Rezepte sowie Rezept-Import von Webseiten (v0.15.9).
-- Korrigierte Nudel- und Reiseinträge sowie unmittelbare Anrechnung der Bewegungspunkte (v0.15.8).
-
-**Datenschutz und Daten:** Die vorhandenen Tagebuchdaten, Rezepte und Profile bleiben bei einem normalen, gleich signierten Android-Update erhalten. Bitte vor größeren Änderungen ein Backup anlegen.
+- Im Tagebuch ein früheres Datum antippen oder mit den Pfeilen wechseln und dort Lebensmittel nachtragen.
+- Suche, Barcode, Offline-Text, KI-Gerichte, Kochbuch, Favoriten und spontane Mahlzeiten verwenden einheitlich den ausgewählten Tag.
+- Der Tag bleibt beim Wechsel der Hauptreiter erhalten; „Zurück zu heute“ wechselt ausdrücklich auf heute.
+- Buchungsdatum wird auf den Eingabeseiten angezeigt, Tageszeit und Datum bleiben bei Bildschirmwiederherstellung erhalten.
+- Bereits gebuchte Einträge antippen und „Punkte ändern“ wählen. Ungültige Eingaben bleiben zur Korrektur geöffnet; Tages- und Wochenwerte werden neu berechnet.
+- ZeroPoints-Kataloglebensmittel bleiben auch bei manueller Punktkorrektur bei 0. Zusätze separat erfassen.
+- Bestehende Daten und Backup-Felder bleiben erhalten; keine Datenmigration erforderlich.

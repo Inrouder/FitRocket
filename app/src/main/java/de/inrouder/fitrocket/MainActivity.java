@@ -87,6 +87,7 @@ public class MainActivity extends Activity {
     parent.addView(row);row.setOnClickListener(v->callback.run());
   }
 
+  private String mealBookingDate(){return FitRocketDiary.bookingDate(bookingDate,diaryDate);}
   private String today(){return LocalDate.now().toString();}
   private String pretty(String date){try{return LocalDate.parse(date).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));}catch(Exception e){return date;}}
   private TextView label(String text,int sp){TextView t=new TextView(this);t.setText(text);t.setTextSize(sp);t.setTextColor(ink());t.setPadding(dp(6),dp(5),dp(6),dp(5));return t;}
@@ -136,6 +137,8 @@ public class MainActivity extends Activity {
       if(diaryDate.isAfter(LocalDate.now()))diaryDate=LocalDate.now();
     }
     if(saved!=null){
+      bookingDate=saved.getString("fitrocketBookingDate");
+      bookingGroup=saved.getString("fitrocketBookingGroup");
       pendingRecipeImageId=saved.getString("fitrocketPendingRecipePhoto");
       recipeFilter=saved.getString("fitrocketRecipeFilter","Alle");
       lastFoodQuery=saved.getString("fitrocketFoodQuery","");
@@ -144,6 +147,7 @@ public class MainActivity extends Activity {
       else if("Fortschritt".equals(previous))progressPage();
       else if("Kochbuch".equals(previous)||"Rezepte".equals(previous))recipeScreen();
       else if("Lebensmittel".equals(previous))searchScreen();
+      else if("Favoriten".equals(previous))favoritesScreen();
       else if("Aktivität".equals(previous))activityPage();
       else history();
     }else history();
@@ -151,6 +155,8 @@ public class MainActivity extends Activity {
   @Override protected void onSaveInstanceState(Bundle out){
     out.putString("fitrocketScreen",currentScreen);
     out.putString("fitrocketDiaryDate",diaryDate.toString());
+    out.putString("fitrocketBookingDate",bookingDate);
+    out.putString("fitrocketBookingGroup",bookingGroup);
     out.putString("fitrocketPendingRecipePhoto",pendingRecipeImageId);
     out.putString("fitrocketRecipeFilter",recipeFilter);
     out.putString("fitrocketFoodQuery",lastFoodQuery);
@@ -395,7 +401,7 @@ public class MainActivity extends Activity {
       tab.setOnClickListener(v->{
         bookingDate=null;bookingGroup=null;bookingReturn=null;
         switch(index){
-          case 0:diaryDate=LocalDate.now();history();break;
+          case 0:history();break;
           case 1:searchScreen();break;
           case 2:recipeScreen();break;
           case 3:progressPage();break;
@@ -669,10 +675,28 @@ public class MainActivity extends Activity {
       .setView(scroll).setPositiveButton("Schließen",null).show();
   }
 
-  private void editMeal(JSONObject m){EditText e=edit("Punkte",pt(pts(m)),8194);new AlertDialog.Builder(this).setTitle("Punkte anpassen").setView(e).setPositiveButton("Speichern",(d,w)->{try{double n=FitRocketPointLedger.validPoints(num(e.getText().toString()));m.put("points",n);m.put("quality","Manuell korrigiert");persist("meals",meals);refreshMealContext();}catch(Exception ignored){msg("Ungültige Punkte.");}}).setNegativeButton("Abbrechen",null).show();}
+  private void editMeal(JSONObject m){
+    JSONObject food=findFoodById(m.optString("foodId"));
+    if(food!=null && "basic".equals(food.optString("status"))){
+      msg("ZeroPoints-Lebensmittel bleiben bei 0 Punkten. Zusätze bitte separat erfassen.");return;
+    }
+    EditText input=edit("Gesamtpunkte",pt(pts(m)),8194);
+    AlertDialog dialog=new AlertDialog.Builder(this)
+      .setTitle("Punkte ändern · "+pretty(m.optString("date")))
+      .setView(input).setNegativeButton("Abbrechen",null)
+      .setPositiveButton("Speichern",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        FitRocketDiary.editPoints(m,food,num(input.getText().toString()));
+        persist("meals",meals);dialog.dismiss();refreshMealContext();
+      }catch(Exception e){msg("Bitte gültige Punkte zwischen 0 und 2000 eingeben.");}
+    }));
+    dialog.show();
+  }
   /** Search home: separate text lookup, barcode actions and AI tools into readable cards. */
   private void searchScreen(){
     shell("Lebensmittel");
+    page.addView(label("Eintragen für "+pretty(mealBookingDate())+" · Datum im Tagebuch wählen",13));
     LinearLayout searchCard=card(Color.WHITE);
     TextView title=label("🔎 Lebensmittel finden",19);title.setTypeface(null,1);
     searchCard.addView(title);
@@ -690,6 +714,7 @@ public class MainActivity extends Activity {
     search.setHighlightColor(Color.rgb(211,219,234));
     LinearLayout.LayoutParams searchLp=new LinearLayout.LayoutParams(-1,-2);
     searchLp.setMargins(0,dp(10),0,dp(10));searchCard.addView(search,searchLp);
+    action(searchCard,"✏️ Spontanes Lebensmittel · eigene Punkte",()->quickMealDialog());
     page.addView(searchCard);
 
     LinearLayout barcodeCard=card(dark()?Color.rgb(32,38,54):Color.rgb(242,248,255));
@@ -714,7 +739,7 @@ public class MainActivity extends Activity {
     aiCard.addView(aiTitle);
     aiCard.addView(label("Beschreibe ein ganzes Gericht oder ergänze ein einzelnes Lebensmittel.",12));
     if(bookingGroup!=null){
-      aiCard.addView(label("🍽 Für "+bookingGroup+" · "+pretty(bookingDate==null?today():bookingDate),13));
+      aiCard.addView(label("🍽 Für "+bookingGroup+" · "+pretty(mealBookingDate()),13));
     }
     action(aiCard,"🍲 Ganzes Gericht berechnen",()->aiCompose("meal"));
     action(aiCard,"🍎 Lebensmittel mit KI hinzufügen",()->aiCompose("food"));
@@ -994,11 +1019,12 @@ public class MainActivity extends Activity {
     }
     return s;
   }
-  private void addMeal(String name,double points,String foodId,String quality,String group){try{JSONObject x=new JSONObject();x.put("name",name);x.put("points",FitRocketPointLedger.validPoints(points));x.put("foodId",foodId);x.put("quality",quality);x.put("group",group);x.put("date",bookingDate==null?today():bookingDate);meals.add(x);persist("meals",meals);}catch(Exception e){msg("Speichern fehlgeschlagen.");}}
+  private void addMeal(String name,double points,String foodId,String quality,String group){try{JSONObject x=new JSONObject();x.put("name",name);x.put("points",FitRocketDiary.points(findFoodById(foodId),points));x.put("foodId",foodId);x.put("quality",quality);x.put("group",group);x.put("date",mealBookingDate());meals.add(x);persist("meals",meals);}catch(Exception e){msg("Speichern fehlgeschlagen.");}}
   /** Fast one-off diary entry: no catalog write, no changes to actual ZeroPoints foods. */
   private void quickMealDialog(){
     LinearLayout form=new LinearLayout(this);
     form.setOrientation(1);form.setPadding(dp(18),dp(8),dp(18),dp(8));
+    form.addView(label("Eintragen für "+pretty(mealBookingDate()),14));
     form.addView(label("Gericht oder Lebensmittel",14));
     EditText name=edit("z. B. Lasagne vom Restaurant","",1);
     form.addView(name);
@@ -1037,7 +1063,7 @@ public class MainActivity extends Activity {
       .setPositiveButton("Eintragen",null).create();
     dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
       try{
-        String day=bookingDate==null?diaryDate.toString():bookingDate;
+        String day=mealBookingDate();
         JSONObject meal=FitRocketQuickMeal.create(name.getText().toString(),
           num(per.getText().toString()),num(portions.getText().toString()),
           day,group.getSelectedItem().toString());
@@ -1050,10 +1076,11 @@ public class MainActivity extends Activity {
     dialog.show();
   }
 
-  private void manual(){LinearLayout l=new LinearLayout(this);l.setPadding(22,4,22,4);l.setOrientation(1);EditText name=edit("Lebensmittel / Gericht","",1),points=edit("Punkte (manuell, z. B. 0,5)",null,8194);l.addView(name);l.addView(points);Spinner g=groupSpinner();l.addView(g);AlertDialog d=new AlertDialog.Builder(this).setTitle("Manuell erfassen").setView(l).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{String n=name.getText().toString().trim();double p=FitRocketPointLedger.validPoints(num(points.getText().toString()));if(n.length()<2)throw new Exception();addMeal(n,p,"","Manuell",g.getSelectedItem().toString());d.dismiss();history();}catch(Exception ex){msg("Bitte Name und gültige Punkte angeben.");}}));d.show();}
+  private void manual(){LinearLayout l=new LinearLayout(this);l.setPadding(22,4,22,4);l.setOrientation(1);EditText name=edit("Lebensmittel / Gericht","",1),points=edit("Punkte (manuell, z. B. 0,5)",null,8194);l.addView(name);l.addView(points);Spinner g=groupSpinner();l.addView(g);AlertDialog d=new AlertDialog.Builder(this).setTitle("Manuell erfassen").setView(l).setNegativeButton("Abbrechen",null).setPositiveButton("Eintragen",null).create();d.setOnShowListener(v->d.getButton(-1).setOnClickListener(btn->{try{String n=name.getText().toString().trim();double p=FitRocketPointLedger.validPoints(num(points.getText().toString()));if(n.length()<2)throw new Exception();addMeal(n,p,"","Manuell",g.getSelectedItem().toString());d.dismiss();afterMealAdded();}catch(Exception ex){msg("Bitte Name und gültige Punkte angeben.");}}));d.show();}
   private void textHelper(){EditText input=new EditText(this);input.setMinLines(3);input.setHint("Beispiel: Ich hatte eine Banane und einen Apfel");new AlertDialog.Builder(this).setTitle("Offline-Texterfassung (keine KI)").setMessage("Erkennt eindeutige Lebensmittelnamen aus deiner Datenbank. Mengen und Zutaten müssen vor dem Eintragen geprüft werden.").setView(input).setPositiveButton("Analysieren",(d,w)->interpret(input.getText().toString())).setNegativeButton("Abbrechen",null).show();}
   private void interpret(String source){String q=source.toLowerCase(Locale.ROOT);ArrayList<JSONObject> matches=new ArrayList<>();for(JSONObject f:foods){String name=f.optString("name").toLowerCase(Locale.ROOT);if(name.length()>=5&&q.contains(name))matches.add(f);}if(matches.size()!=1){new AlertDialog.Builder(this).setTitle("Bitte Lebensmittel auswählen").setMessage(matches.isEmpty()?"Keine eindeutige Übereinstimmung gefunden. Bitte suche das Lebensmittel manuell.":"Mehrere Lebensmittel erkannt. Bitte erfasse die Zutaten einzeln über die Suche.").setPositiveButton("Zur Suche",(d,w)->searchScreen()).show();return;}foodDialog(matches.get(0));}
   private void history(){
+    bookingDate=null;bookingGroup=null;bookingReturn=null;
     shell("Tagebuch");
     final String date=diaryDate.toString();
 
@@ -1502,7 +1529,7 @@ public class MainActivity extends Activity {
     if(bookingGroup!=null && "meal".equals(mode)){
       for(int i=0;i<groups.length;i++)if(groups[i].equals(bookingGroup))group.setSelection(i);
       setup.addView(label("Eintrag für "+bookingGroup+" am "+pretty(
-          bookingDate==null?today():bookingDate),13));
+          mealBookingDate()),13));
     }
     JSONArray list=output.optJSONArray("ingredients");
     ArrayList<AiIngredientEditor> editors=new ArrayList<>();
@@ -2172,6 +2199,7 @@ public class MainActivity extends Activity {
   }
   private void recipeScreen(){
     shell("Kochbuch");
+    page.addView(label("Eintragen für "+pretty(mealBookingDate())+" · Datum im Tagebuch wählen",13));
     LinearLayout intro=card(Color.rgb(255,249,239));
     intro.addView(label("🍲 Heute etwas Leckeres kochen?",19));
     intro.addView(label("FitRocket-Rezepte und deine selbst gespeicherten KI-Rezepte – mit Zutaten und geschätzten Punkten.",13));
@@ -2443,7 +2471,7 @@ public class MainActivity extends Activity {
       entry.put("name",name+" ("+String.format(Locale.GERMAN,"%.1f",quantity)+" "+unit+")");
       entry.put("points",points);
       entry.put("group",group);
-      entry.put("date",bookingDate==null?today():bookingDate);
+      entry.put("date",mealBookingDate());
       entry.put("quality",favorite.optString("quality","Favorit"));
       entry.put("foodId",favorite.optString("foodId",""));
       entry.put("baseName",name);
@@ -2542,6 +2570,7 @@ public class MainActivity extends Activity {
 
   private void favoritesScreen(){
     shell("Favoriten");
+    page.addView(label("Eintragen für "+pretty(mealBookingDate())+" · Datum im Tagebuch wählen",13));
     LinearLayout intro=card(LAV);
     intro.addView(label("★ Deine gespeicherten Mahlzeiten",19));
     intro.addView(label("Wähle bei jedem Eintrag erneut die Menge in Gramm oder "+
