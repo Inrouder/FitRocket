@@ -91,7 +91,7 @@ public final class FitRocketFastingUi {
             if(active==null){
                 timer.addView(text("Dein Rhythmus. Dein Tempo.",21));
                 timer.addView(caption("Starte nach deiner letzten Mahlzeit. Den Beginn und dein Ziel kannst du anschließend anpassen."));
-                timer.addView(button("Fasten jetzt starten",()->run(()->{save(FitRocketFasting.start(state(),System.currentTimeMillis()));detail(root,back);}))); 
+                timer.addView(button("Fasten jetzt starten",()->run(()->{save(FitRocketFasting.start(state(),System.currentTimeMillis()));detail(root,back);})));
             }else{
                 TextView elapsedCaption=caption("Vergangene Zeit");elapsedCaption.setGravity(Gravity.CENTER);timer.addView(elapsedCaption);
                 TextView elapsed=text("",38);elapsed.setGravity(Gravity.CENTER);elapsed.setTypeface(null,1);elapsed.setSingleLine(true);
