@@ -1,5 +1,14 @@
 # FitRocket – Versionshinweise
 
+## 0.18.1 – Beweglicheres Pet und passende Accessoires
+
+- Vier Laufphasen, Hin- und Herlaufen mit Richtungswechseln und Pausen; Spielen mit Anspringen und Verfolgen des hüpfenden Balls bzw. der Spielzeugrakete.
+- Eigene PNG-Pixelposen für Fressen/Kauen mit Napf und Streicheln mit Hand/Herzen; auch per Wischgeste über die Figur.
+- An Kopfgröße und Aktionspose angepasste Öhrchen, Mütze und Krone, gemeinsam mit der Figur gespiegelt und geneigt. Saubere Bildausschnitte und konstante Figurengröße zwischen Posen.
+- „Zum Anziehen“ und „Zum Spielen“ mit klarer Anzeige der getragenen Ausstattung; die laufende Szene bleibt beim Pflegen/Umziehen erhalten und pausiert im Hintergrund.
+- Kein neues Datenschema, keine Migration und keine Änderung an echtem Punktekonto, fiktivem Futter oder Sterne-Regeln.
+- [Details und Prüfungen](docs/PET_AND_FASTING_REMINDERS.md).
+
 ## 0.18.0 – Pixel-Pet & Fastenziel-Benachrichtigungen
 
 - Eigener Pet-Reiter mit PNG-Pixelgrafiken: fünf Entwicklungsstufen, fünf Stimmungen bis zur Monsterform, Füttern, Streicheln, Spielen und dauerhaft freischaltbares Zubehör/Spielzeug.

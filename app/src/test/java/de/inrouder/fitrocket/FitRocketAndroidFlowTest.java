@@ -63,6 +63,27 @@ public class FitRocketAndroidFlowTest {
         click("Spielen");click("Streicheln");assertEquals(4,pet().getInt("stars"));
         capture("pet-light.png");controller.recreate();assertFalse(find(root(),"Novi").isEmpty());assertEquals(190,pet().getInt("foodTenths"));
     }
+    private FitRocketPetView scene(View root){
+        if(root instanceof FitRocketPetView)return (FitRocketPetView)root;
+        if(root instanceof ViewGroup)for(int i=0;i<((ViewGroup)root).getChildCount();i++){
+            FitRocketPetView found=scene(((ViewGroup)root).getChildAt(i));if(found!=null)return found;
+        }
+        return null;
+    }
+    @Test public void repeatedCareAndDressingReuseSceneWithoutSpendingFoodOrDiaryPoints()throws Exception {
+        LocalDate now=LocalDate.now();JSONObject state=FitRocketPet.adopt(FitRocketPet.empty(),now.minusDays(2),"Novi");
+        state=FitRocketPet.harvest(state,now,23,d->0);state=FitRocketPet.feed(state,100,now);
+        state=FitRocketPet.equip(state,"dog_ears");state=FitRocketPet.equip(state,"none");
+        prefs.edit().putString("pet",state.toString()).commit();start();click("Pet");
+        FitRocketPetView original=scene(root());assertNotNull(original);String meals=prefs.getString("meals","");
+        int food=pet().getInt("foodTenths"),fed=pet().getInt("fedTenths"),stars=pet().getInt("stars");
+        click("Spielen");assertSame(original,scene(root()));click("Streicheln");click("Streicheln");
+        assertEquals(stars+3,pet().getInt("stars"));assertSame(original,scene(root()));
+        click("Anziehen");assertEquals("dog_ears",pet().getString("equippedHead"));assertSame(original,scene(root()));
+        assertEquals("ball",pet().getString("equippedToy"));assertEquals(food,pet().getInt("foodTenths"));
+        assertEquals(fed,pet().getInt("fedTenths"));assertEquals(meals,prefs.getString("meals",""));
+        controller.recreate();assertEquals("dog_ears",pet().getString("equippedHead"));
+    }
     @Test public void maturePetAndMonsterRenderWithAccessories()throws Exception {
         LocalDate now=LocalDate.now();JSONObject state=FitRocketPet.adopt(FitRocketPet.empty(),now.minusDays(10),"Luna");
         state=FitRocketPet.harvest(state,now,23,d->0);state=FitRocketPet.feed(state,600,now.minusDays(4));state=FitRocketPet.equip(state,"dog_ears");
