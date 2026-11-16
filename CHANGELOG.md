@@ -1,6 +1,6 @@
 # FitRocket – Versionshinweise
 
-## Unveröffentlicht – Intervallfasten & optionale Punkteübernahme
+## 0.17.0 – Intervallfasten & optionale Punkteübernahme
 
 - Intervallfasten im Tagebuch und Profil: 12:12, 14:10, 16:8, 17:7, 18:6 und 20:4; Timer, Fortschritt, editierbarer Start/Ziel, Abschließen und Abbrechen. Lokaler Verlauf der letzten 100 Fastenzeiten, davon sieben in der Übersicht.
 - Gestaltung mit FitRocket-Cards, Lavendel-/Mint-Akzenten und Hell-/Dunkelmodus; bestehende fünf Hauptreiter bleiben erhalten.

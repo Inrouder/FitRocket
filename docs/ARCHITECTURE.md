@@ -101,7 +101,7 @@ Der Tagebuch-Schnellzugriff ruft `MainActivity.quickMealDialog()` auf. `FitRocke
 `moveMealDialog` ersetzt die reine Tageszeit-Auswahl durch einen gemeinsamen Dialog für Datum und Tageszeit. Der Kalender lässt Tage bis heute zu. Die Auswahl bleibt lokal bis zum Bestätigen; Abbrechen verändert keine Daten. `FitRocketDiary.move` validiert Datum und Gruppe vor der Mutation und ändert ausschließlich `date` und `group` am vorhandenen Mahlzeitobjekt. Danach persistiert die Activity die bestehende Liste, aktualisiert Widgets und öffnet den Zieltag. Tages- und Wochenkonten werden wie bisher aus den Einträgen abgeleitet. Keine neue Buchung, keine Schemaänderung oder Migration. Tests prüfen Objektidentität/Felder, JSON-Roundtrip, beide Tage/Wochen, gleiches Datum, ZeroPoints und ungültige Eingaben ohne Mutation.
 
 
-## Intervallfasten und optionale Tagesüberträge (unveröffentlicht)
+## Intervallfasten und optionale Tagesüberträge (v0.17.0)
 `FitRocketFasting` enthält die Android-unabhängige Fastenlogik. `FitRocketFastingUi` rendert die Tagebuchkarte und eine eigene scrollbare Unterseite mit der bestehenden Palette (`FitRocketTheme`), Cards und Planringen. `MainActivity.fastingScreen` nutzt weiterhin `shell`; `Intervallfasten` gehört zum Tagebuch-Tab. Zugang auch über Profil → Meine Ziele. Der Schnellzugriff zeigt das laufende Fasten nur im heutigen Tagebuch; historische Mahlzeiten bleiben davon unabhängig.
 
 SharedPreferences-String `fasting` enthält ein JSON-Objekt:

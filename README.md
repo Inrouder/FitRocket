@@ -17,7 +17,14 @@
 | [Signierung](docs/SIGNING.md) | Release-Keystore, GitHub Actions und Update-Kompatibilität |
 | [Versionshistorie](CHANGELOG.md) | Bisherige Änderungen und Entwicklungsschritte |
 
-**Aktueller Quellcode:** v0.16.1. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+**Aktueller Quellcode:** v0.17.0. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+
+## FitRocket v0.17.0 – Fasten und Punkteübernahme
+
+- **Intervallfasten:** Im heutigen Tagebuch oder unter Profil öffnen. Sechs Pläne von 12:12 bis 20:4, laufender Timer, bearbeitbarer Beginn und Ziel sowie Beenden oder Abbrechen. Der Timer bleibt beim Schließen der App erhalten.
+- **Punkteübernahme:** Unter **Profil → Punktebudget → Übrige Tagespunkte übernehmen** bis zu 4 Restpunkte je abgeschlossenem Tag ins Wochenkonto übernehmen oder darauf verzichten. Umschalten berechnet die aktuelle Woche neu.
+- Fastenverlauf und Einstellung sind Teil des Backups; alte Sicherungen bleiben importierbar.
+- [Release-Notizen](docs/releases/v0.17.0.md).
 
 ## FitRocket v0.15.7 – Auch als 2×1-Widget
 
