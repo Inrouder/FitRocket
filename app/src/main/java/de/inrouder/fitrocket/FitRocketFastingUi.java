@@ -11,20 +11,23 @@ import android.widget.*;
 import org.json.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
 
 /** Fasting views use the same theme, rounded cards and spacing as the diary. */
 public final class FitRocketFastingUi {
     private final Activity activity;
     private final SharedPreferences prefs;
     private final Handler handler=new Handler(Looper.getMainLooper());
-    private Runnable update,backAction;
-    private boolean foreground;
+    private Runnable update,backAction,detailBack;
+    private LinearLayout detailRoot;
+    private boolean foreground,allHistory;
     private final Runnable tick=new Runnable(){public void run(){
         if(update!=null)update.run();
         if(foreground&&update!=null)handler.postDelayed(this,1000);
     }};
     public FitRocketFastingUi(Activity activity,SharedPreferences prefs){this.activity=activity;this.prefs=prefs;}
-    public void clear(){handler.removeCallbacks(tick);update=null;backAction=null;}
+    public void clear(){handler.removeCallbacks(tick);update=null;backAction=null;detailRoot=null;detailBack=null;}
     public boolean handleBack(){if(backAction==null)return false;backAction.run();return true;}
     public void pause(){foreground=false;handler.removeCallbacks(tick);}
     public void resume(){foreground=true;handler.removeCallbacks(tick);tick.run();}
@@ -82,7 +85,7 @@ public final class FitRocketFastingUi {
         return c;
     }
     public void detail(LinearLayout root,Runnable back){
-        clear();root.removeAllViews();root.addView(button("‹ Zurück zum Tagebuch",back));
+        clear();detailRoot=root;detailBack=back;root.removeAllViews();root.addView(button("‹ Zurück zum Tagebuch",back));
         try{
             JSONObject state=state(),active=state.optJSONObject("active");
             LinearLayout plan=card();TextView title=text("Dein Fastenplan · "+FitRocketFasting.plan(state.optInt("planHours")),19);
@@ -94,11 +97,8 @@ public final class FitRocketFastingUi {
             LinearLayout timer=card();root.addView(timer);
             if(active==null){
                 timer.addView(text("Dein Rhythmus. Dein Tempo.",21));
-                timer.addView(caption("Starte nach deiner letzten Mahlzeit. Den Beginn und dein Ziel kannst du anschließend anpassen."));
-                timer.addView(button("Fasten jetzt starten",()->run(()->{save(FitRocketFasting.start(state(),System.currentTimeMillis()));
-                    if(prefs.getBoolean(FitRocketFastingAlarmRules.ENABLED_KEY,true)&&!FitRocketFastingReminder.allowed(activity)&&!prefs.getBoolean("fastingNotificationAsked",false))
-                        FitRocketFastingReminder.requestPermission(activity);
-                    detail(root,back);})));
+                timer.addView(caption("Starte ab jetzt oder trage ein, wann du zuletzt gegessen hast. Beginn und Ziel kannst du später korrigieren."));
+                timer.addView(button("Fasten starten",()->startChoice(root,back)));
             }else{
                 TextView elapsedCaption=caption("Vergangene Zeit");elapsedCaption.setGravity(Gravity.CENTER);timer.addView(elapsedCaption);
                 TextView elapsed=text("",38);elapsed.setGravity(Gravity.CENTER);elapsed.setTypeface(null,android.graphics.Typeface.BOLD);elapsed.setSingleLine(true);
@@ -116,10 +116,7 @@ public final class FitRocketFastingUi {
                 goal.addView(caption("Ziel"));goal.addView(text(date(active.optLong("goal")),16));
                 Button editGoal=button("Bearbeiten",()->pickTime(root,back,false));editGoal.setContentDescription("Ziel bearbeiten");goal.addView(editGoal);
                 times.addView(begun,new LinearLayout.LayoutParams(0,-2,1));times.addView(goal,new LinearLayout.LayoutParams(0,-2,1));timer.addView(times);
-                timer.addView(button("Fasten beenden",()->new AlertDialog.Builder(activity).setTitle("Fasten beenden?")
-                    .setMessage("Deine bisherige Fastenzeit wird im Verlauf gespeichert, auch wenn du vor dem Ziel aufhörst.")
-                    .setPositiveButton("Beenden",(d,w)->run(()->{save(FitRocketFasting.finish(state(),System.currentTimeMillis()));detail(root,back);}))
-                    .setNegativeButton("Weiterfasten",null).show()));
+                timer.addView(button("Fasten beenden",()->finishTime(root,back)));
                 timer.addView(button("Fasten abbrechen",()->new AlertDialog.Builder(activity).setTitle("Fasten abbrechen?")
                     .setMessage("Dieses Fasten wird ohne Verlaufseintrag verworfen.")
                     .setPositiveButton("Verwerfen",(d,w)->run(()->{save(FitRocketFasting.cancel(state()));detail(root,back);}))
@@ -154,12 +151,15 @@ public final class FitRocketFastingUi {
             JSONArray history=state.optJSONArray("history");
             if(history.length()>0){
                 LinearLayout log=card();log.addView(text("Deine letzten Fastenzeiten",18));
-                for(int i=0;i<Math.min(7,history.length());i++){
-                    JSONObject entry=history.optJSONObject(i);
+                for(int i=0;i<Math.min(allHistory?FitRocketFasting.HISTORY_LIMIT:7,history.length());i++){
+                    final int index=i;JSONObject entry=history.optJSONObject(i);
                     log.addView(text(FitRocketFasting.plan(entry.optInt("planHours"))+" · "+FitRocketFasting.duration(entry.optLong("end")-entry.optLong("start")),17));
                     log.addView(caption(date(entry.optLong("start"))+" – "+date(entry.optLong("end"))+
                         (entry.optLong("end")>=entry.optLong("goal")?" · Ziel erreicht":" · Vor dem Ziel beendet")));
+                    Button editEnd=button("Endzeit ändern",()->historyEnd(root,back,index,entry));
+                    editEnd.setContentDescription("Endzeit des Fastens vom "+date(entry.optLong("start"))+" ändern");log.addView(editEnd);
                 }
+                if(history.length()>7)log.addView(button(allHistory?"Weniger anzeigen":"Alle Fastenzeiten anzeigen",()->{allHistory=!allHistory;detail(root,back);}));
                 root.addView(log);
             }
         }catch(Exception e){root.addView(caption(e.getMessage()));}
@@ -189,21 +189,98 @@ public final class FitRocketFastingUi {
             }));root.addView(c);
         }
     }
+    private void refreshDetail(){if(detailRoot!=null)detail(detailRoot,detailBack);}
+    private void begin(LinearLayout root,Runnable back,long start){
+        save(FitRocketFasting.start(state(),start,System.currentTimeMillis()));
+        if(prefs.getBoolean(FitRocketFastingAlarmRules.ENABLED_KEY,true)&&!FitRocketFastingReminder.allowed(activity)&&!prefs.getBoolean("fastingNotificationAsked",false))
+            FitRocketFastingReminder.requestPermission(activity);
+        refreshDetail();
+    }
+    private void startChoice(LinearLayout root,Runnable back){
+        new AlertDialog.Builder(activity).setTitle("Wann hast du mit dem Fasten begonnen?")
+            .setPositiveButton("Ab jetzt",(d,w)->run(()->begin(root,back,System.currentTimeMillis())))
+            .setNeutralButton("Früher begonnen",(d,w)->run(()->{
+                long initial=Math.max(0,System.currentTimeMillis()-FitRocketFasting.HOUR);
+                timeDialog("Fasten früher starten",initial,true,"Fasten starten","Abbrechen",
+                    "Wähle das Datum und die Uhrzeit deiner letzten Mahlzeit.",
+                    value->"Beginn · "+date(value)+"\nZiel · "+date(value+state().optInt("planHours")*FitRocketFasting.HOUR),
+                    value->begin(root,back,value));
+            })).setNegativeButton("Abbrechen",null).show();
+    }
     private void pickTime(LinearLayout root,Runnable back,boolean start){run(()->{
-        JSONObject active=state().optJSONObject("active");
-        ZonedDateTime time=Instant.ofEpochMilli(active.optLong(start?"start":"goal")).atZone(ZoneId.systemDefault());
-        DatePickerDialog picker=new DatePickerDialog(activity,(v,y,m,d)->{
-            TimePickerDialog clock=new TimePickerDialog(activity,(view,h,min)->run(()->{
-                long value=LocalDateTime.of(y,m+1,d,h,min).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-                JSONObject latest=state(),a=latest.optJSONObject("active");
-                save(FitRocketFasting.edit(latest,start?value:a.optLong("start"),start?a.optLong("goal"):value,System.currentTimeMillis()));
-                detail(root,back);
-            }),time.getHour(),time.getMinute(),true);
-            clock.setTitle(start?"Beginn des Fastens":"Zielzeit des Fastens");clock.show();
-        },time.getYear(),time.getMonthValue()-1,time.getDayOfMonth());
-        if(start)picker.getDatePicker().setMaxDate(System.currentTimeMillis());
-        picker.setTitle(start?"Startdatum":"Zieldatum");picker.show();
+        JSONObject expected=state().optJSONObject("active");if(expected==null)throw new IllegalArgumentException("Kein laufendes Fasten.");long initial=expected.optLong(start?"start":"goal");
+        long duration=expected.optLong("goal")-expected.optLong("start");
+        timeDialog(start?"Beginn ändern":"Zielzeit ändern",initial,start,"Speichern","Abbrechen",
+            start?"Das Ziel verschiebt sich um denselben Zeitraum. Deine eingestellte Fastendauer bleibt erhalten.":"Passe dein geplantes Fastenziel an.",
+            value->start?"Beginn · "+date(value)+"\nNeues Ziel · "+date(value+duration):"Neues Ziel · "+date(value),
+            value->{
+                JSONObject latest=state();requireSame(expected,latest.optJSONObject("active"));
+                save(start?FitRocketFasting.moveStart(latest,value,System.currentTimeMillis()):
+                    FitRocketFasting.edit(latest,expected.optLong("start"),value,System.currentTimeMillis()));
+                refreshDetail();
+            });
     });}
+    private void finishTime(LinearLayout root,Runnable back){run(()->{
+        JSONObject expected=state().optJSONObject("active");if(expected==null)throw new IllegalArgumentException("Kein laufendes Fasten.");
+        timeDialog("Fasten beenden",System.currentTimeMillis(),true,"Beenden","Weiterfasten",
+            "Prüfe deine tatsächliche Endzeit. Wenn du länger als geplant gefastet hast, wird die gesamte Zeit gespeichert.",
+            value->"Begonnen · "+date(expected.optLong("start"))+"\nTatsächliches Ende · "+date(value)+
+                "\nFastenzeit · "+FitRocketFasting.duration(value-expected.optLong("start")),
+            value->{JSONObject latest=state();requireSame(expected,latest.optJSONObject("active"));
+                save(FitRocketFasting.finish(latest,value,System.currentTimeMillis()));refreshDetail();});
+    });}
+    private void historyEnd(LinearLayout root,Runnable back,int index,JSONObject expected){run(()->{
+        timeDialog("Endzeit im Verlauf ändern",expected.optLong("end"),true,"Speichern","Abbrechen",
+            "Trage ein, wann du tatsächlich aufgehört hast. Beginn und geplantes Ziel bleiben erhalten.",
+            value->"Begonnen · "+date(expected.optLong("start"))+"\nTatsächliches Ende · "+date(value)+
+                "\nFastenzeit · "+FitRocketFasting.duration(value-expected.optLong("start")),
+            value->{JSONObject latest=state();requireSame(expected,latest.optJSONArray("history").optJSONObject(index));
+                JSONObject corrected=FitRocketFasting.editEnd(latest,index,value,System.currentTimeMillis());
+                // A log correction must not dismiss or reschedule the current session's reminder.
+                prefs.edit().putString(FitRocketFasting.KEY,corrected.toString()).apply();refreshDetail();});
+    });}
+    private void requireSame(JSONObject expected,JSONObject latest){
+        if(latest==null||expected.optLong("start")!=latest.optLong("start")||expected.optLong("goal")!=latest.optLong("goal")||
+            expected.optLong("end",-1)!=latest.optLong("end",-1)||expected.optInt("planHours")!=latest.optInt("planHours"))
+            throw new IllegalArgumentException("Die Fastenzeiten haben sich inzwischen geändert. Bitte öffne den Dialog erneut.");
+    }
+    /** Dates/times are a local draft; only a valid confirmation changes persisted state. */
+    private void timeDialog(String title,long initial,boolean pastOnly,String positive,String negative,String hint,
+                            LongFunction<String> preview,LongConsumer accept){
+        final ZonedDateTime[] selected={Instant.ofEpochMilli(initial).atZone(ZoneId.systemDefault())};
+        LinearLayout form=column();form.setPadding(dp(20),dp(8),dp(20),dp(8));
+        form.addView(caption(hint));TextView summary=text("",16);form.addView(summary);
+        Button dateButton=button("",()->{}),timeButton=button("",()->{});form.addView(dateButton);form.addView(timeButton);
+        TextView error=text("",14);error.setTextColor(FitRocketTheme.text(activity));error.setVisibility(View.GONE);form.addView(error);
+        Runnable refresh=()->{summary.setText(preview.apply(selected[0].toInstant().toEpochMilli()));
+            dateButton.setText("Datum · "+selected[0].format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+            timeButton.setText("Uhrzeit · "+selected[0].format(DateTimeFormatter.ofPattern("HH:mm")));error.setVisibility(View.GONE);};
+        dateButton.setContentDescription("Datum wählen");timeButton.setContentDescription("Uhrzeit wählen");
+        dateButton.setOnClickListener(v->{ZonedDateTime time=selected[0];
+            DatePickerDialog picker=new DatePickerDialog(activity,(view,y,m,d)->run(()->{
+                selected[0]=LocalDateTime.of(LocalDate.of(y,m+1,d),selected[0].toLocalTime()).atZone(ZoneId.systemDefault());refresh.run();
+            }),time.getYear(),time.getMonthValue()-1,time.getDayOfMonth());
+            if(pastOnly)picker.getDatePicker().setMaxDate(System.currentTimeMillis());picker.setTitle("Datum wählen");picker.show();});
+        timeButton.setOnClickListener(v->{ZonedDateTime time=selected[0];
+            TimePickerDialog picker=new TimePickerDialog(activity,(view,h,min)->run(()->{
+                selected[0]=selected[0].toLocalDate().atTime(h,min).atZone(ZoneId.systemDefault());refresh.run();
+            }),time.getHour(),time.getMinute(),true);picker.setTitle("Uhrzeit wählen");picker.show();});
+        refresh.run();ScrollView scroll=new ScrollView(activity);scroll.addView(form);
+        LinearLayout content=column();content.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        LinearLayout actions=column();actions.setPadding(dp(16),dp(4),dp(16),dp(10));
+        content.addView(actions,new LinearLayout.LayoutParams(-1,-2));
+        AlertDialog dialog=new AlertDialog.Builder(activity).setTitle(title).setView(content).create();
+        Button confirm=button(positive,()->{
+            try{accept.accept(selected[0].toInstant().toEpochMilli());dialog.dismiss();}
+            catch(Exception e){error.setText(e.getMessage());error.setVisibility(View.VISIBLE);error.announceForAccessibility(e.getMessage());
+                scroll.post(()->scroll.smoothScrollTo(0,form.getHeight()));}
+        });confirm.setTag("fastingConfirm");actions.addView(confirm);
+        Button cancel=button(negative,dialog::dismiss);cancel.setTag("fastingCancel");actions.addView(cancel);
+        // The body gets remaining space; both actions stay outside its scroll area even with large fonts.
+        dialog.setOnShowListener(v->{android.util.DisplayMetrics metrics=activity.getResources().getDisplayMetrics();
+            dialog.getWindow().setLayout((int)(metrics.widthPixels*.94f),(int)(metrics.heightPixels*.90f));});
+        dialog.show();
+    }
     private final class PlanRing extends View {
         private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);private final int hours;
         PlanRing(int hours){super(activity);this.hours=hours;setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);}

@@ -17,7 +17,14 @@
 | [Signierung](docs/SIGNING.md) | Release-Keystore, GitHub Actions und Update-Kompatibilität |
 | [Versionshistorie](CHANGELOG.md) | Bisherige Änderungen und Entwicklungsschritte |
 
-**Aktueller Quellcode:** v0.18.1. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+**Aktueller Quellcode:** v0.18.2. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+
+## FitRocket v0.18.2 – Fastenzeiten nachtragen und korrigieren
+
+- Beim Start **Ab jetzt** oder **Früher begonnen** mit Datum und Uhrzeit wählen.
+- Den Beginn nachträglich verschieben; das Ziel und die Erinnerung ziehen mit, die eingestellte Dauer bleibt erhalten.
+- Beim Beenden das tatsächliche Ende prüfen und anschließend im Verlauf korrigieren, wenn du länger gefastet hast.
+- [Bedienung und Daten](docs/FASTING_TIMES.md) · [Release-Notizen](docs/releases/v0.18.2.md).
 
 ## FitRocket v0.18.1 – Dein Pet wird lebendiger
 

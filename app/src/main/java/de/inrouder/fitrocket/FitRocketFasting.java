@@ -60,11 +60,16 @@ public final class FitRocketFasting {
         }catch(Exception e){throw new IllegalArgumentException("Plan konnte nicht geändert werden.",e);}
     }
     public static JSONObject start(JSONObject source,long now){
-        timestamp(now);JSONObject state=validated(source);
+        return start(source,now,now);
+    }
+    public static JSONObject start(JSONObject source,long start,long now){
+        timestamp(now);timestamp(start);
+        if(start>now)throw new IllegalArgumentException("Der Start darf nicht in der Zukunft liegen.");
+        JSONObject state=validated(source);
         if(state.has("active"))throw new IllegalArgumentException("Es läuft bereits ein Fasten.");
         try{
             int hours=state.getInt("planHours");
-            state.put("active",new JSONObject().put("start",now).put("goal",now+hours*HOUR).put("planHours",hours));
+            state.put("active",new JSONObject().put("start",start).put("goal",start+hours*HOUR).put("planHours",hours));
             return validated(state);
         }catch(Exception e){throw new IllegalArgumentException("Fasten konnte nicht gestartet werden.",e);}
     }
@@ -73,22 +78,46 @@ public final class FitRocketFasting {
         if(start>now)throw new IllegalArgumentException("Der Start darf nicht in der Zukunft liegen.");
         JSONObject state=validated(source);
         try{
-            state.getJSONObject("active").put("start",start).put("goal",goal);
+            JSONObject active=state.getJSONObject("active");
+            if(active.getLong("start")!=start||active.getLong("goal")!=goal)active.remove("notifiedGoal");
+            active.put("start",start).put("goal",goal);
             return state;
         }catch(Exception e){throw new IllegalArgumentException("Kein laufendes Fasten.",e);}
     }
-    public static JSONObject finish(JSONObject source,long now){
-        timestamp(now);JSONObject state=validated(source);
+    /** Preserve the current (possibly customized) duration when correcting the start. */
+    public static JSONObject moveStart(JSONObject source,long start,long now){
+        JSONObject state=validated(source),active=state.optJSONObject("active");
+        if(active==null)throw new IllegalArgumentException("Kein laufendes Fasten.");
+        return edit(state,start,start+(active.optLong("goal")-active.optLong("start")),now);
+    }
+    public static JSONObject finish(JSONObject source,long now){return finish(source,now,now);}
+    public static JSONObject finish(JSONObject source,long end,long now){
+        timestamp(now);timestamp(end);
+        if(end>now)throw new IllegalArgumentException("Das Ende darf nicht in der Zukunft liegen.");
+        JSONObject state=validated(source);
         try{
             JSONObject entry=state.getJSONObject("active");
-            if(now<entry.getLong("start"))throw new IllegalArgumentException("Das Ende liegt vor dem Start. Bitte den Start korrigieren.");
-            entry.put("end",now);
+            if(end<entry.getLong("start"))throw new IllegalArgumentException("Das Ende liegt vor dem Start. Bitte den Start korrigieren.");
+            entry.put("end",end);
             JSONArray history=new JSONArray().put(entry),old=state.getJSONArray("history");
             for(int i=0;i<old.length()&&history.length()<HISTORY_LIMIT;i++)history.put(old.get(i));
             state.remove("active");state.put("history",history);
             return validated(state);
         }catch(IllegalArgumentException e){throw e;}
         catch(Exception e){throw new IllegalArgumentException("Kein laufendes Fasten.",e);}
+    }
+    /** Correct only the actual end of an existing log entry; goal and active session stay intact. */
+    public static JSONObject editEnd(JSONObject source,int index,long end,long now){
+        timestamp(now);timestamp(end);
+        if(end>now)throw new IllegalArgumentException("Das Ende darf nicht in der Zukunft liegen.");
+        JSONObject state=validated(source);
+        try{
+            JSONObject entry=state.getJSONArray("history").getJSONObject(index);
+            if(end<entry.getLong("start"))throw new IllegalArgumentException("Das Ende liegt vor dem Start.");
+            entry.put("end",end);
+            return validated(state);
+        }catch(IllegalArgumentException e){throw e;}
+        catch(Exception e){throw new IllegalArgumentException("Fasteneintrag nicht mehr vorhanden.",e);}
     }
     public static JSONObject cancel(JSONObject source){
         JSONObject state=validated(source);state.remove("active");return state;
