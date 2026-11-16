@@ -19,6 +19,7 @@ public final class FitRocketPetUi {
     private final int budget;
     private final List<JSONObject> meals;
     private FitRocketPetView petView;
+    private TextView moodText,reactionText,starsNumber;
     private String renderedDate="";
     private boolean foreground=true;
     private final android.os.Handler dayHandler=new android.os.Handler(android.os.Looper.getMainLooper());
@@ -48,9 +49,11 @@ public final class FitRocketPetUi {
     private void run(Runnable action){try{action.run();}catch(Exception e){Toast.makeText(activity,e.getMessage(),Toast.LENGTH_LONG).show();}}
     private JSONObject state(){try{return FitRocketPet.validated(new JSONObject(prefs.getString(FitRocketPet.KEY,"{}")));}catch(Exception e){throw new IllegalArgumentException("Pet-Daten konnten nicht gelesen werden. Bitte prüfe deine Sicherung.",e);}}
     private void save(JSONObject state){prefs.edit().putString(FitRocketPet.KEY,state.toString()).apply();}
-    private void change(JSONObject next,String reaction){save(next);render(reaction);}
+    private void change(JSONObject next,String reaction){change(next,reaction,null);}
+    private void change(JSONObject next,String reaction,FitRocketPetMotion.Action action){save(next);render(reaction,action);}
     public void render(){render(null);}
-    private void render(String reaction){
+    private void render(String reaction){render(reaction,null);}
+    private void render(String reaction,FitRocketPetMotion.Action action){
         dayHandler.removeCallbacks(dayCheck);
         if(petView!=null)petView.setRunning(false);
         root.removeAllViews();renderedDate=LocalDate.now().toString();
@@ -70,20 +73,24 @@ public final class FitRocketPetUi {
             LinearLayout hero=card();
             TextView title=text(name,24);title.setTypeface(null,android.graphics.Typeface.BOLD);hero.addView(title);
             TextView stageLabel=text("Stufe "+(stage+1)+" · "+FitRocketPet.STAGE_NAMES[stage],14);stageLabel.setTextColor(FitRocketTheme.accent(activity));hero.addView(stageLabel);
-            petView=new FitRocketPetView(activity);petView.show(stage,mood,state.optString("equippedHead"),state.optString("equippedToy"));
+            if(petView==null)petView=new FitRocketPetView(activity);
+            if(petView.getParent() instanceof ViewGroup)((ViewGroup)petView.getParent()).removeView(petView);
+            petView.show(stage,mood,state.optString("equippedHead"),state.optString("equippedToy"));
             petView.setBackground(shape(FitRocketTheme.map(activity,Color.rgb(240,231,255)),20));petView.setClipToOutline(true);
             hero.addView(petView,new LinearLayout.LayoutParams(-1,dp(270)));petView.setRunning(foreground);
             petView.setOnClickListener(v->run(()->care(false)));
-            if(reaction!=null)petView.react();
+            if(action!=null)petView.animate(action);
             String[] moods={"Glücklich","Entspannt","Traurig","Grummelig","Monsterlaune · Zähnchen voraus!"};
-            TextView status=text(moods[mood],18);status.setTypeface(null,android.graphics.Typeface.BOLD);hero.addView(status);
+            moodText=text(moods[mood],18);moodText.setTypeface(null,android.graphics.Typeface.BOLD);hero.addView(moodText);
             int missed=FitRocketPet.missedDays(state,LocalDate.now());
-            hero.addView(caption(missed>0?name+" hat an "+missed+" abgeschlossenen Tag(en) kein Futter bekommen.":"Tippe auf "+name+" zum Streicheln."));
-            if(reaction!=null)hero.addView(text(reaction,14));root.addView(hero);
+            TextView careHint=caption(missed>0?name+" hat an "+missed+" abgeschlossenen Tag(en) kein Futter bekommen.":"Tippe auf "+name+" oder streiche darüber.");hero.addView(careHint);
+            reactionText=text(reaction==null?"":reaction,14);reactionText.setVisibility(reaction==null?View.GONE:View.VISIBLE);hero.addView(reactionText);
+            String equipped=FitRocketPet.ITEM_NAMES[Math.max(0,FitRocketPet.itemIndex(state.optString("equippedHead")))];
+            hero.addView(caption("Angezogen: "+equipped+" · "+FitRocketPet.ITEM_NAMES[FitRocketPet.itemIndex(state.optString("equippedToy"))]));root.addView(hero);
 
             LinearLayout balances=card(),row=new LinearLayout(activity);row.setOrientation(LinearLayout.HORIZONTAL);
             metric(row,FitRocketPet.points(state.optInt("foodTenths")),"Futterpunkte");
-            metric(row,String.valueOf(state.optInt("stars")),"Sterne");metric(row,(stage+1)+" / 5","Entwicklung");
+            starsNumber=metric(row,String.valueOf(state.optInt("stars")),"Sterne");metric(row,(stage+1)+" / 5","Entwicklung");
             balances.addView(row);
             if(stage<4){
                 int start=FitRocketPet.STAGES[stage],target=FitRocketPet.STAGES[stage+1],fed=state.optInt("fedTenths");
@@ -112,10 +119,11 @@ public final class FitRocketPetUi {
         if(foreground)dayHandler.postDelayed(dayCheck,30000);
     }
     private LinearLayout.LayoutParams weighted(){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(dp(2),dp(5),dp(2),dp(5));return p;}
-    private void metric(LinearLayout row,String value,String label){LinearLayout c=column();TextView n=text(value,20);n.setTypeface(null,android.graphics.Typeface.BOLD);c.addView(n);c.addView(caption(label));row.addView(c,new LinearLayout.LayoutParams(0,-2,1));}
+    private TextView metric(LinearLayout row,String value,String label){LinearLayout c=column();TextView n=text(value,20);n.setTypeface(null,android.graphics.Typeface.BOLD);c.addView(n);c.addView(caption(label));row.addView(c,new LinearLayout.LayoutParams(0,-2,1));return n;}
     private void adoption(){
         LinearLayout card=card();TextView title=text("Ein kleiner Stern wartet auf dich",23);title.setTypeface(null,android.graphics.Typeface.BOLD);card.addView(title);
-        petView=new FitRocketPetView(activity);petView.show(0,0,"none","ball");petView.setBackground(shape(FitRocketTheme.map(activity,Color.rgb(240,231,255)),20));petView.setClipToOutline(true);
+        if(petView==null)petView=new FitRocketPetView(activity);
+        if(petView.getParent() instanceof ViewGroup)((ViewGroup)petView.getParent()).removeView(petView);petView.show(0,0,"none","ball");petView.setBackground(shape(FitRocketTheme.map(activity,Color.rgb(240,231,255)),20));petView.setClipToOutline(true);
         card.addView(petView,new LinearLayout.LayoutParams(-1,dp(270)));petView.setRunning(foreground);
         card.addView(caption("Adoptiere deinen Pixel-Begleiter. Mit fiktivem Futter wächst er durch fünf Stufen; Streicheln, Spielen und Zubehör machen ihn zu deinem Pet."));
         EditText name=new EditText(activity);name.setText("Novi");name.setSingleLine(true);name.setTextColor(FitRocketTheme.text(activity));name.setHint("Name deines Pets");name.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(20)});card.addView(name);
@@ -125,10 +133,16 @@ public final class FitRocketPetUi {
     private void care(boolean play){
         JSONObject state=state();String day=LocalDate.now().toString();boolean already=day.equals(state.optString(play?"playedOn":"pettedOn"));
         String name=state.optString("name");
-        change(FitRocketPet.care(state,LocalDate.now(),play),play?
-            name+" spielt mit "+("rocket_toy".equals(state.optString("equippedToy"))?"der Rakete":"dem Ball")+(already?"!":"! +2 Sterne"):
-            name+" genießt deine Streicheleinheit"+(already?"!":"! +1 Stern"));
+        JSONObject next=FitRocketPet.care(state,LocalDate.now(),play);save(next);
+        String message=play?name+" spielt mit "+("rocket_toy".equals(state.optString("equippedToy"))?"der Rakete":"dem Ball")+(already?"!":"! +2 Sterne"):
+            name+" genießt deine Streicheleinheit"+(already?"!":"! +1 Stern");
+        String[] moods={"Glücklich","Entspannt","Traurig","Grummelig","Monsterlaune · Zähnchen voraus!"};
+        if(starsNumber!=null)starsNumber.setText(String.valueOf(next.optInt("stars")));
+        if(moodText!=null)moodText.setText(moods[FitRocketPet.mood(next,LocalDate.now())]);
+        if(reactionText!=null){reactionText.setText(message);reactionText.setVisibility(View.VISIBLE);}
+        if(petView!=null){petView.show(FitRocketPet.stage(next),FitRocketPet.mood(next,LocalDate.now()),next.optString("equippedHead"),next.optString("equippedToy"));petView.animate(play?FitRocketPetMotion.Action.PLAY:FitRocketPetMotion.Action.PET);}
     }
+
     private void feedDialog(){
         JSONObject state=state();int available=state.optInt("foodTenths");
         if(available<1){Toast.makeText(activity,"Dein Futtervorrat ist leer. Neue Restpunkte werden nach Tagesabschluss zu Futter.",Toast.LENGTH_LONG).show();return;}
@@ -144,7 +158,7 @@ public final class FitRocketPetUi {
             catch(Exception e){throw new IllegalArgumentException("Bitte Futterpunkte mit höchstens einer Nachkommastelle eingeben.");}
             JSONObject old=state(),next=FitRocketPet.feed(old,tenths,LocalDate.now());
             int previous=FitRocketPet.stage(old),current=FitRocketPet.stage(next);dialog.dismiss();
-            change(next,current>previous?next.optString("name")+" ist gewachsen! Stufe "+(current+1)+" erreicht.":"Mmmh! "+next.optString("name")+" freut sich über das Futter.");
+            change(next,current>previous?next.optString("name")+" ist gewachsen! Stufe "+(current+1)+" erreicht.":"Mmmh! "+next.optString("name")+" freut sich über das Futter.",FitRocketPetMotion.Action.FEED);
         })));dialog.show();
     }
     private void wardrobe(JSONObject state){
@@ -152,17 +166,18 @@ public final class FitRocketPetUi {
         wardrobe.addView(caption("Mit Sternen freischalten, Lieblingsstück anziehen – dein Zubehör bleibt gespeichert."));
         for(int i=0;i<FitRocketPet.ITEMS.length;i++){
             final String id=FitRocketPet.ITEMS[i];final int index=i;
+            if(i==0||i==4)wardrobe.addView(text(i==0?"Zum Anziehen":"Zum Spielen",16));
             LinearLayout row=new LinearLayout(activity);row.setGravity(Gravity.CENTER_VERTICAL);
             if(i>0)row.addView(new FitRocketPetView.ItemIcon(activity,i),new LinearLayout.LayoutParams(dp(52),dp(52)));
             LinearLayout info=column();TextView name=text(FitRocketPet.ITEM_NAMES[i],15);name.setTypeface(null,android.graphics.Typeface.BOLD);info.addView(name);
             boolean equipped=id.equals(state.optString(i<4?"equippedHead":"equippedToy")),owned=FitRocketPet.owns(state,id);
             info.addView(caption(equipped?"Ausgerüstet":owned?"Freigeschaltet":FitRocketPet.PRICES[i]+" Sterne"));
             row.addView(info,new LinearLayout.LayoutParams(0,-2,1));
-            Button equip=button(equipped?"Aktiv":owned?"Wählen":"Freischalten",()->{
-                if(FitRocketPet.owns(state(),id)){change(FitRocketPet.equip(state(),id),null);return;}
+            Button equip=button(equipped?"Aktiv":owned?(index<4?"Anziehen":"Benutzen"):"Freischalten",()->{
+                if(FitRocketPet.owns(state(),id)){change(FitRocketPet.equip(state(),id),FitRocketPet.ITEM_NAMES[index]+(index<4?" angezogen.":" ist bereit."),index<4?FitRocketPetMotion.Action.DRESS:FitRocketPetMotion.Action.PLAY);return;}
                 new AlertDialog.Builder(activity).setTitle(FitRocketPet.ITEM_NAMES[index]+" freischalten?")
                     .setMessage("Das kostet "+FitRocketPet.PRICES[index]+" deiner Spielsterne.")
-                    .setPositiveButton("Freischalten",(d,w)->run(()->change(FitRocketPet.equip(state(),id),"Neues Lieblingsstück freigeschaltet!")))
+                    .setPositiveButton("Freischalten",(d,w)->run(()->change(FitRocketPet.equip(state(),id),"Neues Lieblingsstück freigeschaltet!",index<4?FitRocketPetMotion.Action.DRESS:FitRocketPetMotion.Action.PLAY)))
                     .setNegativeButton("Abbrechen",null).show();
             });equip.setEnabled(!equipped);row.addView(equip,new LinearLayout.LayoutParams(dp(103),-2));wardrobe.addView(row);
         }

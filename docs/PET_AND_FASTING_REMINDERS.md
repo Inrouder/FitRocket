@@ -1,4 +1,4 @@
-# Pixel-Pet und Fasten-Benachrichtigungen (v0.18.0)
+# Pixel-Pet und Fasten-Benachrichtigungen (ab v0.18.0, Bewegung verfeinert in v0.18.1)
 
 [Vorschau des Pet-Bereichs](images/pet-preview.png) – aus den echten Android-Ansichten unter Robolectric gerendert, kein Geräte-Screenshot.
 
@@ -18,7 +18,24 @@ Unter dem eigenen Reiter **Pet** kannst du ein Ei adoptieren und deinem Begleite
 
 `FitRocketPet` enthält die Android-unabhängige Spiellogik. SharedPreferences `pet` ist ein JSON-Objekt; `{}` bedeutet noch nicht adoptiert. Nach Adoption enthält es `name`, `adoptedOn`, `lastHarvestDate`, `foodTenths`, `fedTenths`, `stars`, `lastFedOn`, `pettedOn`, `playedOn`, `ownedItems`, `equippedHead`, `equippedToy`. Futterwerte sind ganzzahlige Zehntelpunkte. `lastHarvestDate` ist ein monotoner Cursor gegen doppelte Gutschriften, auch bei Uhr-Rückstellung, Neustart oder wiederholtem Öffnen. Es werden keine Mahlzeiten und keine echten Punkte verändert. Mutationen validieren Kopien und bewahren unbekannte optionale Felder.
 
-`FitRocketPetUi` bietet Adoption, Namen, Füttern, Pflege und Ausstattung. `FitRocketPetView` zeichnet ausschließlich Bitmap-Ausschnitte: `fitrocket_pet_atlas.png` enthält 5 Spalten (Entwicklung) × 5 Zeilen (glücklich, entspannt, traurig, grummelig, Monster). `fitrocket_pet_items.png` hat 3 × 2 Felder (Öhrchen/Mütze/Krone; Ball/Rakete/Herz). `fitrocket_pet_garden.png` ist die Kulisse. Die PNGs werden ohne Texturfilter und mit reduziertem Decode-Speicher geladen, pro Prozess wiederverwendet und im Hintergrund nicht weiter animiert. Die Figur wippt leicht, Berührung zeigt Pixelherzen. Alle drei Bilder wurden eigens mit Bildgenerierung anhand der Referenz bzw. passender Beschreibungen erstellt.
+`FitRocketPetUi` bietet Adoption, Namen, Füttern, Pflege und Ausstattung. In **Zum Anziehen** wählt **Anziehen** gekauften Kopfschmuck; **Zum Spielen** aktiviert das Spielzeug. Unter der Figur stehen die ausgerüsteten Gegenstände. Die Szene bleibt bei Pflege und Ausstattungswechsel erhalten.
+
+Ab v0.18.1 läuft das Pet mit vier Schrittposen hin und her, dreht an den Gartenrändern um und macht kleine Pausen. **Spielen** startet eine Folge aus Anlaufen, Anspringen und Verfolgen des hüpfenden/rollenden Balls (oder der gewählten Rakete). **Füttern** zeigt Kopfbeugen, Kauen und einen sich leerenden Napf; nur ein tatsächlich bestätigtes Füttern startet diese Aktion. **Streicheln**, Antippen oder ein Wischen über die Figur zeigt entspannte Posen, eine streichende Pixelhand und Herzen. Pro Wischgeste wird die Pflege nur einmal ausgelöst. Tagessterne bleiben auf ihre bisherigen Grenzen beschränkt. Während Interaktionen sieht man die Aktionspose; anschließend kehrt die Figur zur aktuellen Stimmung zurück. Traurige/grummelige/Monster-Pets behalten beim Umherlaufen ihr Stimmungsbild und bewegen sich mit diesem statt mit dem fröhlichen Laufatlas.
+
+`FitRocketPetMotion` steuert ausschließlich flüchtige Animationen mit einer pausierbaren Vordergrunduhr. Der Wiedereintritt in die App überspringt keine Animation. `FitRocketPetRig` enthält Kopfposition, Augenlinie, Kopfbreite und Neigung pro Stufe/Aktionspose. Öhrchen hängen hinter Wangen/Kiemen, der Haarreif liegt über der Stirn; Mütze/Krone liegen vor der Figur oberhalb der Augen. Figur und Zubehör werden gemeinsam gespiegelt/gedreht. `FitRocketPetScene` rendert die identische Bitmap-Szene in App und Android-Tests. Feste Hüllflächen pro Stufe/Ausstattung halten Größe und Laufgrenzen über alle Einzelbilder hinweg konstant.
+
+Sechs PNGs ohne SVG-/Vektor-Pet-Grafiken:
+
+| Ressource | Inhalt |
+| --- | --- |
+| `fitrocket_pet_atlas.png` | 5 Entwicklungsstufen × 5 Stimmungen |
+| `fitrocket_pet_walk.png` | 5 Stufen × 4 Schrittphasen |
+| `fitrocket_pet_actions.png` | 5 Stufen × 6 Posen: Fressen/Kauen, Spielbereitschaft/Anspringen, zwei Streichelposen |
+| `fitrocket_pet_items.png` | Öhrchen/Mütze/Krone, Ball/Rakete/Herz |
+| `fitrocket_pet_props.png` | voller/leerer Napf, Streichelhand, Leckerli, Spielpartikel, reservierte Bürste |
+| `fitrocket_pet_garden.png` | Gartenkulisse |
+
+Die PNGs wurden mit Bildgenerierung erstellt. Die nicht gleichmäßigen Bildabstände der Figurenatlanten werden beim Laden berücksichtigt, damit keine Nachbarbilder angeschnitten werden. Rasterbilder werden ohne Texturfilter mit reduziertem Decode-Speicher geladen und pro Prozess wiederverwendet. Im Hintergrund und bei abgelöster View läuft kein Animationstakt weiter. Animationen verändern weder Futter noch Sterne noch echte Punkte; Pflege und Füttern verwenden weiterhin ausschließlich die bestehenden Spielregeln. Es gibt keine neuen Datenfelder oder Migration.
 
 Der sechste Hauptreiter ist **Pet**; **Profil** hat nun Index 5. Gespeicherte Seiten verwenden weiterhin ihre bisherigen Namen. Auf schmalen Displays oder bei großer Schrift ordnet die Navigation die sechs Reiter in Zeilen an, statt Beschriftungen abzuschneiden. Insets der Android-Systemnavigation werden im Dock berücksichtigt.
 
@@ -42,7 +59,7 @@ Backup-Schema 7 erhält die optionalen Zusatzfelder `pet` und `fastingReminderEn
 
 - Tages-/Wochenkonto vor und nach Adoption, Einsammeln, Füttern, Spielen und Zubehörkauf vergleichen; gleiche Restpunkte bei aus- und eingeschalteter realer Punkteübernahme.
 - Tagesgrenze, Zehntelpunkte, Überziehung, mehrfaches Öffnen, App-Neustart, verpasste Tage und Uhr-Rückstellung. Heutige Restpunkte noch nicht verfüttern; historische Korrektur nicht mehrfach belohnen.
-- Alle fünf Entwicklungsstufen und fünf Stimmungen; Füttern, Streicheln und Spielen. Zubehör bezahlen, erneut wählen und über Backup erhalten.
+- Alle fünf Entwicklungsstufen und fünf Stimmungen; Füttern, Streicheln und Spielen. Zubehör bezahlen, erneut anziehen und über Backup erhalten. Augen bleiben frei, Kopfschmuck folgt beim Spiegeln/Neigen und allen Aktionen. Laufpausen, Gartenränder, Anstoßen/Verfolgen, Kauen/Napf, Wischgeste und wiederholte Pflege prüfen. Zwischen Aktionen sowie im Hintergrund und nach App-Rückkehr keine Positionssprünge oder zusätzliche Spielpunkte.
 - Hell/Dunkel, große Systemschrift, schmale Displays, Android-Gesten und 3-Tasten-Navigation. Alle sechs Reiter bleiben erreichbar.
 - Fastenalarm in Zukunft und überfällig; Ziel verlängern/verkürzen, Start ändern, beenden, abbrechen, Erinnerung deaktivieren. Genau eine Benachrichtigung pro unverändertem Ziel.
 - Benachrichtigungsfreigabe und -ablehnung, stummer Kanal, optionaler genauer Alarmzugriff, Energiesparmodus, normal geschlossene App und Geräteneustart. Benachrichtigung öffnet direkt den Timer.
@@ -50,4 +67,4 @@ Backup-Schema 7 erhält die optionalen Zusatzfelder `pet` und `fastingReminderEn
 
 
 ## Automatisierter Prüfstand
-159 Tests decken Berechnungen, Spielregeln, Backup, PNG-Atlanten sowie Android-Oberfläche und Alarme ab. Robolectric verwendet Android 9 (API 28) und Android 15 (API 35), inklusive nativer Bitmap-Renderings und zweifacher Schriftgröße. Ein realer Geräte-/Doze-/Neustarttest bleibt zusätzlich sinnvoll. Die globale zusätzliche `lintDebug`-Prüfung ist wegen bestehender Befunde in `MainActivity`/`HealthSync` nicht fehlerfrei; diese Altlasten sind kein bestandener Check.
+178 Tests decken Berechnungen, Spielregeln, Backup, PNG-Atlanten sowie Animation, Zubehörbefestigung, Android-Oberfläche und Alarme ab. Robolectric verwendet Android 9 (API 28) und Android 15 (API 35), inklusive nativer Bitmap-Renderings und zweifacher Schriftgröße. Ein realer Geräte-/Doze-/Neustarttest bleibt zusätzlich sinnvoll. Die globale zusätzliche `lintDebug`-Prüfung ist wegen bestehender Befunde in `MainActivity`/`HealthSync` nicht fehlerfrei; diese Altlasten sind kein bestandener Check.

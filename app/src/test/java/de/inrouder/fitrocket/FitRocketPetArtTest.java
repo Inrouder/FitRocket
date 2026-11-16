@@ -35,6 +35,9 @@ public class FitRocketPetArtTest {
     }
     @Test public void everyGrowthStageHasAllFiveMoodSprites()throws Exception {atlas(image("fitrocket_pet_atlas.png"),5,5);}
     @Test public void allAccessoriesToysAndHeartAreRasterSprites()throws Exception {atlas(image("fitrocket_pet_items.png"),3,2);}
+    @Test public void everyStageHasFourWalkFrames()throws Exception {atlas(image("fitrocket_pet_walk.png"),5,4);}
+    @Test public void eatingPlayingAndPettingHaveSeparatePixelPoses()throws Exception {atlas(image("fitrocket_pet_actions.png"),5,6);}
+    @Test public void bowlsHandAndFoodAreRasterSprites()throws Exception {atlas(image("fitrocket_pet_props.png"),3,2);}
     @Test public void gardenIsAnActualLandscapeBitmap()throws Exception {
         Bitmap garden=image("fitrocket_pet_garden.png");assertTrue(garden.getWidth()>garden.getHeight());assertTrue(garden.getHeight()>=512);
         assertNotEquals(garden.getPixel(100,100),garden.getPixel(garden.getWidth()/2,garden.getHeight()/2));

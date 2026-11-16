@@ -17,7 +17,15 @@
 | [Signierung](docs/SIGNING.md) | Release-Keystore, GitHub Actions und Update-Kompatibilität |
 | [Versionshistorie](CHANGELOG.md) | Bisherige Änderungen und Entwicklungsschritte |
 
-**Aktueller Quellcode:** v0.18.0. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+**Aktueller Quellcode:** v0.18.1. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+
+## FitRocket v0.18.1 – Dein Pet wird lebendiger
+
+- Vier Schrittposen, Hin- und Herlaufen mit kleinen Pausen und Ballspiel mit Anspringen/Verfolgen.
+- Fress- und Kauanimation mit Napf; Streicheln per Taste, Antippen oder Wischen mit Pixelhand und Herzen.
+- Öhrchen, Raketenmütze und Krone folgen Kopfgröße, Aktionspose und Laufrichtung. Klare „Anziehen“-/„Benutzen“-Schaltflächen.
+- Alles bleibt PNG-Pixelgrafik. Fiktives Futter, echte Punkte und gespeicherte Ausstattung behalten ihre bisherigen Regeln.
+- [Release-Notizen](docs/releases/v0.18.1.md) · [Ausstattung in allen Stufen und Posen](docs/images/pet-outfits.png).
 
 ## FitRocket v0.18.0 – Dein Pixel-Pet & Fasten-Erinnerungen
 
