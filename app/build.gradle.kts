@@ -11,7 +11,7 @@ val fitrocketReleaseSigningEnabled = listOf(
 android {
  namespace = "de.inrouder.fitrocket"
  compileSdk = 35
- defaultConfig { applicationId = "de.inrouder.fitrocket"; minSdk = 26; targetSdk = 35; versionCode = 47; versionName = "0.17.0" }
+ defaultConfig { applicationId = "de.inrouder.fitrocket"; minSdk = 26; targetSdk = 35; versionCode = 48; versionName = "0.18.0" }
  signingConfigs {
   create("fitrocketRelease") {
    if (fitrocketReleaseSigningEnabled) {
@@ -30,7 +30,14 @@ android {
   }
  }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
- testOptions { unitTests.isReturnDefaultValues = true }
+ testOptions {
+  unitTests.isReturnDefaultValues = true
+  unitTests.isIncludeAndroidResources = true
+  unitTests.all {
+   it.maxHeapSize = "1g"
+   it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+  }
+ }
 }
 
 // Align legacy transitive Kotlin JDK compatibility modules with Kotlin 1.8.22
@@ -46,5 +53,6 @@ dependencies {
  implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
  implementation("androidx.core:core:1.13.1")
  testImplementation("junit:junit:4.13.2")
+ testImplementation("org.robolectric:robolectric:4.14.1")
  testImplementation("org.json:json:20240303")
 }

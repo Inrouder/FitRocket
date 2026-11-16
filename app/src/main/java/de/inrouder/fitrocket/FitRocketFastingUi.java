@@ -31,7 +31,7 @@ public final class FitRocketFastingUi {
     private void bind(Runnable callback){update=callback;handler.removeCallbacks(tick);tick.run();}
     private int dp(float value){return (int)(value*activity.getResources().getDisplayMetrics().density+0.5f);}
     private int accent(){return FitRocketTheme.accent(activity);}
-    private LinearLayout column(){LinearLayout l=new LinearLayout(activity);l.setOrientation(1);return l;}
+    private LinearLayout column(){LinearLayout l=new LinearLayout(activity);l.setOrientation(LinearLayout.VERTICAL);return l;}
     private GradientDrawable shape(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
     private TextView text(String value,int size){
         TextView t=new TextView(activity);t.setText(value);t.setTextSize(size);t.setTextColor(FitRocketTheme.text(activity));
@@ -53,7 +53,11 @@ public final class FitRocketFastingUi {
         try{return FitRocketFasting.validated(new JSONObject(prefs.getString(FitRocketFasting.KEY,FitRocketFasting.empty().toString())));}
         catch(Exception e){throw new IllegalArgumentException("Fastendaten konnten nicht gelesen werden.",e);}
     }
-    private void save(JSONObject state){prefs.edit().putString(FitRocketFasting.KEY,state.toString()).apply();}
+    private void save(JSONObject state){
+        FitRocketFastingReminder.dismiss(activity);
+        prefs.edit().putString(FitRocketFasting.KEY,state.toString()).apply();
+        FitRocketFastingReminder.schedule(activity);
+    }
     private void run(Runnable action){try{action.run();}catch(Exception e){Toast.makeText(activity,e.getMessage(),Toast.LENGTH_LONG).show();}}
     private String date(long timestamp){
         ZonedDateTime time=Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault());
@@ -62,7 +66,7 @@ public final class FitRocketFastingUi {
         return prefix+", "+time.format(DateTimeFormatter.ofPattern("HH:mm"));
     }
     public View compact(Runnable open){
-        LinearLayout c=card();TextView title=text("Intervallfasten",17);title.setTypeface(null,1);c.addView(title);
+        LinearLayout c=card();TextView title=text("Intervallfasten",17);title.setTypeface(null,android.graphics.Typeface.BOLD);c.addView(title);
         try{
             JSONObject state=state(),active=state.optJSONObject("active");
             if(active==null){
@@ -82,7 +86,7 @@ public final class FitRocketFastingUi {
         try{
             JSONObject state=state(),active=state.optJSONObject("active");
             LinearLayout plan=card();TextView title=text("Dein Fastenplan · "+FitRocketFasting.plan(state.optInt("planHours")),19);
-            title.setTypeface(null,1);plan.addView(title);
+            title.setTypeface(null,android.graphics.Typeface.BOLD);plan.addView(title);
             plan.addView(caption(state.optInt("planHours")+" Stunden Fasten · "+(24-state.optInt("planHours"))+" Stunden Essensfenster"));
             if(active!=null&&active.optLong("goal")-active.optLong("start")!=state.optInt("planHours")*FitRocketFasting.HOUR)
                 plan.addView(caption("Angepasstes Ziel · "+FitRocketFasting.duration(active.optLong("goal")-active.optLong("start"))+" nach dem Start"));
@@ -91,17 +95,20 @@ public final class FitRocketFastingUi {
             if(active==null){
                 timer.addView(text("Dein Rhythmus. Dein Tempo.",21));
                 timer.addView(caption("Starte nach deiner letzten Mahlzeit. Den Beginn und dein Ziel kannst du anschließend anpassen."));
-                timer.addView(button("Fasten jetzt starten",()->run(()->{save(FitRocketFasting.start(state(),System.currentTimeMillis()));detail(root,back);})));
+                timer.addView(button("Fasten jetzt starten",()->run(()->{save(FitRocketFasting.start(state(),System.currentTimeMillis()));
+                    if(prefs.getBoolean(FitRocketFastingAlarmRules.ENABLED_KEY,true)&&!FitRocketFastingReminder.allowed(activity)&&!prefs.getBoolean("fastingNotificationAsked",false))
+                        FitRocketFastingReminder.requestPermission(activity);
+                    detail(root,back);})));
             }else{
                 TextView elapsedCaption=caption("Vergangene Zeit");elapsedCaption.setGravity(Gravity.CENTER);timer.addView(elapsedCaption);
-                TextView elapsed=text("",38);elapsed.setGravity(Gravity.CENTER);elapsed.setTypeface(null,1);elapsed.setSingleLine(true);
+                TextView elapsed=text("",38);elapsed.setGravity(Gravity.CENTER);elapsed.setTypeface(null,android.graphics.Typeface.BOLD);elapsed.setSingleLine(true);
                 elapsed.setAutoSizeTextTypeUniformWithConfiguration(20,38,1,android.util.TypedValue.COMPLEX_UNIT_SP);timer.addView(elapsed);
                 TextView status=text("",15);status.setGravity(Gravity.CENTER);status.setTextColor(accent());timer.addView(status);
                 ProgressBar progress=new ProgressBar(activity,null,android.R.attr.progressBarStyleHorizontal);
                 progress.setMax(1000);progress.setProgressTintList(android.content.res.ColorStateList.valueOf(accent()));
                 progress.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(FitRocketTheme.divider(activity)));
                 LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(18));p.setMargins(dp(5),dp(18),dp(5),dp(14));timer.addView(progress,p);
-                LinearLayout times=new LinearLayout(activity);times.setOrientation(0);
+                LinearLayout times=new LinearLayout(activity);times.setOrientation(LinearLayout.HORIZONTAL);
                 LinearLayout begun=column(),goal=column();
                 begun.setPadding(0,0,dp(6),0);goal.setPadding(dp(6),0,0,0);
                 begun.addView(caption("Begonnen"));begun.addView(text(date(active.optLong("start")),16));
@@ -122,6 +129,27 @@ public final class FitRocketFastingUi {
                     status.setText(now<active.optLong("start")?"Gerätezeit liegt vor dem Start · bitte prüfen":remaining<=0?"Ziel erreicht · du entscheidest, wann du beendest":"Noch "+FitRocketFasting.duration(remaining)+" bis zum Ziel");
                     progress.setProgress((int)(1000*FitRocketFasting.progress(active,now)));});
             }
+            LinearLayout reminder=card();
+            Switch enable=new Switch(activity);enable.setText("Benachrichtigung zum Fastenziel");
+            enable.setTextColor(FitRocketTheme.text(activity));enable.setChecked(prefs.getBoolean(FitRocketFastingAlarmRules.ENABLED_KEY,true));
+            reminder.addView(enable);
+            enable.setOnCheckedChangeListener((view,checked)->{
+                prefs.edit().putBoolean(FitRocketFastingAlarmRules.ENABLED_KEY,checked).apply();
+                FitRocketFastingReminder.schedule(activity);
+                if(checked&&!FitRocketFastingReminder.allowed(activity))FitRocketFastingReminder.requestPermission(activity);
+                detail(root,back);
+            });
+            if(enable.isChecked()){
+                if(!FitRocketFastingReminder.allowed(activity)){
+                    reminder.addView(caption("Android hat Benachrichtigungen noch nicht freigegeben."));
+                    reminder.addView(button("Benachrichtigungen erlauben",()->FitRocketFastingReminder.requestPermission(activity)));
+                }else reminder.addView(caption("Du wirst auch bei geschlossener App an dein Fastenziel erinnert."));
+                if(!FitRocketFastingReminder.exact(activity)){
+                    reminder.addView(caption("Ohne Alarmzugriff kann Android die Erinnerung verzögern."));
+                    reminder.addView(button("Zeitgenaue Erinnerung zulassen",()->FitRocketFastingReminder.requestExact(activity)));
+                }
+            }
+            root.addView(reminder);
             root.addView(caption("Die Zeitangaben beschreiben deinen Plan. Sie messen keine körperlichen Fastenphasen. Dein Punktebudget bleibt unabhängig davon."));
             JSONArray history=state.optJSONArray("history");
             if(history.length()>0){
@@ -143,12 +171,12 @@ public final class FitRocketFastingUi {
         String[] descriptions={"12 Stunden Fasten und 12 Stunden Zeit für deine Mahlzeiten.","14 Stunden Fasten und ein Essensfenster von 10 Stunden.","16 Stunden Fasten und 8 Stunden für deine Mahlzeiten.","17 Stunden Fasten und ein Essensfenster von 7 Stunden.","18 Stunden Fasten und 6 Stunden für deine Mahlzeiten.","20 Stunden Fasten und ein Essensfenster von 4 Stunden."};
         for(int i=0;i<hours.length;i++){
             final int h=hours[i];
-            if(i==0||i==2||i==4){TextView group=text(i==0?"Einstieg":i==2?"Fortgeschritten":"Erfahren",20);group.setTypeface(null,1);root.addView(group);}
+            if(i==0||i==2||i==4){TextView group=text(i==0?"Einstieg":i==2?"Fortgeschritten":"Erfahren",20);group.setTypeface(null,android.graphics.Typeface.BOLD);root.addView(group);}
             LinearLayout c=card(),row=new LinearLayout(activity);row.setGravity(Gravity.CENTER_VERTICAL);
             row.addView(new PlanRing(h),new LinearLayout.LayoutParams(dp(64),dp(64)));
             LinearLayout labels=column();labels.setPadding(dp(9),0,0,0);
             int selected=state().optInt("planHours",16);
-            TextView title=text(FitRocketFasting.plan(h)+" · "+names[i]+(h==selected?" ✓":""),17);title.setTypeface(null,1);labels.addView(title);
+            TextView title=text(FitRocketFasting.plan(h)+" · "+names[i]+(h==selected?" ✓":""),17);title.setTypeface(null,android.graphics.Typeface.BOLD);labels.addView(title);
             labels.addView(caption(descriptions[i]));row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));c.addView(row);
             c.setContentDescription(FitRocketFasting.plan(h)+" "+names[i]);
             c.setOnClickListener(v->run(()->{

@@ -1,22 +1,28 @@
-# FitRocket v0.17.0 – Intervallfasten & optionale Punkteübernahme
+# FitRocket v0.18.0 – Pixel-Pet & Fastenziel-Erinnerungen
 
-## Intervallfasten
+## Dein neuer Pixel-Begleiter
 
-Im heutigen Tagebuch und unter **Profil → Intervallfasten** findest du die Pläne **12:12, 14:10, 16:8, 17:7, 18:6 und 20:4**. Starte nach deiner letzten Mahlzeit, passe Beginn und Ziel bei Bedarf an und verfolge die vergangene Zeit sowie deinen Fortschritt. Der Timer bleibt auch nach dem Schließen der App erhalten.
+Im eigenen Reiter **Pet** wartet ein Ei auf dich. Gib deinem Begleiter einen Namen, füttere, streichle und bespiele ihn. Der Axolotl-Hund wächst durch **fünf Entwicklungsstufen**. Seine Stimmung reicht von glücklich bis zu einer zähnefletschenden Monsterform, wenn er mehrere abgeschlossene Tage kein Futter bekommt. Figur, Stimmungen, Zubehör und Garten sind eigens erstellte **PNG-Pixelgrafiken, keine SVGs oder Vektorgrafiken**.
 
-**Fasten beenden** speichert deine tatsächliche Dauer im lokalen Verlauf, auch wenn du früher aufhörst. **Fasten abbrechen** verwirft das laufende Fasten ohne Verlaufseintrag. Die Darstellung nutzt die FitRocket-Cards und unterstützt Hell- und Dunkelmodus. Die Zeitangaben messen keine körperlichen Fastenphasen und beeinflussen deine Ernährungspunkte nicht.
+Alle übrigen Tagespunkte werden **nach Tagesabschluss zusätzlich zu fiktivem Futter**. **Deine echte Tages- und Wochenpunkteberechnung bleibt vollständig erhalten.** Derselbe Tag kann nicht mehrfach Futter geben. Beim Einstieg zählt auch gestern; später werden abgeschlossene Tage seit dem letzten Einsammeln nachgeholt.
 
-## Übrige Tagespunkte übernehmen oder darauf verzichten
+Füttern lässt dein Pet wachsen und bringt Spielsterne. Streicheln gibt einmal täglich 1 Stern, Spielen 2 Sterne. Damit kannst du **Hundeöhrchen, Raketenmütze, Sternenkrone und eine Spielzeugrakete** freischalten und dauerhaft ausrüsten. Ein Spielball gehört zur Grundausstattung. Die sechs Hauptreiter ordnen sich bei wenig Platz oder großer Schrift in Zeilen an.
 
-Unter **Profil → Punktebudget → Übrige Tagespunkte übernehmen** kannst du die Übernahme ein- oder ausschalten. Standard bleibt **an**: Nach Tagesabschluss kommen bis zu **4 übrige Tagespunkte ins Wochenkonto**. Ausgeschaltet verfallen diese Restpunkte. Die Auswahl berechnet die gesamte aktuelle Woche sofort neu. Dein Tagesbudget und die gewählte Bewegungsgutschrift bleiben davon unabhängig.
+## Benachrichtigung zum Fastenziel
+
+Unter **Intervallfasten → Benachrichtigung zum Fastenziel** aktivieren und Android die Benachrichtigungen erlauben. FitRocket erinnert auch bei normal geschlossener App. Die Benachrichtigung öffnet direkt deinen Timer. Zeitänderungen ersetzen die Erinnerung; Beenden oder Abbrechen entfernt sie. Nach einem Geräteneustart oder App-Update wird sie erneut eingeplant.
+
+Auf Android 12+ kannst du optional **Zeitgenaue Erinnerung zulassen**. Ohne diesen Alarmzugriff darf Android die Zustellung verzögern. Die App umgeht keine Android-Freigaben und läuft nicht mit einem dauerhaften Hintergrunddienst.
 
 ## Daten und Update
 
-- Fastenplan, laufendes Fasten, Verlauf und Übernahme-Einstellung werden mit dem JSON-Backup exportiert und wiederhergestellt. Alte Sicherungen bleiben importierbar; keine Bestandsmigration.
-- App-ID bleibt `de.inrouder.fitrocket`; Version **0.17.0**, Versionscode **47**.
-- Der bestehende GitHub-Workflow erstellt die Release-APK ausschließlich mit der eingerichteten dauerhaften Signatur und prüft sie vor der Veröffentlichung.
-- Nach Veröffentlichung unter **Profil → In-App-Update prüfen** nach der neuen Version suchen. Android bestätigt die Installation wie bisher.
+- Name, Futtervorrat, Entwicklung, Stimmung und freigeschaltete Ausstattung werden lokal gespeichert und mit dem JSON-Backup gesichert.
+- Alte Backups bleiben importierbar; keine Bestandsmigration. Rezeptfotos, Favoriten, ZeroPoints und Aktivitätsregeln bleiben erhalten.
+- Version **0.18.0**, Versionscode **48**, unveränderte App-ID und bestehende Signaturkonfiguration.
+- Nach Veröffentlichung unter **Profil → In-App-Update prüfen** aktualisieren.
+
+Details und Prüfszenarien: [Pixel-Pet und Fasten-Erinnerungen](PET_AND_FASTING_REMINDERS.md).
 
 ## Prüfstand
 
-Die Funktionsänderungen haben 127 Unit-Tests sowie den Debug-Build und die Katalog-/Schemaprüfungen bestanden. Beim Release werden diese Prüfungen erneut ausgeführt. Die visuelle Prüfung auf einem Android-Gerät bleibt offen; der lokale Emulator erreichte keinen stabilen Systemstart.
+159 automatisierte Tests einschließlich Android-Ansichten, Grafik-Atlanten, Alarm-/Benachrichtigungsabläufen auf API 28/35 und Backup-Verhalten. Die Vorschau wurde unter Robolectric gerendert; sie ist kein echter Geräte-Screenshot. Die praktische Geräteprüfung unter Hersteller-Energiesparmodi bleibt offen.

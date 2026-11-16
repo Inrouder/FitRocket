@@ -45,6 +45,18 @@ jobs:
       - name: Android unit tests and build debug APK
         run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace
 
+      - name: Upload Android UI previews and unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FitRocket-tests-${{ github.sha }}
+          path: |
+            app/build/outputs/pet-previews/
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testDebugUnitTest/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Upload debug-only test APK
         uses: actions/upload-artifact@v4
         with:

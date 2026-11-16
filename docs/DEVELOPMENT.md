@@ -45,3 +45,7 @@ Implementierter Code + Tests + verifizierter CI-Build + nachvollziehbare Änderu
 - Hell/Dunkel, schmales Display, große Systemschrift und Android-Systemnavigation prüfen. Alle Aktionsflächen bleiben durch Scrollen erreichbar.
 - Profil → Punktebudget → Übernahme aus/an: aktuelle Woche neu berechnet, Zehntelpunkte und 4-Punkte-Grenze korrekt, Bewegung und Überschreitungen bleiben bestehen. Montag übernimmt nichts aus der Vorwoche.
 - JSON-Roundtrip mit Verlauf, aktivem Fasten und deaktiviertem Übertrag; alte Backups ohne Zusatzfelder; fehlerhafte Fastendaten vor Ersetzung zurückweisen. Rezeptfotos/Favoriten weiterhin erhalten.
+
+
+## Pixel-Pet und Fastenziel-Benachrichtigungen
+Siehe [PET_AND_FASTING_REMINDERS.md](PET_AND_FASTING_REMINDERS.md) für Datenfelder und manuelle Szenarien. Unit-Tests prüfen insbesondere die Unabhängigkeit des realen Punktekontos, einmalige Futtergutschrift, Stimmungswechsel, Wachstum, Zubehör und Backup. Die PNG-Atlanten werden auf alle erforderlichen belegten Sprite-Felder geprüft. Android-Oberflächen-/Alarmtests verwenden Robolectric mit Android-Ressourcen; Native-Graphics-Renderings unter `app/build/outputs/pet-previews` sind JVM-Renderings und keine echten Geräte-Screenshots.
