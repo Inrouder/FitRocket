@@ -9,6 +9,7 @@ public class FitRocketNavigationTest {
         assertEquals("Tagebuch", FitRocketNavigation.START_SCREEN);
         assertEquals(0, FitRocketNavigation.selectedTab("Tagebuch"));
         assertEquals(0, FitRocketNavigation.selectedTab(null));
+        assertEquals(0, FitRocketNavigation.selectedTab("Intervallfasten"));
     }
 
     @Test public void thereAreFiveTabsIncludingCookbook() {

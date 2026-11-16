@@ -12,6 +12,7 @@ import java.util.function.ToDoubleFunction;
  * Existing integer meal and favorite records remain compatible.
  */
 public final class FitRocketPointLedger {
+    public static final String ROLLOVER_KEY="rolloverEnabled";
     private FitRocketPointLedger() {}
 
     public static double tenth(double number) {
@@ -74,6 +75,11 @@ public final class FitRocketPointLedger {
     }
 
     public static double weekRollovers(LocalDate day,int budget,ToDoubleFunction<LocalDate> used) {
+        return weekRollovers(day,budget,used,true);
+    }
+
+    public static double weekRollovers(LocalDate day,int budget,ToDoubleFunction<LocalDate> used,boolean enabled) {
+        if(!enabled)return 0;
         double result=0;
         for(LocalDate d=FitRocketWeeklyWallet.weekMonday(day);d.isBefore(day);d=d.plusDays(1))
             result+=dailyTransfer(budget,used.applyAsDouble(d));

@@ -53,7 +53,7 @@ Schritte werden je Tag zu Punkten gerundet, anschließend über die Woche addier
 
 - **Wochenstart: 28 Punkte** (Standardwert ab Migration), jeden Montag automatisch neu. Unter den Budgeteinstellungen anpassbar.
 - Das feste tägliche Basisbudget bleibt bestehen und wird nicht durch Wochenpunkte erhöht.
-- **Übertrag je abgeschlossenem Tag = min(4, max(0, Tagesbudget − Tagesverbrauch))**.
+- **Übertrag je abgeschlossenem Tag = min(4, max(0, Tagesbudget − Tagesverbrauch))**, wenn **Profil → Punktebudget → Übrige Tagespunkte übernehmen** aktiviert ist (Standard). Bei ausgeschalteter Übernahme ist der Tagesübertrag 0. Die Auswahl gilt für die gesamte aktuelle Woche und berechnet das Wochenkonto sofort neu; sie ändert weder Tagesbudget noch Bewegungsgutschrift oder Überschreitungen.
 - Es werden nur abgeschlossene Tage der **aktuellen Kalenderwoche**, von Montag bis gestern, für den Übertrag berücksichtigt. Heute wird erst nach Tagesabschluss mitgerechnet. Tage ohne Essenseinträge haben 0 verbrauchte Tagespunkte und erhalten deshalb den vollen maximalen Übertrag.
 - **Bewegungsgutschrift = floor(verdiente Wochen-Bewegungspunkte × freigegebener Anteil)**. Freigabeanteil bleibt 0 %, 50 % oder 100 %.
 - **Wöchentliche Tagesüberschreitungen = Summe von max(0, Tagesverbrauch − Tagesbudget)** für Montag bis heute.

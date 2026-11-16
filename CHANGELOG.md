@@ -1,5 +1,12 @@
 # FitRocket – Versionshinweise
 
+## Unveröffentlicht – Intervallfasten & optionale Punkteübernahme
+
+- Intervallfasten im Tagebuch und Profil: 12:12, 14:10, 16:8, 17:7, 18:6 und 20:4; Timer, Fortschritt, editierbarer Start/Ziel, Abschließen und Abbrechen. Lokaler Verlauf der letzten 100 Fastenzeiten, davon sieben in der Übersicht.
+- Gestaltung mit FitRocket-Cards, Lavendel-/Mint-Akzenten und Hell-/Dunkelmodus; bestehende fünf Hauptreiter bleiben erhalten.
+- Profil → Punktebudget: übrige Tagespunkte ins Wochenkonto übernehmen oder darauf verzichten. Standard bleibt an, maximal 4 Punkte je abgeschlossenem Tag. Umschalten berechnet die aktuelle Woche neu.
+- Optionale Backup-Felder `fasting` und `rolloverEnabled`; Alt-Backups bleiben importierbar. Keine Änderung an Mahlzeiten, Lebensmittelpunkten oder ZeroPoints.
+
 ## 0.16.13 – Mahlzeiten auf einen anderen Tag verschieben
 
 - Bereits gebuchte Mahlzeit im Tagebuch antippen und „Datum und Tageszeit ändern“ auswählen.

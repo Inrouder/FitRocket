@@ -75,6 +75,19 @@ public class FitRocketPointLedgerTest {
         assertEquals(28.7,FitRocketPointLedger.weeklyAvailable(28,0.9,1,1.2),0.0001);
     }
 
+    @Test public void optionalRolloverRecalculatesWeekWithoutChangingActivityOrOverages() {
+        LocalDate wednesday=LocalDate.of(2026,11,18);
+        java.util.function.ToDoubleFunction<LocalDate> used=d->d.equals(wednesday)?25.5:22.8;
+        double enabled=FitRocketPointLedger.weekRollovers(wednesday,23,used,true);
+        double disabled=FitRocketPointLedger.weekRollovers(wednesday,23,used,false);
+        assertEquals(0.4,enabled,0.0001);assertEquals(0,disabled,0);
+        double spent=FitRocketPointLedger.weekSpent(wednesday,23,used);
+        assertEquals(2.5,spent,0.0001);
+        assertEquals(30.9,FitRocketPointLedger.weeklyAvailable(28,enabled,5,spent),0.0001);
+        assertEquals(30.5,FitRocketPointLedger.weeklyAvailable(28,disabled,5,spent),0.0001);
+        assertEquals(0,FitRocketPointLedger.weekRollovers(LocalDate.of(2026,11,23),23,used,true),0);
+    }
+
     @Test public void decimalFavoritesCanBeRescaledAndSaved()throws Exception {
         JSONObject fav=new JSONObject().put("name","Portion").put("points",1)
             .put("referenceQuantity",100);

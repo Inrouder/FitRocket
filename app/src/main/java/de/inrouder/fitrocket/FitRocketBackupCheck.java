@@ -9,10 +9,21 @@ public final class FitRocketBackupCheck {
   return Double.isFinite(points) && points>=0 && points<=3000
     && Math.abs(points*10-Math.rint(points*10))<0.0001;
  }
+ public static JSONObject fasting(JSONObject root){
+  if(!root.has(FitRocketFasting.KEY))return FitRocketFasting.empty();
+  return FitRocketFasting.validated(root.optJSONObject(FitRocketFasting.KEY));
+ }
+ public static boolean rolloverEnabled(JSONObject root){
+  if(!root.has(FitRocketPointLedger.ROLLOVER_KEY))return true;
+  Object value=root.opt(FitRocketPointLedger.ROLLOVER_KEY);
+  if(!(value instanceof Boolean))throw new IllegalArgumentException("Ungültige Punkteübernahme-Einstellung");
+  return (Boolean)value;
+ }
  public static String preview(JSONObject root){
   if(root==null)throw new IllegalArgumentException("Leeres Backup");
   int schema=root.optInt("schemaVersion",-1);
   if(schema<1||schema>7)throw new IllegalArgumentException("Nicht unterstützte Backup-Version: "+schema);
+  JSONObject fasting=fasting(root);boolean rollover=rolloverEnabled(root);
   JSONArray meals=root.optJSONArray("meals"),weights=root.optJSONArray("weights");
   if(meals==null||weights==null)throw new IllegalArgumentException("Mahlzeiten oder Gewichte fehlen");
   if(meals.length()>50000||weights.length()>50000)throw new IllegalArgumentException("Zu viele Einträge");
@@ -48,6 +59,8 @@ public final class FitRocketBackupCheck {
    "\nGewichtseinträge: "+weights.length()+
    "\nAktivitäten: "+(activities==null?0:activities.length())+
    "\nGespeicherte Favoriten: "+(favorites==null?0:favorites.length())+
+   "\nFastenzeiten: "+fasting.optJSONArray("history").length()+(fasting.has("active")?" + laufendes Fasten":"")+
+   "\nPunkteübernahme: "+(rollover?"An":"Aus")+
    "\nAlle geprüften Tagebuch-Einträge sind gültig.";
  }
 }

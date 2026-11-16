@@ -23,6 +23,8 @@ public class MainActivity extends Activity {
   private android.content.SharedPreferences prefs;
   private LinearLayout page, entries;
   private GlassView glass;
+  private FitRocketFastingUi fastingUi;
+  private android.window.OnBackInvokedCallback fastingBackCallback;
   private TextView summary;
   private int budget=23, weekly=FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS;
   private boolean healthBusy=false;
@@ -108,6 +110,7 @@ public class MainActivity extends Activity {
   @Override public void onCreate(Bundle saved){
     super.onCreate(saved);
     prefs=getSharedPreferences("fitrocket",MODE_PRIVATE);
+    fastingUi=new FitRocketFastingUi(this,prefs);
     setTheme(dark()?android.R.style.Theme_Material_NoActionBar:android.R.style.Theme_Material_Light_NoActionBar);
     getWindow().setStatusBarColor(FitRocketTheme.background(this));
     getWindow().setNavigationBarColor(FitRocketTheme.background(this));
@@ -149,6 +152,7 @@ public class MainActivity extends Activity {
       else if("Lebensmittel".equals(previous))searchScreen();
       else if("Favoriten".equals(previous))favoritesScreen();
       else if("Aktivität".equals(previous))activityPage();
+      else if("Intervallfasten".equals(previous))fastingScreen();
       else history();
     }else history();
   }
@@ -325,7 +329,16 @@ public class MainActivity extends Activity {
     dialog.show();
   }
   private void shell(String heading){
+    if(fastingUi!=null)fastingUi.clear();
     currentScreen=heading;
+    if(Build.VERSION.SDK_INT>=33){
+      if(fastingBackCallback!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(fastingBackCallback);
+      fastingBackCallback=null;
+      if("Intervallfasten".equals(heading)){
+        fastingBackCallback=()->onBackPressed();
+        getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,fastingBackCallback);
+      }
+    }
     lastRenderedDate=today();
     LinearLayout frame=new LinearLayout(this);frame.setOrientation(1);
     GradientDrawable sky=new GradientDrawable(GradientDrawable.Orientation.TL_BR,
@@ -1167,6 +1180,7 @@ public class MainActivity extends Activity {
       excess.setTextColor(muted());balance.addView(excess);
     }
     page.addView(balance);
+    if(isToday)page.addView(fastingUi.compact(()->fastingScreen()));
 
     LinearLayout shortcuts=card(Color.WHITE);
     TextView quick=label("Schnell hinzufügen",15);quick.setTypeface(null,1);
@@ -1185,6 +1199,12 @@ public class MainActivity extends Activity {
     dayMealGroups(page,date);
     page.addView(waterCard(date));
   }
+  private void fastingScreen(){
+    shell("Intervallfasten");
+    LinearLayout content=new LinearLayout(this);content.setOrientation(1);page.addView(content);
+    fastingUi.detail(content,()->history());
+  }
+
   private String selectedAiProvider(){
     String p=prefs.getString("aiProvider",FitRocketAiSecrets.GEMINI);
     return FitRocketAiSecrets.OPENAI.equals(p)?FitRocketAiSecrets.OPENAI:FitRocketAiSecrets.GEMINI;
@@ -2823,7 +2843,8 @@ public class MainActivity extends Activity {
     settingsRow(personal,"Gewichtsziel",goalWeight()>0?
       String.format(Locale.GERMAN,"%.1f kg",goalWeight()):"Zielgewicht festlegen",()->weightScreen());
     settingsRow(personal,"Punktebudget",
-      budget+" pro Tag · "+weekly+" zum Wochenstart",()->settingsDialog());
+      budget+" pro Tag · "+weekly+" zum Wochenstart · Übertrag "+(rolloverEnabled()?"an":"aus"),()->settingsDialog());
+    settingsRow(personal,"Intervallfasten","Fastenplan, Timer und Verlauf",()->fastingScreen());
     page.addView(personal);
 
     LinearLayout appearance=card(Color.WHITE);
@@ -2901,7 +2922,7 @@ public class MainActivity extends Activity {
       {"Wie lösche ich einen falschen Eintrag?",
        "Wische den Tagebucheintrag nach links und bestätige das Löschen. Eigene KI- oder Barcode-Produkte kannst du auch in der Suche entfernen."},
       {"Wie funktioniert das Wochenkonto?",
-       "Das Wochenkonto startet montags mit 28 Punkten. Von einem abgeschlossenen Tag werden bis zu 4 ungenutzte Tagespunkte übertragen. Bewegungspunkte können optional hinzukommen."},
+       "Das Wochenkonto startet montags mit 28 Punkten. Wenn unter Profil → Punktebudget die Punkteübernahme aktiviert ist, werden von einem abgeschlossenen Tag bis zu 4 ungenutzte Tagespunkte übertragen. Du kannst dort auch darauf verzichten. Die Auswahl berechnet die aktuelle Woche neu. Bewegungspunkte können optional hinzukommen."},
       {"Wie zuverlässig ist die KI?",
        "Sie schätzt Zutaten, Mengen und Nährwerte, kann sich aber irren. Kontrolliere alles vor dem Speichern. Die Punkte berechnet FitRocket lokal."},
       {"Wie funktioniert die Wasseranzeige?",
@@ -3104,10 +3125,29 @@ public class MainActivity extends Activity {
        prefs.getBoolean("waterReminderEnabled",false)?"Eingeschaltet":"Ausgeschaltet",
        ()->waterReminderSettings());page.addView(reminder);
   }
-  private void settingsDialog(){LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(25,5,25,5);EditText b=edit("Tagesbudget",String.valueOf(budget),2),w=edit("Wochenstart-Punkte",String.valueOf(weekly),2);
-    l.addView(label("Tagesbudget (persönlich festlegen)",14));l.addView(b);
-    l.addView(label("Wochenstart-Punkte (Standard 28)",14));l.addView(w);
-    hint(l,"Montags startet das Wochenkonto neu; maximal 4 P Übertrag pro Tag.");new AlertDialog.Builder(this).setTitle("Budget").setView(l).setPositiveButton("Speichern",(d,n)->{try{int bb=Integer.parseInt(b.getText().toString()),ww=Integer.parseInt(w.getText().toString());if(bb<1||bb>200||ww<0||ww>500)throw new Exception();budget=bb;weekly=ww;prefs.edit().putInt("budget",bb).putInt("weekly",ww).apply();more();}catch(Exception e){msg("Ungültige Budgetwerte.");}}).setNegativeButton("Abbrechen",null).show();}
+  private boolean rolloverEnabled(){return prefs.getBoolean(FitRocketPointLedger.ROLLOVER_KEY,true);}
+  private void settingsDialog(){
+    LinearLayout form=new LinearLayout(this);form.setOrientation(1);form.setPadding(dp(20),dp(8),dp(20),dp(8));
+    EditText daily=edit("Tagesbudget",String.valueOf(budget),2),week=edit("Wochenstart-Punkte",String.valueOf(weekly),2);
+    form.addView(label("Tagesbudget (persönlich festlegen)",14));form.addView(daily);
+    form.addView(label("Wochenstart-Punkte",14));form.addView(week);
+    Switch rollover=new Switch(this);rollover.setText("Übrige Tagespunkte übernehmen");
+    rollover.setTextColor(ink());rollover.setChecked(rolloverEnabled());rollover.setPadding(dp(6),dp(12),dp(6),dp(12));form.addView(rollover);
+    form.addView(label("An: Nach Tagesabschluss kommen bis zu 4 übrige Punkte ins Wochenkonto. Aus: Du verzichtest auf diese Punkte. Das Tagesbudget bleibt gleich.",13));
+    form.addView(label("Die Auswahl gilt für die gesamte aktuelle Woche und berechnet das Wochenkonto sofort neu. Montags startet es neu.",13));
+    ScrollView scroll=new ScrollView(this);scroll.addView(form);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Punktebudget").setView(scroll)
+      .setPositiveButton("Speichern",null).setNegativeButton("Abbrechen",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(-1).setOnClickListener(btn->{
+      try{
+        int bb=Integer.parseInt(daily.getText().toString()),ww=Integer.parseInt(week.getText().toString());
+        if(bb<1||bb>200||ww<0||ww>500)throw new IllegalArgumentException();
+        budget=bb;weekly=ww;prefs.edit().putInt("budget",bb).putInt("weekly",ww)
+          .putBoolean(FitRocketPointLedger.ROLLOVER_KEY,rollover.isChecked()).apply();
+        FitRocketWidget.refresh(this);dialog.dismiss();profilePage();
+      }catch(Exception e){msg("Bitte Tagesbudget 1–200 und Wochenstart-Punkte 0–500 eingeben.");}
+    }));dialog.show();
+  }
   private void statistics(){shell("Statistiken");LocalDate now=LocalDate.now(),start=now.minusDays(now.getDayOfWeek().getValue()-1);page.addView(label("Diese Woche",20));double weeklyUsed=0;for(int i=0;i<7;i++){LocalDate date=start.plusDays(i);double n=used(date.toString());weeklyUsed+=n;page.addView(label(date.getDayOfWeek().toString().substring(0,2)+" "+pretty(date.toString())+": "+pt(n)+" Punkte",15));}page.addView(label("Gesamt: "+pt(weeklyUsed)+" Punkte; Ø "+String.format(Locale.GERMAN,"%.1f",weeklyUsed/7.0)+" pro Kalendertag",15));page.addView(label("Dieser Monat",20));LocalDate first=now.withDayOfMonth(1);double total=0;int tracked=0,days=now.getDayOfMonth();for(int i=0;i<days;i++){String day=first.plusDays(i).toString();total+=used(day);if(count(day)>0)tracked++;}page.addView(label("Erfasste Punkte: "+pt(total)+" · Tage mit Einträgen: "+tracked+" / "+days,16));page.addView(label("Wochenkonto: "+weekly+" Start + "+pt(rolloversWeek())+" Tagesübertrag + "
    +activityCredit()+" Bewegungsbonus − "+pt(spentWeek())+" verbraucht = "+pt(availableWeek())+" Punkte übrig",15));page.addView(label("Ø je dokumentiertem Tag: "+(tracked>0?String.format(Locale.GERMAN,"%.1f",total/(double)tracked):"–"),16));if(showHints())page.addView(label("Achtung: Fehlende Tage gelten nicht als Null-Punkte-Tage.",13));if(!weights.isEmpty()){page.addView(label("Gewichtseinträge: "+weights.size(),16));for(int i=weights.size()-1;i>=Math.max(0,weights.size()-8);i--)page.addView(label(pretty(weights.get(i).optString("date"))+" · "+weights.get(i).optString("kg")+" kg",14));}}
   private double latestWeight(){
@@ -3381,7 +3421,7 @@ public class MainActivity extends Activity {
     return FitRocketPointLedger.weekSpent(LocalDate.now(),budget,d->used(d.toString()));
   }
   private double rolloversWeek(){
-    return FitRocketPointLedger.weekRollovers(LocalDate.now(),budget,d->used(d.toString()));
+    return FitRocketPointLedger.weekRollovers(LocalDate.now(),budget,d->used(d.toString()),rolloverEnabled());
   }
   private int activityCredit(){return FitRocketMath.credit(earnedWeek(),prefs.getInt("activityShare",100));}
   private double availableWeek(){
@@ -3405,7 +3445,7 @@ public class MainActivity extends Activity {
     overview.addView(label("Zum Wochenbudget: +"+activityCredit()+" Punkte",16));
     overview.addView(label("Wochenkonto: "+weekly+" Start + "+pt(rolloversWeek())+" Übertrag + "
         +activityCredit()+" Bewegung − "+pt(spentWeek())+" verbraucht = "+pt(availableWeek())+" übrig",14));
-    overview.addView(label("Täglich höchstens 4 ungenutzte Punkte, Tagesüberträge erst am Folgetag; Bewegungspunkte zählen sofort. Jeden Montag beginnt das Konto neu.",12));
+    overview.addView(label(rolloverEnabled()?"Täglich höchstens 4 ungenutzte Punkte, Tagesüberträge erst am Folgetag; Bewegungspunkte zählen sofort. Jeden Montag beginnt das Konto neu.":"Punkteübernahme ausgeschaltet: Ungenutzte Tagespunkte verfallen. Bewegungspunkte zählen nach gewähltem Anteil weiterhin sofort.",12));
     overview.addView(label("Tagesbudget bleibt: "+budget+" Punkte",13));page.addView(overview);
     LinearLayout transfers=card(Color.WHITE);
     transfers.addView(label("🌟 Tagesüberträge dieser Woche",17));
@@ -3413,10 +3453,11 @@ public class MainActivity extends Activity {
     boolean daysFinished=false;
     for(LocalDate day=startDay;day.isBefore(currentDay);day=day.plusDays(1)){
       daysFinished=true;
-      double saved=FitRocketPointLedger.dailyTransfer(budget,used(day.toString()));
+      double saved=rolloverEnabled()?FitRocketPointLedger.dailyTransfer(budget,used(day.toString())):0;
       transfers.addView(label(pretty(day.toString())+" · +"+pt(saved)+" / 4 P",14));
     }
-    if(!daysFinished)transfers.addView(label("Der erste Tagesübertrag wird nach Tagesabschluss gutgeschrieben.",13));
+    if(!rolloverEnabled())transfers.addView(label("Du verzichtest auf Tagesüberträge. Änderbar unter Profil → Punktebudget.",13));
+    else if(!daysFinished)transfers.addView(label("Der erste Tagesübertrag wird nach Tagesabschluss gutgeschrieben.",13));
     page.addView(transfers);
     LinearLayout stepCard=card(MINT);
     int all=stepsFor(today());int w=workoutStepsFor(today());int eligible=FitRocketMath.extraSteps(all,prefs.getInt("stepBaseline",3000),w);
@@ -3459,8 +3500,23 @@ public class MainActivity extends Activity {
     }
     if(shown==0)page.addView(label("Noch keine Workouts für diese Woche.",14));
   }
+  @Override protected void onPause(){
+    if(fastingUi!=null)fastingUi.pause();
+    super.onPause();
+  }
+  @Override protected void onDestroy(){
+    if(fastingUi!=null)fastingUi.clear();
+    if(Build.VERSION.SDK_INT>=33&&fastingBackCallback!=null)
+      getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(fastingBackCallback);
+    super.onDestroy();
+  }
+  @Override public void onBackPressed(){
+    if("Intervallfasten".equals(currentScreen)){if(!fastingUi.handleBack())history();return;}
+    super.onBackPressed();
+  }
   @Override protected void onResume(){
     super.onResume();
+    if(fastingUi!=null)fastingUi.resume();
     FitRocketWidget.refresh(this);
     if(waitingForUpdatePermission && FitRocketInAppUpdate.hasInstallerPermission(this)){
       waitingForUpdatePermission=false;
@@ -3759,6 +3815,8 @@ public class MainActivity extends Activity {
       try(OutputStream os=getContentResolver().openOutputStream(uri)){
         JSONObject payload=new JSONObject();
         payload.put("schemaVersion",7);payload.put("budget",budget);payload.put("weekly",weekly);
+        payload.put(FitRocketPointLedger.ROLLOVER_KEY,rolloverEnabled());
+        payload.put(FitRocketFasting.KEY,FitRocketFasting.validated(new JSONObject(prefs.getString(FitRocketFasting.KEY,FitRocketFasting.empty().toString()))));
         payload.put("profileName",prefs.getString("profile_name",""));
         payload.put("appearance",prefs.getString(FitRocketTheme.KEY,FitRocketTheme.SYSTEM));
         payload.put("meals",new JSONArray(prefs.getString("meals","[]")));
@@ -3818,6 +3876,8 @@ public class MainActivity extends Activity {
         while((n=in.read(b))!=-1){out.write(b,0,n);if(out.size()>90000000)throw new IOException("Backup zu groß");}
         JSONObject payload=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8));
         String backupPreview=FitRocketBackupCheck.preview(payload);
+        final JSONObject importedFasting=FitRocketBackupCheck.fasting(payload);
+        final boolean importedRollover=FitRocketBackupCheck.rolloverEnabled(payload);
         int schema=payload.optInt("schemaVersion",0);
         if((schema<1||schema>7)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
         JSONArray ma=payload.getJSONArray("meals"),we=payload.getJSONArray("weights");
@@ -3923,6 +3983,8 @@ public class MainActivity extends Activity {
                }
                android.content.SharedPreferences.Editor e=prefs.edit();
               e.putString("meals",ma.toString()).putString("weights",we.toString())
+                .putString(FitRocketFasting.KEY,importedFasting.toString())
+                .putBoolean(FitRocketPointLedger.ROLLOVER_KEY,importedRollover)
                 .putString("activities",importedActivities.toString()).putString("stepDays",importedSteps.toString())
                  .putString("stepPointHistory",savedSnapshots.toString())
                 .putString("waterDays",importedWater.toString()).putInt("waterGoal",importedWaterGoal)
