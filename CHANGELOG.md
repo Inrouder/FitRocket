@@ -1,5 +1,14 @@
 # FitRocket – Versionshinweise
 
+## 0.18.0 – Pixel-Pet & Fastenziel-Benachrichtigungen
+
+- Eigener Pet-Reiter mit PNG-Pixelgrafiken: fünf Entwicklungsstufen, fünf Stimmungen bis zur Monsterform, Füttern, Streicheln, Spielen und dauerhaft freischaltbares Zubehör/Spielzeug.
+- Alle übrigen Tagespunkte werden nach Tagesabschluss zusätzlich zu fiktivem Futter. Das echte Tages-/Wochenkonto bleibt vollständig erhalten; keine doppelte Futtergutschrift für denselben Tag.
+- Lokale Benachrichtigung zum Fastenziel, Neuplanung bei Änderungen/Neustart und direkter Rückweg zum Timer. Android-Freigaben mit optionalem zeitgenauem Alarmzugriff.
+- Sechs gut lesbare Hauptreiter mit adaptiver Anordnung und System-Inset-Behandlung.
+- Optional ergänzte Backup-Felder `pet` und `fastingReminderEnabled`; keine Bestandsmigration.
+- [Details, Datenmodell und Prüfungen](docs/PET_AND_FASTING_REMINDERS.md).
+
 ## 0.17.0 – Intervallfasten & optionale Punkteübernahme
 
 - Intervallfasten im Tagebuch und Profil: 12:12, 14:10, 16:8, 17:7, 18:6 und 20:4; Timer, Fortschritt, editierbarer Start/Ziel, Abschließen und Abbrechen. Lokaler Verlauf der letzten 100 Fastenzeiten, davon sieben in der Übersicht.

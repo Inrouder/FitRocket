@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
   private LinearLayout page, entries;
   private GlassView glass;
   private FitRocketFastingUi fastingUi;
+  private FitRocketPetUi petUi;
   private android.window.OnBackInvokedCallback fastingBackCallback;
   private TextView summary;
   private int budget=23, weekly=FitRocketWeeklyWallet.DEFAULT_WEEKLY_POINTS;
@@ -131,6 +132,7 @@ public class MainActivity extends Activity {
     }
     loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
     FitRocketWaterReminder.schedule(this);
+    FitRocketFastingReminder.schedule(this);
     FitRocketWidget.refresh(this);
     maybeCheckUpdatesOnLaunch();
     if(saved!=null){
@@ -146,7 +148,11 @@ public class MainActivity extends Activity {
       recipeFilter=saved.getString("fitrocketRecipeFilter","Alle");
       lastFoodQuery=saved.getString("fitrocketFoodQuery","");
       String previous=saved.getString("fitrocketScreen","Tagebuch");
-      if("Profil".equals(previous))profilePage();
+      if(getIntent().getBooleanExtra(FitRocketFastingReminder.OPEN_FASTING,false)){
+        getIntent().removeExtra(FitRocketFastingReminder.OPEN_FASTING);fastingScreen();
+      }
+      else if("Pet".equals(previous))petScreen();
+      else if("Profil".equals(previous))profilePage();
       else if("Fortschritt".equals(previous))progressPage();
       else if("Kochbuch".equals(previous)||"Rezepte".equals(previous))recipeScreen();
       else if("Lebensmittel".equals(previous))searchScreen();
@@ -154,7 +160,15 @@ public class MainActivity extends Activity {
       else if("Aktivität".equals(previous))activityPage();
       else if("Intervallfasten".equals(previous))fastingScreen();
       else history();
+    }else if(getIntent().getBooleanExtra(FitRocketFastingReminder.OPEN_FASTING,false)){
+      getIntent().removeExtra(FitRocketFastingReminder.OPEN_FASTING);fastingScreen();
     }else history();
+  }
+  @Override protected void onNewIntent(Intent intent){
+    super.onNewIntent(intent);setIntent(intent);
+    if(intent.getBooleanExtra(FitRocketFastingReminder.OPEN_FASTING,false)){
+      intent.removeExtra(FitRocketFastingReminder.OPEN_FASTING);fastingScreen();
+    }
   }
   @Override protected void onSaveInstanceState(Bundle out){
     out.putString("fitrocketScreen",currentScreen);
@@ -330,6 +344,7 @@ public class MainActivity extends Activity {
   }
   private void shell(String heading){
     if(fastingUi!=null)fastingUi.clear();
+    if(petUi!=null){petUi.clear();petUi=null;}
     currentScreen=heading;
     if(Build.VERSION.SDK_INT>=33){
       if(fastingBackCallback!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(fastingBackCallback);
@@ -374,43 +389,31 @@ public class MainActivity extends Activity {
     title.setTypeface(null,1);
     if(!"Tagebuch".equals(heading)){title.setPadding(dp(3),dp(9),dp(3),dp(13));page.addView(title);}
 
-    LinearLayout nav=new LinearLayout(this);nav.setOrientation(0);
-    final int navLeft=dp(8),navTop=dp(6),navRight=dp(8),navBottom=dp(6);
-    nav.setPadding(navLeft,navTop,navRight,navBottom);
-    if(Build.VERSION.SDK_INT>=30){
-      nav.setOnApplyWindowInsetsListener((view,insets)->{
-        android.graphics.Insets bars=insets.getInsets(
-          WindowInsets.Type.navigationBars()|WindowInsets.Type.systemGestures());
-        // Some 3-button OEM implementations report no nav inset until after layout.
-        int bottom=dp(6);
-        view.setPadding(navLeft,navTop,navRight,navBottom+bottom);
-        return insets;
-      });
-    }else{
-      // Legacy fitsSystemWindows keeps the OS button area outside the app.
-      frame.setFitsSystemWindows(true);
-    }
-    nav.setBackground(shape(surface(),30));nav.setElevation(dp(16));
-    String[] labels=FitRocketNavigation.TABS;
+    LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.VERTICAL);
+    nav.setPadding(dp(8),dp(5),dp(8),dp(5));
+    if(Build.VERSION.SDK_INT<30)frame.setFitsSystemWindows(true);
+    nav.setBackground(shape(surface(),26));nav.setElevation(dp(16));
+    int columns=FitRocketNavigation.columns(getResources().getConfiguration().screenWidthDp,
+        getResources().getConfiguration().fontScale);
+    boolean compact=columns<6;
     int active=FitRocketNavigation.selectedTab(heading);
-    for(int i=0;i<labels.length;i++){
+    String[] names={"Tagebuch","Suche","Kochbuch","Fortschritt","Pet","Profil"};
+    String[] symbols={"🚀","🔎","👨‍🍳","📊","🐾","👤"};
+    int[] colors={Color.rgb(236,96,55),Color.rgb(56,112,210),Color.rgb(222,121,45),
+        Color.rgb(23,155,111),Color.rgb(167,112,35),Color.rgb(120,84,210)};
+    LinearLayout navRow=null;
+    for(int i=0;i<names.length;i++){
+      if(i%columns==0){navRow=new LinearLayout(this);navRow.setOrientation(LinearLayout.HORIZONTAL);nav.addView(navRow,new LinearLayout.LayoutParams(-1,-2));}
       final int index=i;
-      LinearLayout tab=new LinearLayout(this);tab.setOrientation(1);tab.setGravity(Gravity.CENTER);
-      String[] symbols={"🚀","🔎","👨‍🍳","📊","👤"};
-      String[] names={"Tagebuch","Suche","Kochbuch","Fortschritt","Profil"};
-      TextView icon=label(symbols[i],29);icon.setGravity(Gravity.CENTER);icon.setIncludeFontPadding(false);
-      TextView name=label(names[i],10);name.setSingleLine(true);
-      name.setGravity(Gravity.CENTER);name.setIncludeFontPadding(false);
-      name.setEllipsize(android.text.TextUtils.TruncateAt.END);
-      name.setTextColor(new int[]{Color.rgb(236,96,55),Color.rgb(56,112,210),Color.rgb(222,121,45),Color.rgb(23,155,111),Color.rgb(120,84,210)}[i]);
-      tab.addView(icon,new LinearLayout.LayoutParams(-1,dp(43)));
-      tab.addView(name,new LinearLayout.LayoutParams(-1,dp(28)));
-      tab.setPadding(dp(1),dp(6),dp(1),dp(6));
-      if(i==active){
-        name.setTypeface(null,1);
-        tab.setBackground(shape(dark()?Color.rgb(75,58,85):Color.rgb(255,232,214),22));
-      }
-      nav.addView(tab,new LinearLayout.LayoutParams(0,dp(92),1));
+      LinearLayout tab=new LinearLayout(this);tab.setOrientation(LinearLayout.VERTICAL);tab.setGravity(Gravity.CENTER);tab.setMinimumHeight(dp(compact?62:92));
+      tab.setPadding(dp(1),dp(4),dp(1),dp(4));
+      TextView icon=label(symbols[i],compact?22:29);icon.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP,compact?22:29);icon.setGravity(Gravity.CENTER);icon.setIncludeFontPadding(false);
+      icon.setPadding(0,0,0,0);tab.addView(icon,new LinearLayout.LayoutParams(-1,dp(compact?28:43)));
+      TextView name=label(names[i],compact?11:10);name.setGravity(Gravity.CENTER);name.setIncludeFontPadding(false);
+      name.setSingleLine(false);name.setMaxLines(2);name.setPadding(dp(1),dp(2),dp(1),dp(2));
+      name.setTextColor(dark()?FitRocketTheme.text(this):colors[i]);tab.addView(name,new LinearLayout.LayoutParams(-1,-2));
+      if(i==active){name.setTypeface(null,android.graphics.Typeface.BOLD);tab.setBackground(shape(dark()?Color.rgb(75,58,85):Color.rgb(255,232,214),18));}
+      navRow.addView(tab,new LinearLayout.LayoutParams(0,-2,1));tab.setContentDescription(names[i]);
       tab.setOnClickListener(v->{
         bookingDate=null;bookingGroup=null;bookingReturn=null;
         switch(index){
@@ -418,16 +421,20 @@ public class MainActivity extends Activity {
           case 1:searchScreen();break;
           case 2:recipeScreen();break;
           case 3:progressPage();break;
+          case 4:petScreen();break;
           default:profilePage();
         }
       });
     }
     LinearLayout navDock=new LinearLayout(this);navDock.setClipChildren(false);navDock.setClipToPadding(false);
-    navDock.setPadding(dp(10),dp(4),dp(10),dp(14));navDock.addView(nav,new LinearLayout.LayoutParams(-1,-2));
+    navDock.setPadding(dp(10),dp(4),dp(10),dp(10));navDock.addView(nav,new LinearLayout.LayoutParams(-1,-2));
     frame.addView(navDock);
     if(Build.VERSION.SDK_INT>=30){
-      frame.requestApplyInsets();
-      nav.requestApplyInsets();
+      navDock.setOnApplyWindowInsetsListener((view,insets)->{
+        android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.navigationBars());
+        view.setPadding(dp(10)+bars.left,dp(4),dp(10)+bars.right,dp(10)+bars.bottom);return insets;
+      });
+      frame.requestApplyInsets();navDock.requestApplyInsets();
     }
   }
   private double used(String date){return FitRocketPointLedger.used(meals,date);}
@@ -1199,6 +1206,11 @@ public class MainActivity extends Activity {
     dayMealGroups(page,date);
     page.addView(waterCard(date));
   }
+  private void petScreen(){
+    shell("Pet");LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);page.addView(content);
+    petUi=new FitRocketPetUi(this,prefs,content,budget,meals);petUi.render();
+  }
+
   private void fastingScreen(){
     shell("Intervallfasten");
     LinearLayout content=new LinearLayout(this);content.setOrientation(1);page.addView(content);
@@ -2845,6 +2857,7 @@ public class MainActivity extends Activity {
     settingsRow(personal,"Punktebudget",
       budget+" pro Tag · "+weekly+" zum Wochenstart · Übertrag "+(rolloverEnabled()?"an":"aus"),()->settingsDialog());
     settingsRow(personal,"Intervallfasten","Fastenplan, Timer und Verlauf",()->fastingScreen());
+    settingsRow(personal,"Dein Pixel-Pet","Füttern, wachsen, spielen und streicheln",()->petScreen());
     page.addView(personal);
 
     LinearLayout appearance=card(Color.WHITE);
@@ -3502,10 +3515,12 @@ public class MainActivity extends Activity {
   }
   @Override protected void onPause(){
     if(fastingUi!=null)fastingUi.pause();
+    if(petUi!=null)petUi.pause();
     super.onPause();
   }
   @Override protected void onDestroy(){
     if(fastingUi!=null)fastingUi.clear();
+    if(petUi!=null)petUi.clear();
     if(Build.VERSION.SDK_INT>=33&&fastingBackCallback!=null)
       getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(fastingBackCallback);
     super.onDestroy();
@@ -3517,6 +3532,9 @@ public class MainActivity extends Activity {
   @Override protected void onResume(){
     super.onResume();
     if(fastingUi!=null)fastingUi.resume();
+    if(petUi!=null)petUi.resume();
+    if(prefs!=null)FitRocketFastingReminder.schedule(this);
+    if("Intervallfasten".equals(currentScreen))fastingScreen();
     FitRocketWidget.refresh(this);
     if(waitingForUpdatePermission && FitRocketInAppUpdate.hasInstallerPermission(this)){
       waitingForUpdatePermission=false;
@@ -3602,6 +3620,11 @@ public class MainActivity extends Activity {
   }
   @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grantResults){
     super.onRequestPermissionsResult(request,permissions,grantResults);
+    if(request==FitRocketFastingReminder.PERMISSION_REQUEST){
+      FitRocketFastingReminder.schedule(this);
+      if("Intervallfasten".equals(currentScreen))fastingScreen();
+      return;
+    }
     if(request!=HEALTH_PERMISSION_REQUEST)return;
     if(healthPermissionsGranted()){
       prefs.edit().putBoolean("healthUse",true).apply();
@@ -3816,6 +3839,8 @@ public class MainActivity extends Activity {
         JSONObject payload=new JSONObject();
         payload.put("schemaVersion",7);payload.put("budget",budget);payload.put("weekly",weekly);
         payload.put(FitRocketPointLedger.ROLLOVER_KEY,rolloverEnabled());
+        payload.put(FitRocketPet.KEY,FitRocketPet.validated(new JSONObject(prefs.getString(FitRocketPet.KEY,"{}"))));
+        payload.put(FitRocketFastingAlarmRules.ENABLED_KEY,prefs.getBoolean(FitRocketFastingAlarmRules.ENABLED_KEY,true));
         payload.put(FitRocketFasting.KEY,FitRocketFasting.validated(new JSONObject(prefs.getString(FitRocketFasting.KEY,FitRocketFasting.empty().toString()))));
         payload.put("profileName",prefs.getString("profile_name",""));
         payload.put("appearance",prefs.getString(FitRocketTheme.KEY,FitRocketTheme.SYSTEM));
@@ -3877,6 +3902,8 @@ public class MainActivity extends Activity {
         JSONObject payload=new JSONObject(new String(out.toByteArray(),StandardCharsets.UTF_8));
         String backupPreview=FitRocketBackupCheck.preview(payload);
         final JSONObject importedFasting=FitRocketBackupCheck.fasting(payload);
+        final JSONObject importedPet=FitRocketBackupCheck.pet(payload);
+        final boolean importedFastingReminder=FitRocketBackupCheck.fastingReminderEnabled(payload);
         final boolean importedRollover=FitRocketBackupCheck.rolloverEnabled(payload);
         int schema=payload.optInt("schemaVersion",0);
         if((schema<1||schema>7)||!payload.has("meals")||!payload.has("weights"))throw new IllegalArgumentException();
@@ -3984,6 +4011,8 @@ public class MainActivity extends Activity {
                android.content.SharedPreferences.Editor e=prefs.edit();
               e.putString("meals",ma.toString()).putString("weights",we.toString())
                 .putString(FitRocketFasting.KEY,importedFasting.toString())
+                .putString(FitRocketPet.KEY,importedPet.toString())
+                .putBoolean(FitRocketFastingAlarmRules.ENABLED_KEY,importedFastingReminder)
                 .putBoolean(FitRocketPointLedger.ROLLOVER_KEY,importedRollover)
                 .putString("activities",importedActivities.toString()).putString("stepDays",importedSteps.toString())
                  .putString("stepPointHistory",savedSnapshots.toString())
@@ -4021,6 +4050,7 @@ public class MainActivity extends Activity {
               readArray("meals",meals);readArray("weights",weights);readArray("activities",activities);
               foods.clear();loadFoods();loadScannedFoods();loadAiFoods();loadRecipes();pruneRecipePhotos();
               FitRocketWaterReminder.schedule(this);
+              FitRocketFastingReminder.dismiss(this);FitRocketFastingReminder.schedule(this);
               history();msg("Backup importiert.");
             }catch(Exception e){msg("Import konnte nicht abgeschlossen werden.");}
           }).setNegativeButton("Abbrechen",null).show();

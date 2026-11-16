@@ -9,6 +9,16 @@ public final class FitRocketBackupCheck {
   return Double.isFinite(points) && points>=0 && points<=3000
     && Math.abs(points*10-Math.rint(points*10))<0.0001;
  }
+ public static JSONObject pet(JSONObject root){
+  if(!root.has(FitRocketPet.KEY))return FitRocketPet.empty();
+  return FitRocketPet.validated(root.optJSONObject(FitRocketPet.KEY));
+ }
+ public static boolean fastingReminderEnabled(JSONObject root){
+  if(!root.has(FitRocketFastingAlarmRules.ENABLED_KEY))return true;
+  Object value=root.opt(FitRocketFastingAlarmRules.ENABLED_KEY);
+  if(!(value instanceof Boolean))throw new IllegalArgumentException("Ungültige Fasten-Benachrichtigungseinstellung");
+  return (Boolean)value;
+ }
  public static JSONObject fasting(JSONObject root){
   if(!root.has(FitRocketFasting.KEY))return FitRocketFasting.empty();
   return FitRocketFasting.validated(root.optJSONObject(FitRocketFasting.KEY));
@@ -23,7 +33,8 @@ public final class FitRocketBackupCheck {
   if(root==null)throw new IllegalArgumentException("Leeres Backup");
   int schema=root.optInt("schemaVersion",-1);
   if(schema<1||schema>7)throw new IllegalArgumentException("Nicht unterstützte Backup-Version: "+schema);
-  JSONObject fasting=fasting(root);boolean rollover=rolloverEnabled(root);
+  JSONObject fasting=fasting(root),pet=pet(root);boolean rollover=rolloverEnabled(root);
+  fastingReminderEnabled(root);
   JSONArray meals=root.optJSONArray("meals"),weights=root.optJSONArray("weights");
   if(meals==null||weights==null)throw new IllegalArgumentException("Mahlzeiten oder Gewichte fehlen");
   if(meals.length()>50000||weights.length()>50000)throw new IllegalArgumentException("Zu viele Einträge");
@@ -61,6 +72,8 @@ public final class FitRocketBackupCheck {
    "\nGespeicherte Favoriten: "+(favorites==null?0:favorites.length())+
    "\nFastenzeiten: "+fasting.optJSONArray("history").length()+(fasting.has("active")?" + laufendes Fasten":"")+
    "\nPunkteübernahme: "+(rollover?"An":"Aus")+
+   "\nPet: "+(pet.length()==0?"Nicht adoptiert":pet.optString("name")+" · Stufe "+(FitRocketPet.stage(pet)+1))+
+   "\nFasten-Benachrichtigung: "+(fastingReminderEnabled(root)?"An":"Aus")+
    "\nAlle geprüften Tagebuch-Einträge sind gültig.";
  }
 }

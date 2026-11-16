@@ -17,7 +17,14 @@
 | [Signierung](docs/SIGNING.md) | Release-Keystore, GitHub Actions und Update-Kompatibilität |
 | [Versionshistorie](CHANGELOG.md) | Bisherige Änderungen und Entwicklungsschritte |
 
-**Aktueller Quellcode:** v0.17.0. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+**Aktueller Quellcode:** v0.18.0. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+
+## FitRocket v0.18.0 – Dein Pixel-Pet & Fasten-Erinnerungen
+
+- **Eigener Pet-Reiter:** Adoptiere deinen Axolotl-Hund, füttere, streichle und bespiele ihn. Fünf Entwicklungsstufen und Stimmungen, inklusive zähnefletschender Monsterlaune, mit echten PNG-Pixelgrafiken. Sterne schalten Öhrchen, Mütze, Krone und Spielzeug frei.
+- **Fiktives Futter:** Alle übrigen Tagespunkte werden nach Tagesabschluss zu zusätzlichem Pet-Futter. Die tatsächliche Punkteberechnung der App bleibt vollständig unberührt.
+- **Fastenziel-Benachrichtigung:** Erinnerung auch bei geschlossener App. Unter Intervallfasten aktivieren und die Android-Benachrichtigungen erlauben; optional den zeitgenauen Alarmzugriff freigeben.
+- [Details zum Minispiel und den Erinnerungen](docs/PET_AND_FASTING_REMINDERS.md) · [Android-Rendering der Pet-Seite](docs/images/pet-preview.png).
 
 ## FitRocket v0.17.0 – Fasten und Punkteübernahme
 

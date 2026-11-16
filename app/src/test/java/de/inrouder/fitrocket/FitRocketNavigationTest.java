@@ -12,12 +12,20 @@ public class FitRocketNavigationTest {
         assertEquals(0, FitRocketNavigation.selectedTab("Intervallfasten"));
     }
 
-    @Test public void thereAreFiveTabsIncludingCookbook() {
-        assertEquals(5, FitRocketNavigation.TABS.length);
+    @Test public void thereAreSixTabsIncludingCookbookAndPet() {
+        assertEquals(6, FitRocketNavigation.TABS.length);
+        assertEquals(4, FitRocketNavigation.selectedTab("Pet"));
         assertTrue(FitRocketNavigation.TABS[0].contains("Tagebuch"));
         for (String tab : FitRocketNavigation.TABS) {
             assertFalse(tab.contains("Heute"));
         }
+    }
+
+    @Test public void compactNavigationKeepsAllSixLabelsReachable() {
+        assertEquals(3,FitRocketNavigation.columns(360,1));
+        assertEquals(3,FitRocketNavigation.columns(411,1.3f));
+        assertEquals(2,FitRocketNavigation.columns(320,2));
+        assertEquals(6,FitRocketNavigation.columns(600,1));
     }
 
     @Test public void foodAndAiStillHighlightSearchTab() {
@@ -33,6 +41,6 @@ public class FitRocketNavigationTest {
         assertEquals(3, FitRocketNavigation.selectedTab("Fortschritt"));
         assertEquals(3, FitRocketNavigation.selectedTab("Gewicht"));
         assertEquals(3, FitRocketNavigation.selectedTab("Aktivität"));
-        assertEquals(4, FitRocketNavigation.selectedTab("Profil"));
+        assertEquals(5, FitRocketNavigation.selectedTab("Profil"));
     }
 }
