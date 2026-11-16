@@ -47,4 +47,16 @@ public class FitRocketFastingAlarmRulesTest {
             assertFalse(FitRocketFastingAlarmRules.due(state,true,NOW,goal(),goal()));
         }
     }
+    @Test public void movingStartReplacesGoalAndClearsOldNotificationMarker()throws Exception {
+        JSONObject sent=FitRocketFastingAlarmRules.notified(active(),NOW,goal(),goal());
+        JSONObject moved=FitRocketFasting.moveStart(sent,NOW+FitRocketFasting.HOUR,goal());
+        long newGoal=goal()+FitRocketFasting.HOUR;
+        assertEquals(newGoal,FitRocketFastingAlarmRules.nextTrigger(moved,true,goal()));
+        assertFalse(FitRocketFastingAlarmRules.due(moved,true,NOW,goal(),newGoal));
+        assertTrue(FitRocketFastingAlarmRules.due(moved,true,NOW+FitRocketFasting.HOUR,newGoal,newGoal));
+        JSONObject reverted=FitRocketFasting.moveStart(moved,NOW,goal());
+        assertTrue(FitRocketFastingAlarmRules.due(reverted,true,NOW,goal(),goal()));
+        assertFalse(sent.getJSONObject("active").isNull("notifiedGoal"));
+    }
+
 }

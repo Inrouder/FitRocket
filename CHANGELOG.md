@@ -1,5 +1,14 @@
 # FitRocket – Versionshinweise
 
+## 0.18.2 – Fastenzeiten flexibel auswählen und korrigieren
+
+- Beim Start zwischen „Ab jetzt“ und „Früher begonnen“ mit Datum-/Uhrzeitauswahl wählen.
+- Beginn eines laufenden Fastens früher/später korrigieren; Ziel und Erinnerung verschieben sich mit erhaltener eingestellter Dauer.
+- Beim Beenden tatsächliches Ende und Gesamtdauer prüfen; auch längeres Fasten korrekt protokollieren.
+- Endzeiten im Verlauf nachträglich ändern, inklusive älterer gespeicherter Einträge. Laufendes Fasten und dessen Erinnerung bleiben bei historischen Korrekturen erhalten.
+- Vorschau, Inline-Fehler, Abbruch ohne Mutation und Schutz vor inzwischen veränderten Einträgen. Bestehendes JSON-/Backup-Schema ohne Migration.
+- [Bedienung, Daten und Prüfszenarien](docs/FASTING_TIMES.md).
+
 ## 0.18.1 – Beweglicheres Pet und passende Accessoires
 
 - Vier Laufphasen, Hin- und Herlaufen mit Richtungswechseln und Pausen; Spielen mit Anspringen und Verfolgen des hüpfenden Balls bzw. der Spielzeugrakete.

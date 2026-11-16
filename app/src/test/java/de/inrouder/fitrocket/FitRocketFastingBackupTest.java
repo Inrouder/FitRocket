@@ -35,4 +35,16 @@ public class FitRocketFastingBackupTest {
         try{FitRocketBackupCheck.preview(backup().put(FitRocketFasting.KEY,invalid));fail();}catch(IllegalArgumentException expected){}
         try{FitRocketBackupCheck.preview(backup().put(FitRocketPointLedger.ROLLOVER_KEY,"false"));fail();}catch(IllegalArgumentException expected){}
     }
+    @Test public void correctedHistoryAndMovedStartKeepExistingBackupSchema()throws Exception {
+        long now=1795032000000L;
+        JSONObject state=FitRocketFasting.start(FitRocketFasting.empty(),now-30*FitRocketFasting.HOUR,now);
+        state=FitRocketFasting.finish(state,now-20*FitRocketFasting.HOUR,now);
+        state=FitRocketFasting.editEnd(state,0,now-12*FitRocketFasting.HOUR,now);
+        state=FitRocketFasting.start(state,now-FitRocketFasting.HOUR,now);
+        state=FitRocketFasting.moveStart(state,now-2*FitRocketFasting.HOUR,now);
+        JSONObject imported=FitRocketBackupCheck.fasting(new JSONObject(backup().put("fasting",state).toString()));
+        assertEquals(state.toString(),imported.toString());assertEquals(1,imported.getJSONArray("history").length());
+        assertEquals(now+14*FitRocketFasting.HOUR,imported.getJSONObject("active").getLong("goal"));
+    }
+
 }

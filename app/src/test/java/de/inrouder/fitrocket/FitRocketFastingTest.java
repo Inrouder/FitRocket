@@ -82,4 +82,71 @@ public class FitRocketFastingTest {
         };
         for(Runnable action:invalid){try{action.run();fail();}catch(IllegalArgumentException expected){}assertEquals(saved,source.toString());}
     }
+    @Test public void retroactiveStartUsesSelectedTimeForEveryPlan()throws Exception {
+        long past=NOW-2*24*FitRocketFasting.HOUR;
+        for(int hours:new int[]{12,14,16,17,18,20}){
+            JSONObject source=FitRocketFasting.selectPlan(FitRocketFasting.empty(),hours);String saved=source.toString();
+            JSONObject active=FitRocketFasting.start(source,past,NOW).getJSONObject("active");
+            assertEquals(past,active.getLong("start"));assertEquals(past+hours*FitRocketFasting.HOUR,active.getLong("goal"));
+            assertEquals(48*FitRocketFasting.HOUR,FitRocketFasting.elapsed(active,NOW));assertEquals(saved,source.toString());
+        }
+    }
+    @Test public void movingStartBothWaysPreservesCustomizedDurationAndMetadata()throws Exception {
+        JSONObject source=FitRocketFasting.edit(started(),NOW,NOW+19*FitRocketFasting.HOUR,NOW);
+        source.put("futureField","keep");source.getJSONObject("active").put("futureField",42).put("notifiedGoal",NOW+19*FitRocketFasting.HOUR);
+        String saved=source.toString();long earlier=NOW-3*FitRocketFasting.HOUR;
+        JSONObject moved=FitRocketFasting.moveStart(source,earlier,NOW);
+        assertEquals(earlier+19*FitRocketFasting.HOUR,moved.getJSONObject("active").getLong("goal"));
+        assertFalse(moved.getJSONObject("active").has("notifiedGoal"));
+        assertEquals(42,moved.getJSONObject("active").getInt("futureField"));assertEquals("keep",moved.getString("futureField"));
+        JSONObject later=FitRocketFasting.moveStart(moved,NOW-FitRocketFasting.HOUR,NOW);
+        assertEquals(NOW+18*FitRocketFasting.HOUR,later.getJSONObject("active").getLong("goal"));assertEquals(saved,source.toString());
+    }
+    @Test public void movingStartAcrossDstPreservesElapsedPlanHours()throws Exception {
+        for(LocalDate date:new LocalDate[]{LocalDate.of(2026,3,28),LocalDate.of(2026,10,24)}){
+            long corrected=date.atTime(20,0).atZone(ZoneId.of("Europe/Berlin")).toInstant().toEpochMilli();
+            JSONObject state=FitRocketFasting.start(FitRocketFasting.empty(),corrected+FitRocketFasting.HOUR);
+            JSONObject moved=FitRocketFasting.moveStart(state,corrected,corrected+2*FitRocketFasting.HOUR).getJSONObject("active");
+            assertEquals(16*FitRocketFasting.HOUR,moved.getLong("goal")-corrected);
+        }
+    }
+    @Test public void finishingAtSelectedActualTimeCanExceedGoalWithoutDuplicates()throws Exception {
+        long end=NOW+20*FitRocketFasting.HOUR;
+        JSONObject source=started();JSONObject finished=FitRocketFasting.finish(source,end,end+FitRocketFasting.HOUR);
+        JSONObject entry=finished.getJSONArray("history").getJSONObject(0);
+        assertEquals(end,entry.getLong("end"));assertEquals(NOW+16*FitRocketFasting.HOUR,entry.getLong("goal"));
+        assertEquals(1,finished.getJSONArray("history").length());assertFalse(finished.has("active"));assertTrue(source.has("active"));
+    }
+    @Test public void correctingHistoryEndPreservesOtherEntriesActivePlanAndUnknownFields()throws Exception {
+        JSONObject state=FitRocketFasting.finish(started(),NOW+FitRocketFasting.HOUR);
+        state.getJSONArray("history").getJSONObject(0).put("futureField","keep");
+        state=FitRocketFasting.start(state,NOW+24*FitRocketFasting.HOUR);String saved=state.toString();
+        String active=state.getJSONObject("active").toString();
+        JSONObject corrected=FitRocketFasting.editEnd(state,0,NOW+20*FitRocketFasting.HOUR,NOW+25*FitRocketFasting.HOUR);
+        JSONObject entry=corrected.getJSONArray("history").getJSONObject(0);
+        assertEquals(NOW,entry.getLong("start"));assertEquals(NOW+16*FitRocketFasting.HOUR,entry.getLong("goal"));
+        assertEquals(NOW+20*FitRocketFasting.HOUR,entry.getLong("end"));assertEquals("keep",entry.getString("futureField"));
+        assertEquals(active,corrected.getJSONObject("active").toString());assertEquals(saved,state.toString());
+        corrected=FitRocketFasting.editEnd(corrected,0,NOW+30*60000,NOW+25*FitRocketFasting.HOUR);
+        assertEquals(1,corrected.getJSONArray("history").length());assertEquals(NOW+30*60000,corrected.getJSONArray("history").getJSONObject(0).getLong("end"));
+    }
+    @Test public void invalidRetroactiveChangesDoNotMutateSource()throws Exception {
+        JSONObject source=started(),finished=FitRocketFasting.finish(source,NOW+FitRocketFasting.HOUR);
+        String saved=source.toString(),log=finished.toString();
+        Runnable[] invalid={
+            ()->FitRocketFasting.start(FitRocketFasting.empty(),NOW+1,NOW),
+            ()->FitRocketFasting.moveStart(source,NOW+1,NOW),
+            ()->FitRocketFasting.moveStart(finished,NOW,NOW),
+            ()->FitRocketFasting.moveStart(source,-1,NOW),
+            ()->FitRocketFasting.finish(source,NOW+1,NOW),
+            ()->FitRocketFasting.finish(source,NOW-1,NOW),
+            ()->FitRocketFasting.editEnd(finished,-1,NOW,NOW),
+            ()->FitRocketFasting.editEnd(finished,1,NOW,NOW),
+            ()->FitRocketFasting.editEnd(finished,0,NOW-1,NOW),
+            ()->FitRocketFasting.editEnd(finished,0,NOW+1,NOW)
+        };
+        for(Runnable action:invalid){try{action.run();fail();}catch(IllegalArgumentException expected){}
+            assertEquals(saved,source.toString());assertEquals(log,finished.toString());}
+    }
+
 }
