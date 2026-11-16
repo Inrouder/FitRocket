@@ -11,7 +11,7 @@ val fitrocketReleaseSigningEnabled = listOf(
 android {
  namespace = "de.inrouder.fitrocket"
  compileSdk = 35
- defaultConfig { applicationId = "de.inrouder.fitrocket"; minSdk = 26; targetSdk = 35; versionCode = 46; versionName = "0.16.13" }
+ defaultConfig { applicationId = "de.inrouder.fitrocket"; minSdk = 26; targetSdk = 35; versionCode = 47; versionName = "0.17.0" }
  signingConfigs {
   create("fitrocketRelease") {
    if (fitrocketReleaseSigningEnabled) {

@@ -99,3 +99,20 @@ Der Tagebuch-Schnellzugriff ruft `MainActivity.quickMealDialog()` auf. `FitRocke
 
 ## Mahlzeiten verschieben (v0.16.13)
 `moveMealDialog` ersetzt die reine Tageszeit-Auswahl durch einen gemeinsamen Dialog für Datum und Tageszeit. Der Kalender lässt Tage bis heute zu. Die Auswahl bleibt lokal bis zum Bestätigen; Abbrechen verändert keine Daten. `FitRocketDiary.move` validiert Datum und Gruppe vor der Mutation und ändert ausschließlich `date` und `group` am vorhandenen Mahlzeitobjekt. Danach persistiert die Activity die bestehende Liste, aktualisiert Widgets und öffnet den Zieltag. Tages- und Wochenkonten werden wie bisher aus den Einträgen abgeleitet. Keine neue Buchung, keine Schemaänderung oder Migration. Tests prüfen Objektidentität/Felder, JSON-Roundtrip, beide Tage/Wochen, gleiches Datum, ZeroPoints und ungültige Eingaben ohne Mutation.
+
+
+## Intervallfasten und optionale Tagesüberträge (v0.17.0)
+`FitRocketFasting` enthält die Android-unabhängige Fastenlogik. `FitRocketFastingUi` rendert die Tagebuchkarte und eine eigene scrollbare Unterseite mit der bestehenden Palette (`FitRocketTheme`), Cards und Planringen. `MainActivity.fastingScreen` nutzt weiterhin `shell`; `Intervallfasten` gehört zum Tagebuch-Tab. Zugang auch über Profil → Meine Ziele. Der Schnellzugriff zeigt das laufende Fasten nur im heutigen Tagebuch; historische Mahlzeiten bleiben davon unabhängig.
+
+SharedPreferences-String `fasting` enthält ein JSON-Objekt:
+- `planHours`: 12/14/16/17/18/20, Standard 16.
+- optional `active`: `start`, `goal` als Unix-Millisekunden sowie `planHours`.
+- `history`: neueste abgeschlossene Einträge zuerst, maximal 100; zusätzlich zu den aktiven Feldern jeweils `end`. Die UI zeigt die letzten sieben Einträge.
+
+Start und Ziel liegen maximal 24 Stunden auseinander. Ein neuer Start liegt bei der aktuellen Gerätezeit; bei Zeitkorrekturen darf er nicht in der Zukunft liegen. Ein Ziel darf bereits verstrichen sein. Nach Zielerreichung läuft die Anzeige bis zum bewussten Beenden weiter; auch vorzeitiges Beenden wird protokolliert. Abbrechen verwirft ausschließlich das aktive Fasten. Planwechsel beim laufenden Fasten erfordert Bestätigung und setzt das Ziel neu relativ zum bestehenden Start. Änderungen arbeiten auf validierten Kopien und bewahren unbekannte optionale JSON-Felder.
+
+Der Timer leitet die Dauer aus absoluten Zeitpunkten ab und übersteht Prozessende, Neustart, Mitternacht und Sommerzeitwechsel. Der Handler aktualisiert nur sichtbare Ansichten im Vordergrund und wird bei Navigation/Pause/Destroy entfernt. Kein Hintergrunddienst, keine Benachrichtigungen und keine automatische Wiederholung. Gerätezeitänderungen beeinflussen die Dauer; vor dem Start liegende Gerätezeiten werden angezeigt und negative Dauern auf null begrenzt. Der Timer misst keine physiologischen Phasen und verändert weder Punkte noch Mahlzeiten.
+
+SharedPreferences-Boolean `rolloverEnabled` (Standard `true`) steuert die vierpunktbegrenzten Tagesüberträge über den neuen Parameter von `FitRocketPointLedger.weekRollovers`. Die bestehende Signatur bleibt kompatibel und entspricht `true`. Die Einstellung gilt bei jeder Berechnung für die gesamte aktuelle Woche, ohne tägliche Gutschriften zu persistieren. Wochenstart, Tagesbudget, Überziehungen und Bewegungsgutschriften bleiben unverändert. Aktivitätskonto und FAQ zeigen die gewählte Regel.
+
+**Backup:** Schema 7 bleibt wegen ausschließlich optionaler Zusatzfelder erhalten. Export schreibt `fasting` als Objekt und `rolloverEnabled` als Boolean. `FitRocketBackupCheck` validiert beide vor dem Importdialog; die Vorschau nennt Verlauf, laufendes Fasten und Übernahme-Einstellung. Import stellt beides mit dem übrigen Preference-Editor wieder her. Fehlende Felder in alten Sicherungen bedeuten leeres Fasten mit Standardplan 16:8 und aktivierte Punkteübernahme; vorhandene Fastendaten werden entsprechend dem ersetzenden Import zurückgesetzt. Keine Bestandsmigration. Alte App-Versionen ignorieren die neuen Felder; ein erneuter Export durch alte Versionen bewahrt sie nicht.

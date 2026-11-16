@@ -35,3 +35,13 @@ Der Workflow `.github/workflows/android-apk.yml` läuft auf `main`, Pull Request
 
 ## Definition of Done
 Implementierter Code + Tests + verifizierter CI-Build + nachvollziehbare Änderung in CHANGELOG + aktualisierte technische Dokumentation + bei Datenformatänderungen getesteter Backup-Roundtrip. Unbestätigten Build ausdrücklich als unbestätigt kennzeichnen.
+
+
+## Prüfszenarien Intervallfasten / Punkteübernahme
+- Heute-Tagebuch → Fasten öffnen → alle sechs Pläne; aktiver Planwechsel bestätigt die neue Zielzeit. Hauptnavigation und Zurück prüfen.
+- Starten, Start/Ziel per Datum und Uhrzeit ändern; ungültige Reihenfolge, Zukunftsstart und mehr als 24 Stunden ohne Änderung abweisen. Ziel in der Vergangenheit zeigt „Ziel erreicht“.
+- App schließen/Prozess beenden, erneut öffnen und Gerät drehen; Uhrzeit, Dauer und Plan bleiben erhalten. Mitternacht und Sommerzeitwechsel prüfen.
+- Vor und nach Ziel beenden (ein Verlaufseintrag), abbrechen (kein Eintrag), danach neu starten. Dialogabbruch verändert keine Daten.
+- Hell/Dunkel, schmales Display, große Systemschrift und Android-Systemnavigation prüfen. Alle Aktionsflächen bleiben durch Scrollen erreichbar.
+- Profil → Punktebudget → Übernahme aus/an: aktuelle Woche neu berechnet, Zehntelpunkte und 4-Punkte-Grenze korrekt, Bewegung und Überschreitungen bleiben bestehen. Montag übernimmt nichts aus der Vorwoche.
+- JSON-Roundtrip mit Verlauf, aktivem Fasten und deaktiviertem Übertrag; alte Backups ohne Zusatzfelder; fehlerhafte Fastendaten vor Ersetzung zurückweisen. Rezeptfotos/Favoriten weiterhin erhalten.
