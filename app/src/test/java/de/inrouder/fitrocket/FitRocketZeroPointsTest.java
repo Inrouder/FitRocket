@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 public class FitRocketZeroPointsTest {
     private List<JSONObject> catalog()throws Exception {
         Path path=Path.of("src/main/assets/foods.json");if(!Files.exists(path))path=Path.of("app/src/main/assets/foods.json");
-        JSONArray data=new JSONArray(Files.readString(path));List<JSONObject> foods=new ArrayList<>();
+        JSONArray data=new JSONArray(new String(Files.readAllBytes(path),java.nio.charset.StandardCharsets.UTF_8));List<JSONObject> foods=new ArrayList<>();
         for(int i=0;i<data.length();i++)foods.add(data.getJSONObject(i));return foods;
     }
     private JSONObject food(String name)throws Exception {
