@@ -35,7 +35,7 @@ public final class FitRocketRecipe {
             JSONObject n=part.optJSONObject("nutritionOverride");
             if(n==null){
                 if(food==null)throw new IllegalArgumentException("Fehlende Zutat "+part.optString("id"));
-                if("basic".equals(food.optString("status")))continue; // immutable ZeroPoints
+                if("basic".equals(food.optString("status"))||FitRocketZeroPoints.catalogId(food)!=null)continue; // immutable ZeroPoints
                 if(!"nutrition".equals(food.optString("status")))throw new IllegalArgumentException("Ungeprüfte Zutat");
                 n=food.optJSONObject("nutrition");
             }

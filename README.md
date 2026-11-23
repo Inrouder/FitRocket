@@ -17,7 +17,14 @@
 | [Signierung](docs/SIGNING.md) | Release-Keystore, GitHub Actions und Update-Kompatibilität |
 | [Versionshistorie](CHANGELOG.md) | Bisherige Änderungen und Entwicklungsschritte |
 
-**Aktueller Quellcode:** v0.18.2. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+**Aktueller Quellcode:** v0.18.3. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+
+## FitRocket v0.18.3 – ZeroPoints-Korrektur
+
+- **0 Punkte:** frische Cocktail-/Cherry-/Kirschtomaten und körniger Frischkäse/Hüttenkäse natur bis 0,5 % Gesamtfett.
+- Einheitliche Zuordnung für Katalog, gespeicherte Produkte, Barcode, KI, Rezepte und Favoriten. Varianten mit höherem Fettgehalt oder Zusätzen bleiben separat bewertet.
+- Alte Buchungen bei Bedarf über **Eintrag → Punkte ändern** korrigieren.
+- [Release-Notizen](docs/releases/v0.18.3.md) · [Berechnungsregeln](docs/FORMULAS.md).
 
 ## FitRocket v0.18.2 – Fastenzeiten nachtragen und korrigieren
 

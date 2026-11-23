@@ -13,7 +13,7 @@ public final class FitRocketDiary {
 
     public static double points(JSONObject food, double requested) {
         double valid = FitRocketPointLedger.validPoints(requested);
-        return food != null && "basic".equals(food.optString("status")) ? 0 : valid;
+        return food != null && ("basic".equals(food.optString("status"))||FitRocketZeroPoints.catalogId(food)!=null) ? 0 : valid;
     }
 
     /** Validate before mutating; preserve points, composition and unknown backup fields. */

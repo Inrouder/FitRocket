@@ -53,6 +53,7 @@ public final class FitRocketFoodDisplay {
 
     public static String pointsLabel(JSONObject food) {
         if (food == null) return "";
+        if(FitRocketZeroPoints.catalogId(food)!=null)return "0 P";
         if ("nutrition".equals(food.optString("status"))) {
             return "ca. "+food.optInt("estimatedPoints100")+" P / 100 "+unit(food);
         }

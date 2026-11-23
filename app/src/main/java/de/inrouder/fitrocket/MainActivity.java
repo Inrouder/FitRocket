@@ -212,14 +212,14 @@ public class MainActivity extends Activity {
       JSONArray arr=new JSONArray(prefs.getString("aiFoods","[]"));
       for(int i=0;i<arr.length();i++){
         JSONObject x=arr.optJSONObject(i);
-        if(x!=null)foods.add(0,x);
+        if(x!=null)foods.add(0,FitRocketZeroPoints.apply(x));
       }
     }catch(Exception e){msg("Eigene KI-Lebensmittel konnten nicht geladen werden.");}
   }
   private void loadScannedFoods(){
     try{
       JSONArray saved=new JSONArray(prefs.getString("scannedProducts","[]"));
-      for(int i=0;i<saved.length();i++){JSONObject f=saved.optJSONObject(i);if(f!=null)foods.add(0,f);}
+      for(int i=0;i<saved.length();i++){JSONObject f=saved.optJSONObject(i);if(f!=null)foods.add(0,FitRocketZeroPoints.apply(f));}
     }catch(Exception ignored){}
   }
   private void saveScannedFood(JSONObject food){
@@ -318,9 +318,10 @@ public class MainActivity extends Activity {
       edit("Kilokalorien",data.kcal==null?"":String.valueOf(data.kcal),8194),
       edit("Gesättigte Fettsäuren (g)",data.saturated==null?"":String.valueOf(data.saturated),8194),
       edit("Zucker (g)",data.sugar==null?"":String.valueOf(data.sugar),8194),
-      edit("Eiweiß (g)",data.protein==null?"":String.valueOf(data.protein),8194)
+      edit("Eiweiß (g)",data.protein==null?"":String.valueOf(data.protein),8194),
+      edit("Gesamtfett (g, optional)",data.fat==null?"":String.valueOf(data.fat),8194)
     };
-    String[] labels={"kcal","Gesättigte Fettsäuren (g)","Zucker (g)","Eiweiß (g)"};
+    String[] labels={"kcal","Gesättigte Fettsäuren (g)","Zucker (g)","Eiweiß (g)","Gesamtfett (g, optional)"};
     for(int i=0;i<fields.length;i++){content.addView(label(labels[i],12));content.addView(fields[i]);}
     content.addView(label("Fehlende Nährwerte müssen von der Verpackung ergänzt werden. Sie werden niemals als 0 angenommen.",12));
     ScrollView scrolling=new ScrollView(this);scrolling.addView(content);
@@ -335,7 +336,8 @@ public class MainActivity extends Activity {
         if(!Double.isFinite(k)||!Double.isFinite(sat)||!Double.isFinite(su)||!Double.isFinite(pro)
             ||k<0||k>2000||sat<0||sat>100||su<0||su>100||pro<0||pro>100)throw new IllegalArgumentException();
         FitRocketProductLookup.Product product=new FitRocketProductLookup.Product(
-            data.code,n,data.brand,data.quantity,k,sat,su,pro);
+            data.code,n,data.brand,data.quantity,k,sat,su,pro,
+            fields[4].getText().toString().trim().isEmpty()?null:FitRocketAiRules.required(num(fields[4].getText().toString()),100));
         JSONObject food=product.toFood();
         saveScannedFood(food);dialog.dismiss();foodDialog(food);
       }catch(Exception e){msg("Bitte alle vier Nährwerte und den Produktnamen korrekt eingeben.");}
@@ -715,7 +717,10 @@ public class MainActivity extends Activity {
   private void editMeal(JSONObject m){
     JSONObject food=findFoodById(m.optString("foodId"));
     if(food!=null && "basic".equals(food.optString("status"))){
-      msg("ZeroPoints-Lebensmittel bleiben bei 0 Punkten. Zusätze bitte separat erfassen.");return;
+      if(pts(m)>0){
+        try{FitRocketDiary.editPoints(m,food,0);persist("meals",meals);refreshMealContext();}
+        catch(Exception e){msg("Punkte konnten nicht korrigiert werden.");}
+      }else msg("ZeroPoints-Lebensmittel bleiben bei 0 Punkten. Zusätze bitte separat erfassen.");return;
     }
     EditText input=edit("Gesamtpunkte",pt(pts(m)),8194);
     AlertDialog dialog=new AlertDialog.Builder(this)
@@ -951,7 +956,8 @@ public class MainActivity extends Activity {
    * Use the reference portion for quick entry or enter any grams/ml precisely.
    * For an old product without reference weight, do not invent a conversion.
    */
-  private void foodDialog(JSONObject f){
+  private void foodDialog(JSONObject original){
+    JSONObject f=FitRocketZeroPoints.apply(original);
     if("nutrition".equals(f.optString("status"))){nutritionDialog(f);return;}
     LinearLayout content=new LinearLayout(this);content.setOrientation(1);
     content.setPadding(dp(20),dp(8),dp(20),dp(8));
