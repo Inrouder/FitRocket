@@ -19,9 +19,13 @@ public final class FitRocketProductLookup {
 
     public static final class Product {
         public final String code,name,brand,quantity;
-        public final Double kcal,saturated,sugar,protein;
+        public final Double kcal,saturated,sugar,protein,fat;
 
         public Product(String code,String name,String brand,String quantity,Double kcal,Double saturated,Double sugar,Double protein){
+            this(code,name,brand,quantity,kcal,saturated,sugar,protein,null);
+        }
+        public Product(String code,String name,String brand,String quantity,Double kcal,Double saturated,Double sugar,Double protein,Double fat){
+            this.fat=fat;
             this.code=code;this.name=name;this.brand=brand;this.quantity=quantity;
             this.kcal=kcal;this.saturated=saturated;this.sugar=sugar;this.protein=protein;
         }
@@ -32,6 +36,7 @@ public final class FitRocketProductLookup {
 
         public int points(double grams){
             if(!complete()||!Double.isFinite(grams)||grams<=0||grams>10000)throw new IllegalArgumentException("Nährwerte oder Menge");
+            if(FitRocketZeroPoints.catalogId(name,fat==null?Double.NaN:fat,brand)!=null)return 0;
             double ratio=grams/100.0;
             return FitRocketMath.foodPoints(kcal*ratio,saturated*ratio,sugar*ratio,protein*ratio);
         }
@@ -40,7 +45,7 @@ public final class FitRocketProductLookup {
             if(!complete())throw new IllegalStateException("Nährwerte unvollständig");
             JSONObject n=new JSONObject();
             n.put("kcal",kcal);n.put("saturatedFat_g",saturated);n.put("sugar_g",sugar);
-            n.put("protein_g",protein);n.put("per",100);
+            n.put("protein_g",protein);n.put("per",100);if(fat!=null)n.put("fat_g",fat);
             JSONObject f=new JSONObject();f.put("id","SCAN"+code);
             f.put("barcode",code);f.put("name",name);
             f.put("alias",brand);f.put("category","Gescannte Produkte");
@@ -49,7 +54,7 @@ public final class FitRocketProductLookup {
             f.put("nutrition",n);f.put("estimatedPoints100",points(100));
             f.put("notes","Nährwerte aus Open Food Facts bzw. von dir ergänzt. Verpackung bitte prüfen.");
             f.put("source","Open Food Facts");
-            return f;
+            return FitRocketZeroPoints.apply(f);
         }
     }
 
@@ -86,7 +91,7 @@ public final class FitRocketProductLookup {
         if(name.trim().isEmpty())name="Produkt "+barcode;
         return new Product(barcode,safe(name),safe(product.optString("brands","")),
             safe(product.optString("quantity","")),kcal,
-            nutrient(n,"saturated-fat_100g"),nutrient(n,"sugars_100g"),nutrient(n,"proteins_100g"));
+            nutrient(n,"saturated-fat_100g"),nutrient(n,"sugars_100g"),nutrient(n,"proteins_100g"),nutrient(n,"fat_100g"));
     }
 
     public static void lookup(Activity activity,String barcode,Callback callback){

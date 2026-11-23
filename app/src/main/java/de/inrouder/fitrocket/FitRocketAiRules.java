@@ -42,6 +42,10 @@ public final class FitRocketAiRules {
     public static JSONObject existingByName(String proposedName,List<JSONObject> foods){
         String wanted=normalize(proposedName);
         if(wanted.isEmpty()||foods==null)return null;
+        // Only the explicitly defined natural-food synonyms may resolve to a canonical ZeroPoint row.
+        String zeroId=FitRocketZeroPoints.catalogId(proposedName,Double.NaN);
+        if(zeroId!=null)for(JSONObject food:foods)
+            if(zeroId.equals(food.optString("id"))&&"basic".equals(food.optString("status")))return food;
         for(JSONObject food:foods){
             if(wanted.equals(normalize(food.optString("name")))
                 && ("basic".equals(food.optString("status"))||
@@ -124,7 +128,7 @@ public final class FitRocketAiRules {
             boolean optOut=item.optBoolean("catalogOptOut",false);
             JSONObject known=optOut?null:matchCatalog(item.optString("food_id"),item.optString("name"),catalog);
             if(known==null&&!optOut)known=existingByName(item.optString("name"),catalog);
-            if(known!=null && "basic".equals(known.optString("status")))continue;
+            if(known!=null && ("basic".equals(known.optString("status"))||FitRocketZeroPoints.catalogId(known)!=null))continue;
             JSONObject macros=known!=null&&"nutrition".equals(known.optString("status"))?
                 known.optJSONObject("nutrition"):null;
             double factor=grams/100.0;
@@ -159,6 +163,6 @@ public final class FitRocketAiRules {
         food.put("estimatedPoints100",points(100,kcal,sat,sugar,protein));
         food.put("notes","Geschätzte oder selbst geprüfte Nährwerte. Etikett bei Markenprodukten prüfen.");
         food.put("source","FitRocket Nutzer / KI-Schätzung");
-        return food;
+        return FitRocketZeroPoints.apply(food);
     }
 }

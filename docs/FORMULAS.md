@@ -90,3 +90,13 @@ Anschließend berechnet allein der unveränderte lokale FitRocket-Algorithmus di
 ZeroPoint-Status wird nur angewandt, wenn **exakte ID UND exakter normalisierter Name** zu einem vorhandenen `basic`-Eintrag passen. Die KI kann den Status also nicht allein durch Text oder Punkteangaben vergeben. Bei `nutrition`-Katalogtreffern gelten die lokal hinterlegten Nährwerte, nicht die Modellschätzung.
 
 Nutzerinnen und Nutzer können vor der Übernahme Zutaten entfernen, hinzufügen und Nährwerte ändern. Geschätzte Werte und daraus abgeleitete FitRocket-Punkte haben keine Garantie auf Übereinstimmung mit der tatsächlichen Mahlzeit. Insbesondere Speiseöl, Dressings und zusätzliches Fett müssen vollständig erfasst werden.
+
+## 10. Cocktailtomaten und körniger Frischkäse (v0.18.3)
+
+Frische Cocktail-/Cherry-/Kirschtomaten sowie körniger Frischkäse/Hüttenkäse/Cottage Cheese **natur mit höchstens 0,5 g Gesamtfett je 100 g** sind ausdrücklich ZeroPoints. Dafür gibt es die Katalog-IDs `FRZERO001` und `FRZERO002`; `ZP214` (Tomaten) bleibt erhalten. Null gilt unabhängig von der Menge, auch in Rezepten und beim erneuten Buchen aus Favoriten. Ein bewusstes rezeptlokales `nutritionOverride`/`catalogOptOut` bleibt möglich, ohne den Katalog zu verändern.
+
+Die Naturproduktnamen werden über eng begrenzte, vollständige Namensmuster erkannt. Beim Frischkäse muss entweder der Name den Fettgehalt ausdrücklich nennen oder `nutrition.fat_g` den Gesamtfettwert enthalten. Vorhandene Angaben dürfen sich nicht widersprechen; mehr als 0,5 g ist nicht ZeroPoints. Gesättigte Fettsäuren, „light“ oder „fettarm“ allein belegen den Gesamtfettgehalt nicht. Zugaben/zusammengesetzte Gerichte wie „Cocktailtomaten mit Öl“ oder „Hüttenkäse mit Sahne“ werden nicht über Teilworttreffer auf 0 gesetzt. Der vorhandene Hüttenkäse mit 4 % Fett (`CALC020`) bleibt nährwertbasiert.
+
+Barcode-Daten übernehmen optional `fat_100g` aus Open Food Facts als `nutrition.fat_g`; bei manueller Produktkorrektur ist Gesamtfett ein optionales fünftes Feld. Produktname, Barcode, ID und alle ursprünglichen Nährwerte bleiben gespeichert. Für Scans darf ein im separaten Markenfeld ausgewiesener Namenspräfix entfernt werden, bevor das Naturprodukt geprüft wird; es gibt keine freie Teilwortsuche.
+
+Bereits gebuchte Tagebucheinträge werden beim Update nicht automatisch neu berechnet. Wenn ein alter Eintrag auf ein nun als ZeroPoints erkanntes Produkt verweist, lässt er sich über **Eintrag antippen → Punkte ändern** ausdrücklich auf 0 korrigieren. Erst dadurch ändern sich dessen Tages-/Wochenwerte. Keine neue automatische Futtergutschrift für bereits abgeerntete Tage.

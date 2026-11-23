@@ -29,6 +29,10 @@ for food in foods:
             )
     by_id[key] = food
 
+for key in ("ZP214", "FRZERO001", "FRZERO002"):
+    assert key in by_id and by_id[key]["status"] == "basic" and by_id[key]["points"] == 0, f"ZeroPoints regression: {key}"
+assert by_id["CALC020"]["status"] == "nutrition", "4% cottage cheese must retain nutrient scoring"
+
 ids = set()
 for recipe in recipes:
     key = recipe.get("id")

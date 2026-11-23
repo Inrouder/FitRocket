@@ -1,5 +1,13 @@
 # FitRocket – Versionshinweise
 
+## 0.18.3 – ZeroPoints für Cocktailtomaten und fettarmen körnigen Frischkäse
+
+- Cocktail-/Cherry-/Kirschtomaten sowie körniger Frischkäse/Hüttenkäse natur bis einschließlich 0,5 % Gesamtfett werden als 0 Punkte erkannt.
+- Zwei ergänzte Katalogeinträge; die Zuordnung gilt auch für gespeicherte Produkte, Barcode-Nährwerte, KI-Zutaten, Rezepte und Favoriten.
+- Beim Barcodeimport wird optionales Gesamtfett übernommen; im Produkteditor lässt es sich ergänzen. Gesättigte Fettsäuren werden nicht mit Gesamtfett verwechselt. Fettreichere Varianten und Namen mit Zusätzen bleiben nährwertbasiert.
+- Historische Buchungen bleiben zunächst erhalten und lassen sich bei eindeutigem ZeroPoints-Produkt über „Punkte ändern“ ausdrücklich auf 0 korrigieren.
+- Produkt-IDs, Barcodes und Nährwerte bleiben erhalten; keine Bestandsmigration, optionales `nutrition.fat_g` im bestehenden Backup-Format.
+
 ## 0.18.2 – Fastenzeiten flexibel auswählen und korrigieren
 
 - Beim Start zwischen „Ab jetzt“ und „Früher begonnen“ mit Datum-/Uhrzeitauswahl wählen.

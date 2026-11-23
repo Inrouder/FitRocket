@@ -78,6 +78,7 @@ public final class FitRocketFavoriteMath {
                                    double refQuantity,double quantity,
                                    List<JSONObject> foods) {
         positive(refQuantity);positive(quantity);
+        if(food!=null&&("basic".equals(food.optString("status"))||FitRocketZeroPoints.catalogId(food)!=null))return 0;
         if(food!=null && "nutrition".equals(food.optString("status"))) {
             JSONObject n=food.optJSONObject("nutrition");
             if(n!=null)return FitRocketAiRules.points(quantity,

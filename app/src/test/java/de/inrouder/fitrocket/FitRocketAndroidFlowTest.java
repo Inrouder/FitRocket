@@ -7,6 +7,7 @@ import android.os.*;
 import android.view.*;
 import android.widget.*;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.robolectric.*;
@@ -42,7 +43,7 @@ public class FitRocketAndroidFlowTest {
     private void click(String value){
         for(TextView candidate:find(root(),value)){
             View view=candidate;
-            while(view!=null){if(view.isClickable()){assertTrue(view.performClick());Shadows.shadowOf(Looper.getMainLooper()).idle();return;}view=view.getParent() instanceof View?(View)view.getParent():null;}
+            while(view!=null){if(view.isClickable()&&view.hasOnClickListeners()){assertTrue("Click failed: "+value,view.performClick());Shadows.shadowOf(Looper.getMainLooper()).idle();return;}view=view.getParent() instanceof View?(View)view.getParent():null;}
         }
         fail("No clickable label: "+value);
     }
@@ -54,6 +55,34 @@ public class FitRocketAndroidFlowTest {
         File dir=new File("build/outputs/pet-previews");assertTrue(dir.isDirectory()||dir.mkdirs());
         try(FileOutputStream out=new FileOutputStream(new File(dir,file))){assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,out));}
         assertNotEquals("Render unexpectedly empty",bitmap.getPixel(20,20),bitmap.getPixel(350,500));
+    }
+    private EditText input(View view,String hint){
+        if(view instanceof EditText&&hint.contentEquals(((EditText)view).getHint()))return (EditText)view;
+        if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){
+            EditText found=input(((ViewGroup)view).getChildAt(i),hint);if(found!=null)return found;
+        }
+        return null;
+    }
+    @Test public void savedTomatoesShowZeroAndOldBookingCanBeExplicitlyCorrected()throws Exception {
+        JSONObject oldFood=new JSONObject().put("id","OWNCOCKTAIL").put("name","Cocktailtomaten").put("status","nutrition")
+            .put("points",JSONObject.NULL).put("estimatedPoints100",1).put("portion","100 g").put("category","Eigene Lebensmittel")
+            .put("nutrition",new JSONObject().put("kcal",20).put("saturatedFat_g",0).put("sugar_g",3).put("protein_g",1));
+        String originalFoods=new JSONArray().put(oldFood).toString();
+        JSONObject oldMeal=new JSONObject().put("name","Alte Cocktailtomatenbuchung").put("foodId","OWNCOCKTAIL")
+            .put("date",LocalDate.now().toString()).put("group","Snack").put("points",3).put("note","behalten");
+        prefs.edit().putString("aiFoods",originalFoods).putString("meals",new JSONArray().put(oldMeal).toString()).commit();
+        start();assertEquals(3,new JSONArray(prefs.getString("meals","[]")).getJSONObject(0).getDouble("points"),0);
+        click("Alte Cocktailtomatenbuchung");Shadows.shadowOf(ShadowAlertDialog.getLatestAlertDialog()).clickOnItem(1);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        JSONObject corrected=new JSONArray(prefs.getString("meals","[]")).getJSONObject(0);
+        assertEquals(0,corrected.getDouble("points"),0);assertEquals("behalten",corrected.getString("note"));
+        assertEquals(originalFoods,prefs.getString("aiFoods",""));
+        click("Suche");EditText search=input(root(),"Lebensmittel suchen …");assertNotNull(search);search.setText("Cocktailtomaten");
+        Shadows.shadowOf(Looper.getMainLooper()).idle();assertFalse(find(root(),"0 P").isEmpty());click("Cocktailtomaten");
+        AlertDialog dialog=ShadowAlertDialog.getLatestAlertDialog();dialog.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();JSONArray meals=new JSONArray(prefs.getString("meals","[]"));
+        assertEquals(2,meals.length());assertEquals(0,meals.getJSONObject(1).getDouble("points"),0);
+        assertEquals("OWNCOCKTAIL",meals.getJSONObject(1).getString("foodId"));
     }
     @Test public void petCanBeAdoptedFedAndRestoredWithoutChangingDiary()throws Exception {
         start();String meals=prefs.getString("meals","");click("Pet");click("Ei adoptieren");
