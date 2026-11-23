@@ -43,7 +43,7 @@ public class FitRocketAndroidFlowTest {
     private void click(String value){
         for(TextView candidate:find(root(),value)){
             View view=candidate;
-            while(view!=null){if(view.isClickable()){assertTrue(view.performClick());Shadows.shadowOf(Looper.getMainLooper()).idle();return;}view=view.getParent() instanceof View?(View)view.getParent():null;}
+            while(view!=null){if(view.isClickable()&&view.hasOnClickListeners()){assertTrue("Click failed: "+value,view.performClick());Shadows.shadowOf(Looper.getMainLooper()).idle();return;}view=view.getParent() instanceof View?(View)view.getParent():null;}
         }
         fail("No clickable label: "+value);
     }
