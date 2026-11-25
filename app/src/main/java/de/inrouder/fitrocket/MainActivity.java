@@ -1448,19 +1448,23 @@ public class MainActivity extends Activity {
     AlertDialog loading=new AlertDialog.Builder(this).setTitle("✨ "+selectedAiProviderName()+" erstellt Vorschlag")
        .setMessage("Rezept oder Lebensmittel werden vorgeschlagen. "
           +"Im nächsten Schritt prüfst du die Schätzung.")
-       .setNegativeButton("Im Hintergrund abbrechen",(d,w)->{})
+       .setNegativeButton("Abbrechen",(d,w)->{})
        .create();
-    final boolean[] active={true};
-    loading.setOnDismissListener(d->active[0]=false);
+    final java.util.concurrent.atomic.AtomicBoolean active=new java.util.concurrent.atomic.AtomicBoolean(true);
+    loading.setOnDismissListener(d->active.set(false));
     loading.show();
     FitRocketAiService.request(this,mode,prompt,preferences,foods,
       new FitRocketAiService.Callback(){
+        @Override public boolean isCancelled(){return !active.get()||isFinishing()||isDestroyed();}
+        @Override public void onRetry(int attempt,int maximum,long waitMillis){
+          if(!isCancelled())loading.setMessage("Vorübergehender Fehler bei Google Gemini. Die Anfrage wird nach kurzer Pause erneut versucht (Versuch "+attempt+" von "+maximum+"). Du kannst die Anfrage abbrechen.");
+        }
         @Override public void onSuccess(JSONObject result){
-          boolean current=active[0];loading.dismiss();
+          boolean current=active.get();loading.dismiss();
           if(current)aiReview(mode,result);
         }
         @Override public void onFailure(String message){
-          boolean current=active[0];loading.dismiss();
+          boolean current=active.get();loading.dismiss();
           if(current)new AlertDialog.Builder(MainActivity.this).setTitle("KI-Anfrage fehlgeschlagen")
             .setMessage(message).setPositiveButton("OK",null).show();
         }

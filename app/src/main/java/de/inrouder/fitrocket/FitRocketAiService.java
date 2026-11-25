@@ -29,6 +29,8 @@ public final class FitRocketAiService {
     public interface Callback {
         void onSuccess(JSONObject output);
         void onFailure(String message);
+        default boolean isCancelled(){return false;}
+        default void onRetry(int attempt,int maximum,long waitMillis){}
     }
 
     private static byte[] readLimited(InputStream stream,int limit) throws Exception {

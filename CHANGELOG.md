@@ -1,5 +1,13 @@
 # FitRocket – Versionshinweise
 
+## 0.18.4 – Gemini-503-Ausfälle besser abfangen
+
+- Vorübergehende Gemini-Serverfehler (500/502/503/504) werden mit Wartepausen höchstens zweimal wiederholt, insgesamt maximal drei Versuche am gewählten Modell.
+- Retry-After und verbleibendes Zeitbudget werden berücksichtigt; Ladehinweis zeigt die Wiederholung, Abbrechen verhindert weitere Versuche und späte Anzeigen.
+- Fehler unterscheiden 503-Überlastung, Kontingent, Schlüssel und Verbindungsprobleme. HTTP-Fehler nennen Modell und Versuchszahl ohne rohe Serverantworten.
+- Kein automatischer Anbieter-/Modellwechsel und keine Wiederholung bei Kontingent-/Schlüsselfehlern oder unklaren Netzwerkabbrüchen.
+- Kein neues Datenformat, keine Migration. [Befund, Grenzen und Quellen](docs/GEMINI_AVAILABILITY.md).
+
 ## 0.18.3 – ZeroPoints für Cocktailtomaten und fettarmen körnigen Frischkäse
 
 - Cocktail-/Cherry-/Kirschtomaten sowie körniger Frischkäse/Hüttenkäse natur bis einschließlich 0,5 % Gesamtfett werden als 0 Punkte erkannt.
