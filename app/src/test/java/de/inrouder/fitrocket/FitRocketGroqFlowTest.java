@@ -40,7 +40,10 @@ public class FitRocketGroqFlowTest {
     private void idle(){Shadows.shadowOf(Looper.getMainLooper()).idle();}
     private View root(){return activity.getWindow().getDecorView();}
     private View find(View view,String text){
-        if(view instanceof TextView&&text.contentEquals(((TextView)view).getText()))return view;
+        if(view instanceof TextView){
+            String label=((TextView)view).getText().toString();
+            if(text.equals(label)||(text+"  ›").equals(label))return view;
+        }
         if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){
             View found=find(((ViewGroup)view).getChildAt(i),text);if(found!=null)return found;
         }return null;
