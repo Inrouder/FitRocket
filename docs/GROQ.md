@@ -25,6 +25,7 @@ Die Grenzen von 120 Sekunden gelten je Anbieter, nicht für beide zusammen. Eine
 ## Protokoll, Daten und Sicherheit
 
 - Fester Endpunkt `https://api.groq.com/openai/v1/chat/completions`, HTTPS, Bearer-Header, keine HTTP-Weiterleitungen. Google-Schlüssel werden ausschließlich als Google-Header an Google gesendet.
+- Groq-Anfragen begrenzen öffentliche Kataloghinweise auf 2.400 Zeichen mit vollständigen Einträgen, `max_completion_tokens` auf 4.000 und `reasoning_effort` auf `low`, um den Free Plan zu schonen. Das gesamte lokale Katalogwissen bleibt bei der anschließenden Prüfung erhalten. Auch kompakte Anfragen können ein bereits verbrauchtes Raten-/Tageskontingent erreichen.
 - `response_format.type=json_schema`, `json_schema.strict=true`, bestehendes Asset `ai_result_schema.json`. Beide auswählbaren GPT-OSS-Modelle unterstützen laut Groq dieses Format. Keine Streaming-/Tool-Aufrufe.
 - Nur vollständiger Chat-Abschluss `stop` mit genau einer textuellen Antwort; danach unverändert `FitRocketAiRules.validateResponse`. Die KI liefert Schätzungen, keine verbindlichen Nährwerte oder Punktezahlen. Punkte/ZeroPoints werden weiterhin lokal bestimmt und Ergebnisse erst nach Nutzerprüfung gespeichert.
 - Gemeinsamer `FitRocketAiTransport`: maximal drei Versuche je Anbieter, 2/4 Sekunden plus Zufallsanteil, Retry-After bis 15 Sekunden, 120 Sekunden logisches Budget, 90.000 Request- und 350.000 Response-Bytes. Keine Rohfehler, Prompts oder Schlüssel in Logs/Fehlermeldungen.

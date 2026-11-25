@@ -22,6 +22,7 @@ public class FitRocketGroqApiTest {
             assertTrue(format.getJSONObject("json_schema").getBoolean("strict"));
             assertEquals(schema.toString(),format.getJSONObject("json_schema").getJSONObject("schema").toString());
             assertFalse(body.getBoolean("stream"));assertTrue(body.getInt("max_completion_tokens")>=3800);
+            assertEquals(4000,body.getInt("max_completion_tokens"));assertEquals("low",body.getString("reasoning_effort"));
             JSONArray messages=body.getJSONArray("messages");assertEquals(2,messages.length());
             assertTrue(messages.getJSONObject(0).getString("content").contains("KEINE Punkte"));
             String input=messages.getJSONObject(1).getString("content");
@@ -30,6 +31,14 @@ public class FitRocketGroqApiTest {
             assertFalse(body.has("apiKey"));assertFalse(body.has("tools"));
         }
         assertEquals(FitRocketGroqApi.DEFAULT_MODEL,FitRocketGroqApi.safeModel("arbitrary/paid-model"));
+    }
+    @Test public void largeCatalogHintsAreBoundedAtWholeEntries()throws Exception {
+        List<JSONObject> foods=new ArrayList<>();
+        for(int i=0;i<300;i++)foods.add(new JSONObject().put("id","CALC"+i)
+            .put("name","Öffentliches Lebensmittel "+i+" mit längerem Sortennamen").put("status","nutrition"));
+        String hint=FitRocketAiService.catalogHints(foods,"Lebensmittel",2400);
+        assertTrue(hint.length()<=2400);assertTrue(hint.endsWith("]; "));assertTrue(hint.contains("CALC"));
+        assertTrue(FitRocketAiService.catalogHints(foods,"Lebensmittel").length()>hint.length());
     }
     @Test public void completedContentPassesExistingValidationAndLocalPointRules()throws Exception {
         JSONObject ingredient=new JSONObject().put("name","Schokolade").put("food_id","").put("grams",100)

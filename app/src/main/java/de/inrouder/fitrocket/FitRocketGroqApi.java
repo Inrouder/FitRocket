@@ -22,7 +22,7 @@ public final class FitRocketGroqApi {
         String taste=preferences==null?"":preferences;
         String input="Aufgabe: "+mode+"\nVorlieben für diese Anfrage: "+taste
             +"\nBeschreibung: "+prompt+"\nÖffentlicher FitRocket-Katalog (ID = exakter Name [Status]): "
-            +FitRocketAiService.catalogHints(foods,prompt+" "+taste);
+            +FitRocketAiService.catalogHints(foods,prompt+" "+taste,2400);
         return new JSONObject().put("model",safeModel(model))
             .put("messages",new JSONArray()
                 .put(new JSONObject().put("role","system").put("content",FitRocketAiService.instructions(mode)))
@@ -30,7 +30,7 @@ public final class FitRocketGroqApi {
             .put("response_format",new JSONObject().put("type","json_schema")
                 .put("json_schema",new JSONObject().put("name","fitrocket_cooking")
                     .put("strict",true).put("schema",schema)))
-            .put("max_completion_tokens",8000).put("stream",false);
+            .put("max_completion_tokens",4000).put("reasoning_effort","low").put("stream",false);
     }
 
     static String responseJson(JSONObject response){
@@ -50,7 +50,7 @@ public final class FitRocketGroqApi {
 
     static String errorMessage(int status){
         if(status==401||status==403)return "Groq-Schlüssel ungültig, gesperrt oder ohne Zugriffsrechte (HTTP "+status+"). Bitte in der Groq Console prüfen.";
-        if(status==429)return "Groq-Kontingent oder Anfragelimit erreicht (HTTP 429). Bitte die Free-Plan-Limits in der Groq Console prüfen und später erneut versuchen.";
+        if(status==429)return "Groq-Kontingent oder Anfragelimit erreicht (HTTP 429). Bitte kürzer beschreiben oder später erneut versuchen und die Free-Plan-Limits in der Groq Console prüfen.";
         if(status==404)return "Groq-Modell nicht verfügbar (HTTP 404). Bitte die Modellauswahl prüfen.";
         if(status==400||status==422)return "Groq hat die Anfrage oder das Antwortschema abgelehnt (HTTP "+status+"). Bitte die Anfrage vereinfachen.";
         if(status==413)return "Die Anfrage ist für Groq zu umfangreich (HTTP 413). Bitte kürzer beschreiben.";

@@ -71,6 +71,10 @@ public final class FitRocketAiService {
     }
 
     static String catalogHints(List<JSONObject> foods,String prompt){
+        return catalogHints(foods,prompt,11000);
+    }
+
+    static String catalogHints(List<JSONObject> foods,String prompt,int maxCharacters){
         // Constrain zero-point claims to exact FitRocket IDs and names, not model guesses.
         String[] popular={
             "ZP007","ZP014","ZP019","ZP233","ZP193","ZP129","ZP111","ZP016",
@@ -110,9 +114,9 @@ public final class FitRocketAiService {
         }
         StringBuilder text=new StringBuilder();
         for(JSONObject f:selected){
-            if(text.length()>11000)break;
-            text.append(f.optString("id")).append(" = ").append(f.optString("name"))
-                .append(" [").append(f.optString("status")).append("]; ");
+            String entry=f.optString("id")+" = "+f.optString("name")+" ["+f.optString("status")+"]; ";
+            if(text.length()+entry.length()>maxCharacters)break;
+            text.append(entry);
         }
         return text.toString();
     }
