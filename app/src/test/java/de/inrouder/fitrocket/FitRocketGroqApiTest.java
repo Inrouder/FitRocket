@@ -3,6 +3,7 @@ package de.inrouder.fitrocket;
 import org.json.*;
 import org.junit.Test;
 import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import static org.junit.Assert.*;
 
@@ -12,7 +13,7 @@ public class FitRocketGroqApiTest {
             .put("finish_reason",finish).put("message",new JSONObject().put("content",content))));
     }
     @Test public void requestUsesDocumentedStrictSchemaAndOnlyPublicHints()throws Exception {
-        JSONObject schema=new JSONObject(Files.readString(Path.of("src/main/assets/ai_result_schema.json")));
+        JSONObject schema=new JSONObject(new String(Files.readAllBytes(Paths.get("src/main/assets/ai_result_schema.json")),StandardCharsets.UTF_8));
         JSONObject publicFood=new JSONObject().put("id","ZP007").put("name","Äpfel").put("status","basic");
         JSONObject privateFood=new JSONObject().put("id","OWNSECRET").put("name","Privatrezept").put("status","basic");
         for(String model:new String[]{FitRocketGroqApi.MODEL_SMALL,FitRocketGroqApi.MODEL_LARGE}){
