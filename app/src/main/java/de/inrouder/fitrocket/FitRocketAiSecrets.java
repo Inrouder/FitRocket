@@ -22,24 +22,30 @@ import javax.crypto.spec.GCMParameterSpec;
 public final class FitRocketAiSecrets {
     public static final String GEMINI = "gemini";
     public static final String OPENAI = "openai";
+    public static final String GROQ = "groq";
+
+    public static String name(String provider) {
+        checkProvider(provider);
+        return GEMINI.equals(provider) ? "Google Gemini" : GROQ.equals(provider) ? "Groq" : "OpenAI";
+    }
     private static final String ALIAS = "de.inrouder.fitrocket.ai_byok.v1";
     private static final String PREF = "fitrocket_ai_private";
 
     private FitRocketAiSecrets() {}
 
     private static void checkProvider(String provider) {
-        if (!GEMINI.equals(provider) && !OPENAI.equals(provider))
+        if (!GEMINI.equals(provider) && !OPENAI.equals(provider) && !GROQ.equals(provider))
             throw new IllegalArgumentException("Unbekannter KI-Anbieter.");
     }
 
     private static String cipherKey(String provider) {
         checkProvider(provider);
-        return GEMINI.equals(provider) ? "gemini_cipher" : "cipher";
+        return OPENAI.equals(provider) ? "cipher" : provider + "_cipher";
     }
 
     private static String ivKey(String provider) {
         checkProvider(provider);
-        return GEMINI.equals(provider) ? "gemini_iv" : "iv";
+        return OPENAI.equals(provider) ? "iv" : provider + "_iv";
     }
 
     private static SecretKey secretKey() throws Exception {
@@ -73,6 +79,10 @@ public final class FitRocketAiSecrets {
                 throw new IllegalArgumentException(
                     "Bitte den vollständigen Gemini-Schlüssel ohne Leerzeichen einfügen. "
                     + "Auch neuere Google-Schlüssel mit Punkten sind erlaubt.");
+        } else if (GROQ.equals(provider)) {
+            if (!key.startsWith("gsk_") || key.length() < 16 || key.length() > 500 ||
+                !key.matches("[A-Za-z0-9._~+=/-]+"))
+                throw new IllegalArgumentException("Bitte einen vollständigen Groq-API-Schlüssel (gsk_…) eintragen.");
         } else if (!key.startsWith("sk-") || key.length() > 500 || key.length() < 8 ||
                    !key.matches("[A-Za-z0-9._~+=/-]+")) {
             throw new IllegalArgumentException("Bitte einen OpenAI-API-Schlüssel (sk-…) eintragen.");

@@ -1,4 +1,8 @@
-# FitRocket-KI-Assistent v0.11.2
+# FitRocket-KI-Assistent
+
+## Neu ab v0.18.5: Groq
+
+Groq ist zusätzlich zu Gemini und OpenAI auswählbar. Einrichtung, Tarifgrenzen und die standardmäßig deaktivierte Gemini-Reserve: [GROQ.md](GROQ.md). Die folgenden v0.11.x-Abschnitte beschreiben das bisherige Verhalten; insbesondere kann ab 0.18.5 nach bewusster Aktivierung bei Gemini-Serverfehlern auf Groq gewechselt werden. Die lokale Ergebnisprüfung und Punkteberechnung gelten für alle drei Anbieter.
 
 ## Ziele
 FitRocket soll unabhängig von externen Diätprogrammen bleiben. Die KI erstellt Vorschläge und Schätzungen, während **FitRocket die Punkte ausschließlich lokal anhand der FitRocketMath-Formel berechnet**.

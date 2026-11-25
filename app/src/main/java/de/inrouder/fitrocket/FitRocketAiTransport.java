@@ -6,8 +6,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** Bounded retries for explicit Gemini HTTP failures only. No raw errors, keys or prompts are logged. */
-final class FitRocketGeminiTransport {
+/** Shared bounded HTTP transport. Provider credentials never cross endpoints or redirects. */
+final class FitRocketAiTransport {
     static final int MAX_ATTEMPTS=3;
     static final long BUDGET_MS=120000,MAX_WAIT_MS=15000;
     interface Control {
@@ -23,9 +23,9 @@ final class FitRocketGeminiTransport {
     }
     static final class HttpFailure extends IOException {
         final int status,attempts;
-        HttpFailure(int status,int attempts){super("Gemini HTTP "+status);this.status=status;this.attempts=attempts;}
+        HttpFailure(int status,int attempts){super("KI HTTP "+status);this.status=status;this.attempts=attempts;}
     }
-    static final class Cancelled extends IOException {Cancelled(){super("Gemini-Anfrage abgebrochen.");}}
+    static final class Cancelled extends IOException {Cancelled(){super("KI-Anfrage abgebrochen.");}}
     private static final Environment LIVE=new Environment(){
         public HttpURLConnection open(URL url)throws IOException{return (HttpURLConnection)url.openConnection();}
         public long elapsed(){return System.nanoTime()/1000000L;}
@@ -33,9 +33,9 @@ final class FitRocketGeminiTransport {
         public long jitter(){return ThreadLocalRandom.current().nextLong(751);}
         public void sleep(long millis)throws InterruptedException{Thread.sleep(millis);}
     };
-    private FitRocketGeminiTransport(){}
+    private FitRocketAiTransport(){}
     static boolean retryable(int status){return status==500||status==502||status==503||status==504;}
-    /** -1 means Google's requested wait exceeds our foreground retry window. */
+    /** -1 means The provider's requested wait exceeds our foreground retry window. */
     static long waitMillis(int failedAttempt,String retryAfter,long now,long jitter){
         long minimum=0;
         if(retryAfter!=null&&!retryAfter.trim().isEmpty()){
@@ -56,10 +56,19 @@ final class FitRocketGeminiTransport {
         return post(url,key,body,control,LIVE);
     }
     static byte[] post(URL url,String key,byte[] body,Control control,Environment env)throws IOException,InterruptedException {
+        return post(url,key,body,control,env,false);
+    }
+    static byte[] postGroq(String key,byte[] body,Control control)throws IOException,InterruptedException {
+        return postGroq(key,body,control,LIVE);
+    }
+    static byte[] postGroq(String key,byte[] body,Control control,Environment env)throws IOException,InterruptedException {
+        return post(new URL("https://api.groq.com/openai/v1/chat/completions"),key,body,control,env,true);
+    }
+    private static byte[] post(URL url,String key,byte[] body,Control control,Environment env,boolean groq)throws IOException,InterruptedException {
         if(body==null||body.length>90000)throw new IllegalArgumentException("KI-Anfrage zu umfangreich.");
         long deadline=env.elapsed()+BUDGET_MS;
         for(int attempt=1;attempt<=MAX_ATTEMPTS;attempt++){
-            check(control);Response response=send(url,key,body,control,env,deadline);
+            check(control);Response response=send(url,key,body,control,env,deadline,groq);
             check(control);
             if(response.status==200)return response.body;
             long wait=waitMillis(attempt,response.retryAfter,env.wallTime(),env.jitter());
@@ -69,7 +78,7 @@ final class FitRocketGeminiTransport {
             long until=env.elapsed()+wait;
             while(env.elapsed()<until){check(control);env.sleep(Math.min(100,until-env.elapsed()));}
         }
-        throw new IllegalStateException("Gemini-Wiederholungslimit.");
+        throw new IllegalStateException("KI-Wiederholungslimit.");
     }
     private static final class Response {
         final int status;final byte[] body;final String retryAfter;
@@ -80,17 +89,19 @@ final class FitRocketGeminiTransport {
     }
     private static int timeout(Environment env,long deadline,int cap)throws SocketTimeoutException {
         long remaining=deadline-env.elapsed();
-        if(remaining<=0)throw new SocketTimeoutException("Gemini-Zeitbudget erreicht.");
+        if(remaining<=0)throw new SocketTimeoutException("KI-Zeitbudget erreicht.");
         return (int)Math.min(cap,remaining);
     }
-    private static Response send(URL url,String key,byte[] body,Control control,Environment env,long deadline)throws IOException {
+    private static Response send(URL url,String key,byte[] body,Control control,Environment env,long deadline,boolean groq)throws IOException {
         HttpURLConnection connection=env.open(url);
         try{
             check(control);connection.setInstanceFollowRedirects(false);connection.setRequestMethod("POST");
             connection.setConnectTimeout(timeout(env,deadline,15000));
             connection.setReadTimeout(timeout(env,deadline,90000));connection.setDoOutput(true);
             connection.setRequestProperty("Content-Type","application/json; charset=utf-8");
-            connection.setRequestProperty("Accept","application/json");connection.setRequestProperty("x-goog-api-key",key);
+            connection.setRequestProperty("Accept","application/json");
+            if(groq)connection.setRequestProperty("Authorization","Bearer "+key);
+            else connection.setRequestProperty("x-goog-api-key",key);
             connection.setRequestProperty("User-Agent","FitRocket-Android");connection.setFixedLengthStreamingMode(body.length);
             try(OutputStream stream=connection.getOutputStream()){check(control);stream.write(body);}
             check(control);connection.setReadTimeout(timeout(env,deadline,90000));

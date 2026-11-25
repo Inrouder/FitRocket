@@ -48,6 +48,14 @@ public class FitRocketAiSecretsTest {
             FitRocketAiSecrets.OPENAI, synthetic));
     }
 
+    @Test public void groqKeyIsValidatedSeparatelyAndPasteWhitespaceIsTrimmed(){
+        String key="gsk_"+"XyZ0123456789".repeat(3);
+        assertEquals(key,FitRocketAiSecrets.validateKey(FitRocketAiSecrets.GROQ," "+key+"\n"));
+        for(String invalid:new String[]{"sk-"+"x".repeat(30),"gsk_short",key+"\r\nX: injected",key+" space"}){
+            try{FitRocketAiSecrets.validateKey(FitRocketAiSecrets.GROQ,invalid);fail();}catch(IllegalArgumentException expected){}
+        }
+    }
+
     @Test(expected=IllegalArgumentException.class)
     public void rejectsUnknownProvider() {
         FitRocketAiSecrets.validateKey("unexpected", "AQ." + "x".repeat(33));

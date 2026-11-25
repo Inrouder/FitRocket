@@ -1225,20 +1225,21 @@ public class MainActivity extends Activity {
 
   private String selectedAiProvider(){
     String p=prefs.getString("aiProvider",FitRocketAiSecrets.GEMINI);
-    return FitRocketAiSecrets.OPENAI.equals(p)?FitRocketAiSecrets.OPENAI:FitRocketAiSecrets.GEMINI;
+    return FitRocketAiSecrets.GROQ.equals(p)?FitRocketAiSecrets.GROQ:
+        FitRocketAiSecrets.OPENAI.equals(p)?FitRocketAiSecrets.OPENAI:FitRocketAiSecrets.GEMINI;
   }
 
   private String selectedAiProviderName(){
-    return FitRocketAiSecrets.GEMINI.equals(selectedAiProvider())?"Google Gemini":"OpenAI";
+    return FitRocketAiSecrets.name(selectedAiProvider());
   }
 
   private void selectAiProvider(){
-    String[] options={"Google Gemini (kostenloses Kontingent)","OpenAI (optional)"};
-    int current=FitRocketAiSecrets.GEMINI.equals(selectedAiProvider())?0:1;
+    String[] options={"Google Gemini (kostenloses Kontingent)","Groq (kostenloser Free Plan)","OpenAI (kostenpflichtig)"};
+    String[] providers={FitRocketAiSecrets.GEMINI,FitRocketAiSecrets.GROQ,FitRocketAiSecrets.OPENAI};
+    int current=FitRocketAiSecrets.GEMINI.equals(selectedAiProvider())?0:FitRocketAiSecrets.GROQ.equals(selectedAiProvider())?1:2;
     new AlertDialog.Builder(this).setTitle("KI-Anbieter auswählen")
       .setSingleChoiceItems(options,current,(d,index)->{
-        prefs.edit().putString("aiProvider",index==0
-            ?FitRocketAiSecrets.GEMINI:FitRocketAiSecrets.OPENAI).apply();
+        prefs.edit().putString("aiProvider",providers[index]).apply();
         d.dismiss();aiHub();
       }).setNegativeButton("Abbrechen",null).show();
   }
@@ -1295,6 +1296,30 @@ public class MainActivity extends Activity {
       connection.addView(label("Hinweis: Google kann Eingaben der kostenlosen "
         +"API-Stufe zur Verbesserung seiner Produkte verwenden. "
         +"Bitte keine vertraulichen Gesundheitsinformationen eingeben.",12));
+      connection.addView(label("Groq als Reserve: Wenn Gemini nach seinen Wiederholungen einen Serverfehler meldet, "
+          +"kann dieselbe Beschreibung mit Vorlieben und Kataloghinweisen an Groq gesendet werden. "
+          +"Nur nach Aktivierung; kein Wechsel bei Schlüssel-/Kontingentfehlern oder Netzwerkabbrüchen.",13));
+      CheckBox fallback=new CheckBox(this);
+      fallback.setText("Bei Gemini-Ausfall automatisch Groq verwenden");fallback.setTextColor(ink());
+      fallback.setChecked(prefs.getBoolean(FitRocketAiFallback.KEY,false));
+      fallback.setOnCheckedChangeListener((button,checked)->{
+        if(checked&&!FitRocketAiSecrets.configured(this,FitRocketAiSecrets.GROQ)){
+          button.setChecked(false);msg("Bitte zuerst den Groq-Schlüssel über „Groq-Reserve einrichten“ speichern.");return;
+        }
+        prefs.edit().putBoolean(FitRocketAiFallback.KEY,checked).apply();
+      });connection.addView(fallback);
+      action(connection,"Groq-Reserve einrichten",()->aiKeyDialog(FitRocketAiSecrets.GROQ));
+      connection.addView(label("Reserve-Modell: "+FitRocketGroqApi.safeModel(prefs.getString("groqModel",FitRocketGroqApi.DEFAULT_MODEL))
+          +". Groq-Free-Plan-Limits gelten auch für die Reserve. Im bezahlten Groq-Tarif können Kosten entstehen.",12));
+    }else if(FitRocketAiSecrets.GROQ.equals(provider)){
+      connection.addView(label("Groq führt offene KI-Modelle aus und ist ein eigener Anbieter, unabhängig von Gemini. "
+          +"Du kannst damit Rezepte, Mahlzeiten und Produkte wie gewohnt einschätzen lassen.",14));
+      connection.addView(label("Modell: "+FitRocketGroqApi.safeModel(prefs.getString("groqModel",FitRocketGroqApi.DEFAULT_MODEL)),13));
+      action(connection,"Groq-Modell auswählen",()->selectGroqModel());
+      connection.addView(label("Kostenlos innerhalb der aktuellen Free-Plan-Limits. Keine unbegrenzte Nutzung oder garantierte Verfügbarkeit. "
+          +"Ein aktivierter bezahlter Groq-Tarif kann Kosten verursachen; FitRocket steuert deinen Tarif nicht.",12));
+      connection.addView(label("Anfragen werden von Groq verarbeitet. Bitte keine vertraulichen Gesundheitsdetails eingeben. "
+          +"Aufbewahrung lässt sich unter Groq Console → Data Controls einstellen.",12));
     }
     connection.addView(label(FitRocketAiSecrets.configured(this,provider)
         ?"Ein persönlicher "+selectedAiProviderName()+"-API-Schlüssel ist verschlüsselt gespeichert."
@@ -1328,11 +1353,25 @@ public class MainActivity extends Activity {
   }
 
   private void aiKeyDialog(){
-    String provider=selectedAiProvider();
+    aiKeyDialog(selectedAiProvider());
+  }
+
+  private void selectGroqModel(){
+    String[] models={FitRocketGroqApi.MODEL_SMALL,FitRocketGroqApi.MODEL_LARGE};
+    int selected=FitRocketGroqApi.MODEL_LARGE.equals(FitRocketGroqApi.safeModel(prefs.getString("groqModel",FitRocketGroqApi.DEFAULT_MODEL)))?1:0;
+    new AlertDialog.Builder(this).setTitle("Groq-Modell")
+      .setSingleChoiceItems(new String[]{"GPT-OSS 20B · Standard","GPT-OSS 120B · größeres Modell"},selected,(d,index)->{
+        prefs.edit().putString("groqModel",models[index]).apply();d.dismiss();aiHub();
+      }).setNegativeButton("Abbrechen",null).show();
+  }
+
+  private void aiKeyDialog(String provider){
+    String providerName=FitRocketAiSecrets.name(provider);
     boolean gemini=FitRocketAiSecrets.GEMINI.equals(provider);
+    boolean groq=FitRocketAiSecrets.GROQ.equals(provider);
     LinearLayout content=new LinearLayout(this);content.setOrientation(1);
     content.setPadding(dp(18),dp(10),dp(18),dp(10));
-    content.addView(label("Dein "+selectedAiProviderName()+"-API-Schlüssel",17));
+    content.addView(label("Dein "+providerName+"-API-Schlüssel",17));
     if(gemini){
       content.addView(label("Einen Gemini-Schlüssel kostenlos in Google AI Studio erzeugen: "
           +"aistudio.google.com/apikey. Kostenlose API-Limits sind begrenzt "
@@ -1345,6 +1384,18 @@ public class MainActivity extends Activity {
       });content.addView(link);
       content.addView(label("Auf der kostenlosen API-Stufe können Inhalte von Google "
           +"zur Verbesserung seiner Produkte verwendet werden.",12));
+    }else if(groq){
+      content.addView(label("1. In der Groq Console anmelden oder ein Konto erstellen.\n"
+          +"2. Unter API Keys einen neuen Schlüssel erzeugen und kopieren.\n"
+          +"3. Hier einfügen und speichern. Für kostenlose Nutzung im Free Plan bleiben; Limits stehen unter Limits. "
+          +"Bezahlte Tarife können Kosten verursachen.",13));
+      Button link=button("🌐 Groq Console öffnen");
+      link.setOnClickListener(v->{
+        try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://console.groq.com/keys")));}
+        catch(Exception error){msg("Bitte https://console.groq.com/keys im Browser öffnen.");}
+      });content.addView(link);
+      content.addView(label("Groq verarbeitet deine Anfrage. Datenschutz und Aufbewahrung kannst du in der Console unter Data Controls prüfen. "
+          +"Der Schlüssel ist unabhängig von Gemini und OpenAI.",12));
     }else{
       content.addView(label("OpenAI-Schlüssel unter platform.openai.com/api-keys. "
          +"OpenAI-API-Nutzung wird unabhängig von ChatGPT abgerechnet.",13));
@@ -1352,7 +1403,7 @@ public class MainActivity extends Activity {
     content.addView(label("Der Schlüssel wird im Android Keystore verschlüsselt und "
        +"nie in GitHub oder in Backups gespeichert. "
        +"Für öffentlich verteilte Apps wäre ein abgesicherter Server besser.",12));
-    EditText e=edit(gemini?"Gemini API-Key (auch neue Auth-Schlüssel)":"sk-…", "",
+    EditText e=edit(gemini?"Gemini API-Key (auch neue Auth-Schlüssel)":groq?"Groq API-Key (gsk_…)":"sk-…", "",
         android.text.InputType.TYPE_CLASS_TEXT |
         android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
     e.setSingleLine(true);
@@ -1365,23 +1416,25 @@ public class MainActivity extends Activity {
     content.addView(label(FitRocketAiSecrets.configured(this,provider)
       ?"Ein Schlüssel für diesen Anbieter ist vorhanden. Du kannst ihn ersetzen."
       :"Noch kein Schlüssel für diesen Anbieter gespeichert.",13));
-    AlertDialog dialog=new AlertDialog.Builder(this).setTitle(selectedAiProviderName()+" einrichten")
-        .setView(content).setPositiveButton("Speichern",null)
+    ScrollView keyScroll=new ScrollView(this);keyScroll.addView(content);
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle(providerName+" einrichten")
+        .setView(keyScroll).setPositiveButton("Speichern",null)
         .setNeutralButton("Schlüssel löschen",null).setNegativeButton("Abbrechen",null).create();
     dialog.setOnShowListener(v->{
       dialog.getButton(-1).setOnClickListener(btn->{
         try{
           FitRocketAiSecrets.set(this,provider,e.getText().toString().trim());
-          e.setText("");dialog.dismiss();msg(selectedAiProviderName()+"-Schlüssel gespeichert.");
+          e.setText("");dialog.dismiss();msg(providerName+"-Schlüssel gespeichert.");
           aiHub();
         }catch(Exception error){msg("Speichern fehlgeschlagen: "+error.getMessage());}
       });
       dialog.getButton(-3).setOnClickListener(btn->
         new AlertDialog.Builder(this).setTitle("Schlüssel entfernen?")
-          .setMessage("Nur der "+(gemini?"Gemini":"OpenAI")+"-Schlüssel wird gelöscht. "
+          .setMessage("Nur der "+providerName+"-Schlüssel wird gelöscht. "
              +"Rezepte, Vorlieben und Lebensmittel bleiben erhalten.")
           .setPositiveButton("Entfernen",(d,w)->{
             FitRocketAiSecrets.clear(this,provider);
+            if(groq)prefs.edit().putBoolean(FitRocketAiFallback.KEY,false).apply();
             e.setText("");dialog.dismiss();aiHub();
           }).setNegativeButton("Abbrechen",null).show());
     });
@@ -1416,6 +1469,8 @@ public class MainActivity extends Activity {
     }
     card.addView(label("KI: "+selectedAiProviderName()
       +" · Vorschläge und Nährwerte sind Schätzungen.",13));
+    if(FitRocketAiSecrets.GEMINI.equals(selectedAiProvider())&&prefs.getBoolean(FitRocketAiFallback.KEY,false))
+      card.addView(label("Groq-Reserve aktiviert: Bei Gemini-Serverfehlern wird dieselbe Anfrage auch an Groq gesendet.",12));
     card.addView(label("Du prüfst alle geschätzten Mengen und Nährwerte, bevor etwas "
       +"in deinem Tagebuch oder Lebensmittelkatalog gespeichert wird.",12));
     action(card,"✨ Vorschlag mit KI erstellen",()->aiSubmit(mode,input.getText().toString()));
@@ -1451,17 +1506,23 @@ public class MainActivity extends Activity {
        .setNegativeButton("Abbrechen",(d,w)->{})
        .create();
     final java.util.concurrent.atomic.AtomicBoolean active=new java.util.concurrent.atomic.AtomicBoolean(true);
+    final String[] runningProvider={selectedAiProviderName()};
     loading.setOnDismissListener(d->active.set(false));
     loading.show();
     FitRocketAiService.request(this,mode,prompt,preferences,foods,
       new FitRocketAiService.Callback(){
         @Override public boolean isCancelled(){return !active.get()||isFinishing()||isDestroyed();}
         @Override public void onRetry(int attempt,int maximum,long waitMillis){
-          if(!isCancelled())loading.setMessage("Vorübergehender Fehler bei Google Gemini. Die Anfrage wird nach kurzer Pause erneut versucht (Versuch "+attempt+" von "+maximum+"). Du kannst die Anfrage abbrechen.");
+          if(!isCancelled())loading.setMessage("Vorübergehender Fehler bei "+runningProvider[0]+". Die Anfrage wird nach kurzer Pause erneut versucht (Versuch "+attempt+" von "+maximum+"). Du kannst die Anfrage abbrechen.");
+        }
+        @Override public void onProviderFallback(){
+          if(isCancelled())return;
+          runningProvider[0]="Groq";loading.setTitle("✨ Groq erstellt Vorschlag");
+          loading.setMessage("Gemini ist derzeit nicht verfügbar. Die aktivierte Groq-Reserve bearbeitet dieselbe Anfrage. Du kannst abbrechen.");
         }
         @Override public void onSuccess(JSONObject result){
           boolean current=active.get();loading.dismiss();
-          if(current)aiReview(mode,result);
+          if(current){if("Groq".equals(runningProvider[0]))msg("Vorschlag von Groq – bitte Zutaten und Nährwerte prüfen.");aiReview(mode,result);}
         }
         @Override public void onFailure(String message){
           boolean current=active.get();loading.dismiss();

@@ -1,5 +1,14 @@
 # FitRocket – Versionshinweise
 
+## 0.18.5 – Groq als KI-Alternative und optionale Gemini-Reserve
+
+- Groq als eigener Anbieter mit GPT-OSS 20B (Standard) und 120B, getrennt verschlüsseltem Schlüssel, Anleitung und direktem Link zur Groq Console.
+- Kostenlose Nutzung nur im Groq Free Plan innerhalb dessen Limits; keine Tarif- oder Verfügbarkeitsgarantie. Im aktivierten bezahlten Tarif können Kosten entstehen.
+- Optionaler Wechsel von Gemini zu Groq nach ausdrücklichen Serverfehlern; standardmäßig aus, eigener Groq-Schlüssel erforderlich. Dieselbe aktuelle Anfrage wird an Groq übertragen. Kein Wechsel bei Kontingent-/Schlüsselfehlern, ungültigen Antworten oder unklaren Netzwerkabbrüchen, keine Schleife zurück.
+- Gemeinsamer zeit-/größenbegrenzter Transport mit Wiederholungen, Abbruch, Retry-After und gesperrten Redirects. Strukturierte Antworten durchlaufen dieselbe lokale Nährwertprüfung und Punkteberechnung.
+- Keine Änderung an Ernährungsdaten, Backup-Schema oder bestehenden Schlüsseln. Neue lokale Anbieter-/Reserve-Einstellungen werden wie bisherige Verbindungsdaten nicht exportiert.
+- [Einrichtung und technische Details](docs/GROQ.md).
+
 ## 0.18.4 – Gemini-503-Ausfälle besser abfangen
 
 - Vorübergehende Gemini-Serverfehler (500/502/503/504) werden mit Wartepausen höchstens zweimal wiederholt, insgesamt maximal drei Versuche am gewählten Modell.

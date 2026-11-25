@@ -1,3 +1,9 @@
+# Aktuelle Version: FitRocket v0.18.5
+
+Groq als zusätzlicher KI-Anbieter mit Einrichtungsanleitung und optionaler Gemini-Reserve. [Aktuelle Release-Notizen](releases/v0.18.5.md) · [Einrichtung und Grenzen](GROQ.md).
+
+Die folgenden Abschnitte dokumentieren das historische Release 0.18.0.
+
 # FitRocket v0.18.0 – Pixel-Pet & Fastenziel-Erinnerungen
 
 ## Dein neuer Pixel-Begleiter
