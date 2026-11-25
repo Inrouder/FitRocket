@@ -17,7 +17,14 @@
 | [Signierung](docs/SIGNING.md) | Release-Keystore, GitHub Actions und Update-Kompatibilität |
 | [Versionshistorie](CHANGELOG.md) | Bisherige Änderungen und Entwicklungsschritte |
 
-**Aktueller Quellcode:** v0.18.3. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+**Aktueller Quellcode:** v0.18.4. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+
+## FitRocket v0.18.4 – Gemini bei kurzen Ausfällen erneut versuchen
+
+- Vorübergehende Gemini-Serverfehler werden mit kurzen Pausen bis zu dreimal versucht. Googles Wartehinweise werden beachtet.
+- Der Ladedialog zeigt die Wiederholung. Abbrechen stoppt weitere Versuche; anhaltende Fehler nennen Modell und HTTP-Code.
+- Das gewählte Modell bleibt erhalten. Eine dauerhaft überlastete Google-API kann das Update nicht beheben.
+- [Befund und Grenzen](docs/GEMINI_AVAILABILITY.md) · [Release-Notizen](docs/releases/v0.18.4.md).
 
 ## FitRocket v0.18.3 – ZeroPoints-Korrektur
 

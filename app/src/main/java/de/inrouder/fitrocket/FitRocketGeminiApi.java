@@ -6,8 +6,8 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
+import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -138,14 +138,16 @@ public final class FitRocketGeminiApi {
             return "Google findet das ausgewählte Gemini-Modell nicht oder erlaubt diesem "
                 + "Projekt keinen Zugriff (HTTP 404). FitRocket nutzt Gemini 3.5 Flash-Lite "
                 + "bzw. 3.8 Flash. Bitte die Modellauswahl in den KI-Einstellungen prüfen.";
-        if (status == 429 || code.contains("RESOURCE_EXHAUSTED") || code.contains("quota")) {
+        if (status == 429 || (status < 500 && (code.contains("RESOURCE_EXHAUSTED") || code.contains("quota")))) {
             return "Gemini-Kontingent oder Anfragelimit erreicht (429). "
                 + "Das kostenlose Kontingent kann vorübergehend erschöpft sein. "
                 + "Prüfe die Limits in Google AI Studio und versuche es später erneut.";
         }
-        if (status == 500 || status == 502 || status == 503 || status == 504)
-            return "Gemini ist vorübergehend nicht erreichbar (HTTP " + status + "). "
-                + "Bitte später erneut versuchen.";
+        if (status == 503)
+            return "Google Gemini ist vorübergehend überlastet oder nicht verfügbar (HTTP 503). "
+                + "Bitte später erneut versuchen. Kontingentfehler werden normalerweise als HTTP 429 gemeldet.";
+        if (status == 500 || status == 502 || status == 504)
+            return "Google Gemini meldet einen vorübergehenden Serverfehler (HTTP " + status + "). Bitte später erneut versuchen.";
         return "Gemini hat nicht geantwortet (HTTP " + status + ").";
     }
 
@@ -153,52 +155,49 @@ public final class FitRocketGeminiApi {
                                String preferences, List<JSONObject> foods,
                                FitRocketAiService.Callback callback) {
         new Thread(() -> {
-            HttpURLConnection connection = null;
+            String model=safeModel(activity.getSharedPreferences("fitrocket",Activity.MODE_PRIVATE)
+                .getString("geminiModel",DEFAULT_MODEL));
             try {
+                if(callback.isCancelled())return;
                 String key = FitRocketAiSecrets.get(activity, FitRocketAiSecrets.GEMINI);
                 if (key == null || key.isEmpty())
                     throw new IllegalArgumentException(
                         "Bitte einen Gemini-API-Schlüssel unter KI-Einstellungen hinterlegen.");
-                String model = safeModel(activity.getSharedPreferences("fitrocket",
-                    Activity.MODE_PRIVATE).getString("geminiModel", DEFAULT_MODEL));
                 JSONObject body = buildRequest(mode, prompt, preferences, foods, schema(activity));
                 byte[] bytes = body.toString().getBytes(StandardCharsets.UTF_8);
                 if (bytes.length > 90000)
                     throw new IllegalArgumentException("KI-Anfrage zu umfangreich.");
 
                 URL url = new URL(BASE_URL + model + ":generateContent");
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("POST");
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(90000);
-                connection.setDoOutput(true);
-                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-                connection.setRequestProperty("Accept", "application/json");
-                connection.setRequestProperty("x-goog-api-key", key);
-                connection.setRequestProperty("User-Agent", "FitRocket/0.11.0");
-                connection.setFixedLengthStreamingMode(bytes.length);
-                try (OutputStream stream = connection.getOutputStream()) {
-                    stream.write(bytes);
-                }
-
-                int status = connection.getResponseCode();
-                if (status != 200) {
-                    // Never show raw server responses: they may echo sensitive input.
-                    throw new IllegalStateException(errorMessage(status, ""));
-                }
-                String json = new String(readLimited(connection.getInputStream(), 350000),
-                    StandardCharsets.UTF_8);
+                byte[] response=FitRocketGeminiTransport.post(url,key,bytes,new FitRocketGeminiTransport.Control(){
+                    public boolean cancelled(){return callback.isCancelled();}
+                    public void retrying(int attempt,int maximum,long waitMillis){
+                        activity.runOnUiThread(()->{if(!callback.isCancelled())callback.onRetry(attempt,maximum,waitMillis);});
+                    }
+                });
+                String json=new String(response,StandardCharsets.UTF_8);
                 JSONObject reply = FitRocketAiRules.validateResponse(
                     new JSONObject(responseJson(new JSONObject(json))), mode);
-                activity.runOnUiThread(() -> callback.onSuccess(reply));
+                activity.runOnUiThread(() -> {if(!callback.isCancelled())callback.onSuccess(reply);});
+            } catch (FitRocketGeminiTransport.Cancelled cancelled) {
+                // The UI was closed: do not retry or display a late response.
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
             } catch (Exception exception) {
-                String reason = exception.getMessage() == null
-                    ? "Verbindungsproblem beim Gemini-Dienst." : exception.getMessage();
-                if (reason.length() > 240) reason = reason.substring(0, 240);
+                String reason;
+                if(exception instanceof FitRocketGeminiTransport.HttpFailure){
+                    FitRocketGeminiTransport.HttpFailure failure=(FitRocketGeminiTransport.HttpFailure)exception;
+                    reason=errorMessage(failure.status,"")+"\nModell: "+model+" · Versuche: "+failure.attempts;
+                }else if(exception instanceof SocketTimeoutException)
+                    reason="Gemini hat nicht rechtzeitig geantwortet. Bitte später erneut versuchen.";
+                else if(exception instanceof IOException)
+                    reason="Die Verbindung zu Google Gemini ist fehlgeschlagen. Bitte Internetverbindung prüfen und später erneut versuchen.";
+                else if(exception instanceof org.json.JSONException)
+                    reason="Gemini hat keine lesbare, vollständige Antwort geliefert. Bitte erneut versuchen.";
+                else reason=exception.getMessage()==null?"Verbindungsproblem beim Gemini-Dienst.":exception.getMessage();
+                if (reason.length() > 500) reason = reason.substring(0, 500);
                 String finalReason = reason;
-                activity.runOnUiThread(() -> callback.onFailure(finalReason));
-            } finally {
-                if (connection != null) connection.disconnect();
+                activity.runOnUiThread(() -> {if(!callback.isCancelled())callback.onFailure(finalReason);});
             }
         }, "FitRocket-Gemini-Request").start();
     }

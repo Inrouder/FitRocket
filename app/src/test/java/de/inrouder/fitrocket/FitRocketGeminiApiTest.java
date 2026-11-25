@@ -107,4 +107,10 @@ public class FitRocketGeminiApiTest {
         assertFalse(message.contains("Guthaben aufladen"));
         assertTrue(FitRocketGeminiApi.errorMessage(403, "").contains("Schlüssel"));
     }
+    @Test public void unavailableIsReportedAsProviderOverloadNotQuotaOrInvalidKey(){
+        String message=FitRocketGeminiApi.errorMessage(503,"quota text must not override HTTP status");
+        assertTrue(message.contains("503"));assertTrue(message.contains("überlastet"));
+        assertFalse(message.contains("Schlüssel ungültig"));assertFalse(message.contains("Kontingent oder Anfragelimit erreicht"));
+    }
+
 }
