@@ -45,7 +45,14 @@ public class FitRocketGroqFlowTest {
             View found=find(((ViewGroup)view).getChildAt(i),text);if(found!=null)return found;
         }return null;
     }
-    private void click(View view,String text){View found=find(view,text);assertNotNull(text,found);assertTrue(found.performClick());idle();}
+    private void click(View view,String text){
+        View found=find(view,text);assertNotNull(text,found);
+        while(found!=null){
+            if(found.isClickable()&&found.hasOnClickListeners()){assertTrue(found.performClick());idle();return;}
+            found=found.getParent() instanceof View?(View)found.getParent():null;
+        }
+        fail("No clickable control: "+text);
+    }
     private AlertDialog dialog(){idle();return ShadowAlertDialog.getLatestAlertDialog();}
     private EditText input(View view){
         if(view instanceof EditText)return (EditText)view;
