@@ -169,7 +169,7 @@ public final class FitRocketGeminiApi {
                     throw new IllegalArgumentException("KI-Anfrage zu umfangreich.");
 
                 URL url = new URL(BASE_URL + model + ":generateContent");
-                byte[] response=FitRocketGeminiTransport.post(url,key,bytes,new FitRocketGeminiTransport.Control(){
+                byte[] response=FitRocketAiTransport.post(url,key,bytes,new FitRocketAiTransport.Control(){
                     public boolean cancelled(){return callback.isCancelled();}
                     public void retrying(int attempt,int maximum,long waitMillis){
                         activity.runOnUiThread(()->{if(!callback.isCancelled())callback.onRetry(attempt,maximum,waitMillis);});
@@ -179,14 +179,14 @@ public final class FitRocketGeminiApi {
                 JSONObject reply = FitRocketAiRules.validateResponse(
                     new JSONObject(responseJson(new JSONObject(json))), mode);
                 activity.runOnUiThread(() -> {if(!callback.isCancelled())callback.onSuccess(reply);});
-            } catch (FitRocketGeminiTransport.Cancelled cancelled) {
+            } catch (FitRocketAiTransport.Cancelled cancelled) {
                 // The UI was closed: do not retry or display a late response.
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
             } catch (Exception exception) {
                 String reason;
-                if(exception instanceof FitRocketGeminiTransport.HttpFailure){
-                    FitRocketGeminiTransport.HttpFailure failure=(FitRocketGeminiTransport.HttpFailure)exception;
+                if(exception instanceof FitRocketAiTransport.HttpFailure){
+                    FitRocketAiTransport.HttpFailure failure=(FitRocketAiTransport.HttpFailure)exception;
                     reason=errorMessage(failure.status,"")+"\nModell: "+model+" · Versuche: "+failure.attempts;
                 }else if(exception instanceof SocketTimeoutException)
                     reason="Gemini hat nicht rechtzeitig geantwortet. Bitte später erneut versuchen.";
@@ -197,7 +197,14 @@ public final class FitRocketGeminiApi {
                 else reason=exception.getMessage()==null?"Verbindungsproblem beim Gemini-Dienst.":exception.getMessage();
                 if (reason.length() > 500) reason = reason.substring(0, 500);
                 String finalReason = reason;
-                activity.runOnUiThread(() -> {if(!callback.isCancelled())callback.onFailure(finalReason);});
+                boolean unavailable=exception instanceof FitRocketAiTransport.HttpFailure
+                    &&FitRocketAiTransport.retryable(((FitRocketAiTransport.HttpFailure)exception).status);
+                activity.runOnUiThread(() -> {
+                    if(!callback.isCancelled()){
+                        if(unavailable)callback.onUnavailable(finalReason);
+                        else callback.onFailure(finalReason);
+                    }
+                });
             }
         }, "FitRocket-Gemini-Request").start();
     }

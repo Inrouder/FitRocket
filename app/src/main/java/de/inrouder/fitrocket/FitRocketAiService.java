@@ -31,6 +31,8 @@ public final class FitRocketAiService {
         void onFailure(String message);
         default boolean isCancelled(){return false;}
         default void onRetry(int attempt,int maximum,long waitMillis){}
+        default void onUnavailable(String message){onFailure(message);}
+        default void onProviderFallback(){}
     }
 
     private static byte[] readLimited(InputStream stream,int limit) throws Exception {
@@ -148,12 +150,15 @@ public final class FitRocketAiService {
             +"Bei Markennamen ausdrücklich sagen, dass Etikettwerte genauer sind.";
     }
 
+    static JSONObject schema(Activity activity)throws Exception {
+        try(InputStream in=activity.getAssets().open("ai_result_schema.json")){
+            return new JSONObject(new String(readLimited(in,50000),StandardCharsets.UTF_8));
+        }
+    }
+
     private static JSONObject requestBody(Activity activity,String mode,String prompt,
                                           String preferences,List<JSONObject> foods) throws Exception {
-        JSONObject schema;
-        try(InputStream in=activity.getAssets().open("ai_result_schema.json")){
-            schema=new JSONObject(new String(readLimited(in,50000),StandardCharsets.UTF_8));
-        }
+        JSONObject schema=schema(activity);
         JSONObject format=new JSONObject()
             .put("type","json_schema").put("name","fitrocket_cooking").put("strict",true)
             .put("schema",schema);
@@ -184,11 +189,24 @@ public final class FitRocketAiService {
             callback.onFailure("Die Vorlieben dürfen höchstens 500 Zeichen enthalten.");return;
         }
         // Gemini is the default from v0.11.0; OpenAI remains available with its old key.
-        String provider=activity.getSharedPreferences("fitrocket",Activity.MODE_PRIVATE)
+        android.content.SharedPreferences settings=activity.getSharedPreferences("fitrocket",Activity.MODE_PRIVATE);
+        String provider=settings
             .getString("aiProvider",FitRocketAiSecrets.GEMINI);
+        final List<JSONObject> providerFoods=new ArrayList<>(foods);
+        final String providerPreferences=preferences;
+        if(FitRocketAiSecrets.GROQ.equals(provider)){
+            FitRocketGroqApi.request(activity,mode,prompt,preferences,providerFoods,callback);
+            return;
+        }
         if(FitRocketAiSecrets.GEMINI.equals(provider)){
+            Callback selected=callback;
+            if(settings.getBoolean(FitRocketAiFallback.KEY,false)
+                &&FitRocketAiSecrets.configured(activity,FitRocketAiSecrets.GROQ)){
+                selected=new FitRocketAiFallback(callback,()->FitRocketGroqApi.request(
+                    activity,mode,prompt,providerPreferences,providerFoods,callback));
+            }
             FitRocketGeminiApi.request(activity,mode,prompt,preferences,
-                new ArrayList<>(foods),callback);
+                providerFoods,selected);
             return;
         }
         if(!FitRocketAiSecrets.OPENAI.equals(provider)){

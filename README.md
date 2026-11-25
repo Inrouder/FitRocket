@@ -17,7 +17,14 @@
 | [Signierung](docs/SIGNING.md) | Release-Keystore, GitHub Actions und Update-Kompatibilität |
 | [Versionshistorie](CHANGELOG.md) | Bisherige Änderungen und Entwicklungsschritte |
 
-**Aktueller Quellcode:** v0.18.4. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+**Aktueller Quellcode:** v0.18.5. Frühere Versionsüberschriften in dieser README beschreiben historische Releases und sind kein Nachweis eines erfolgreichen neuen signierten Builds. Die technischen Dokumente sind Stand 28.10.2026.
+
+## FitRocket v0.18.5 – Groq als KI-Alternative
+
+- Unter **Profil → KI-Assistent → KI-Anbieter wechseln** jetzt **Groq** auswählen. Anleitung und Link zur Schlüsselerstellung sind direkt in der App.
+- Optional unter Gemini die **Groq-Reserve** aktivieren: Bei Serverfehlern dieselbe Anfrage durch Groq bearbeiten lassen.
+- Free-Plan-Limits gelten; bezahlte Groq-Tarife können Kosten verursachen. Punkte werden weiterhin lokal berechnet.
+- [Einrichtung](docs/GROQ.md) · [Release-Notizen](docs/releases/v0.18.5.md).
 
 ## FitRocket v0.18.4 – Gemini bei kurzen Ausfällen erneut versuchen
 
